@@ -25,4 +25,6 @@ to do:
 - SUPG and/or Lenardic & Kaula filter
 - nonlinear iterations
 - cvi for Q2 ? 
-- 
+- make hcond,hcapa nodal quantities
+- introduce tfinal
+ 

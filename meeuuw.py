@@ -8,6 +8,8 @@ from scipy import sparse
 from PoissonDisc import *
 from basis_functions import *
 from pic_functions import *
+from compute_strain_rate import *
+from compute_heat_flux import *
 
 ###############################################################################
 # constants
@@ -26,8 +28,9 @@ print("-----------------------------")
 # experiment 1: van Keken et al, JGR, 1997 - Rayleigh-Taylor experiment
 # experiment 2: Schmeling et al, PEPI 2008 - Newtonian subduction
 # experiment 3: Tosi et al, 2015           - visco-plastic convection
+###############################################################################
 
-experiment=1
+experiment=0
 
 match(experiment):
      case 0 | 3:
@@ -88,16 +91,16 @@ if int(len(sys.argv) == 4):
    nely  = int(sys.argv[2])
    nstep = int(sys.argv[3])
 else:
-   nelx=32
-   nely=32
-   nstep=100
+   nelx=48
+   nely=48
+   nstep=1000
 
 CFLnb=0.5
          
-every_vtu=1
+every_vtu=10
 
 RKorder=4
-nparticle_per_dim=5
+nparticle_per_dim=6
 particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc
 use_nodal_rho=True
 use_nodal_eta=True
@@ -130,10 +133,7 @@ EBA=False
 debug_ascii=False
 debug_nan=False
 
-###############################################################################
-
-t01=0 ; t02=0 ; t03=0 ; t04=0 ; t05=0 ; t06=0 ; t14=0 ; t15=0
-t07=0 ; t08=0 ; t09=0 ; t10=0 ; t11=0 ; t12=0 ; t13=0 ; t16=0
+timings=np.zeros(17)
 
 ###############################################################################
 # quadrature rule points and weights
@@ -587,8 +587,8 @@ swarm_v=np.zeros(nparticle,dtype=np.float64)
 swarm_active=np.zeros(nparticle,dtype=bool) ; swarm_active[:]=True
 
 print("     -> nparticle %d " % nparticle)
-print("     -> swarm_x (m,M) %.4f %.4f " %(np.min(swarm_x),np.max(swarm_x)))
-print("     -> swarm_y (m,M) %.4f %.4f " %(np.min(swarm_y),np.max(swarm_y)))
+print("     -> swarm_x (m,M) %.3e %.3e " %(np.min(swarm_x),np.max(swarm_x)))
+print("     -> swarm_y (m,M) %.3e %.3e " %(np.min(swarm_y),np.max(swarm_y)))
 
 print("particles setup: %.3f s" % (clock.time()-start))
 
@@ -633,7 +633,7 @@ match(experiment):
      case _ :
          exit('mat - unknown experiment')  
 
-print("     -> swarm_mat (m,M) %e %e " %(np.min(swarm_mat),np.max(swarm_mat)))
+print("     -> swarm_mat (m,M) %.3e %.3e " %(np.min(swarm_mat),np.max(swarm_mat)))
 
 print("particle layout: %.3f s" % (clock.time()-start))
 
@@ -648,9 +648,9 @@ C=np.array([[2,0,0],[0,2,0],[0,0,1]],dtype=np.float64)
 
 geological_time=0.
        
-exx_n=np.zeros(nn_V,dtype=np.float64)  
-eyy_n=np.zeros(nn_V,dtype=np.float64)  
-exy_n=np.zeros(nn_V,dtype=np.float64)  
+exx_nodal=np.zeros(nn_V,dtype=np.float64)  
+eyy_nodal=np.zeros(nn_V,dtype=np.float64)  
+exy_nodal=np.zeros(nn_V,dtype=np.float64)  
 
 topstart=clock.time()
 
@@ -693,9 +693,9 @@ for istep in range(0,nstep):
          case 3 :
              for ip in range(0,nparticle):
                  swarm_T[ip]=interpolate_field_on_particle(swarm_r[ip],swarm_s[ip],swarm_iel[ip],T,icon_V)
-                 swarm_exx[ip]=interpolate_field_on_particle(swarm_r[ip],swarm_s[ip],swarm_iel[ip],exx_n,icon_V)
-                 swarm_eyy[ip]=interpolate_field_on_particle(swarm_r[ip],swarm_s[ip],swarm_iel[ip],eyy_n,icon_V)
-                 swarm_exy[ip]=interpolate_field_on_particle(swarm_r[ip],swarm_s[ip],swarm_iel[ip],exy_n,icon_V)
+                 swarm_exx[ip]=interpolate_field_on_particle(swarm_r[ip],swarm_s[ip],swarm_iel[ip],exx_nodal,icon_V)
+                 swarm_eyy[ip]=interpolate_field_on_particle(swarm_r[ip],swarm_s[ip],swarm_iel[ip],eyy_nodal,icon_V)
+                 swarm_exy[ip]=interpolate_field_on_particle(swarm_r[ip],swarm_s[ip],swarm_iel[ip],exy_nodal,icon_V)
 
                  swarm_rho[ip]=rho0*(1-alphaT*swarm_T[ip])
                  swarm_eta[ip]=tosi.viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip],\
@@ -704,13 +704,13 @@ for istep in range(0,nstep):
          case _ :
             exit('rho,eta - unknown experiment')  
 
-    print("     -> swarm_rho (m,M) %e %e " %(np.min(swarm_rho),np.max(swarm_rho)))
-    print("     -> swarm_eta (m,M) %e %e " %(np.min(swarm_eta),np.max(swarm_eta)))
-    if solve_T: print("     -> swarm_T   (m,M) %e %e " %(np.min(swarm_T),np.max(swarm_T)))
+    print("     -> swarm_rho (m,M) %.3e %.3e " %(np.min(swarm_rho),np.max(swarm_rho)))
+    print("     -> swarm_eta (m,M) %.3e %.3e " %(np.min(swarm_eta),np.max(swarm_eta)))
+    if solve_T: print("     -> swarm_T   (m,M) %.3e %.3e " %(np.min(swarm_T),np.max(swarm_T)))
 
     print("compute rho,eta on particles: %.3fs" % (clock.time()-start))
 
-    t15+=clock.time()-start
+    timings[15]+=clock.time()-start
 
     ###########################################################################
     # project particle properties on mesh
@@ -765,10 +765,10 @@ for istep in range(0,nstep):
                                                 np.max(nparticle_elemental)))
     ptcl_stats_file.flush()
 
-    print("     -> rho_elemental (m,M) %e %e " %(np.min(rho_elemental),np.max(rho_elemental)))
-    print("     -> eta_elemental (m,M) %e %e " %(np.min(eta_elemental),np.max(eta_elemental)))
-    print("     -> rho_nodal (m,M) %e %e " %(np.min(rho_nodal),np.max(rho_nodal)))
-    print("     -> eta_nodal (m,M) %e %e " %(np.min(eta_nodal),np.max(eta_nodal)))
+    print("     -> rho_elemental (m,M) %.3e %.3e " %(np.min(rho_elemental),np.max(rho_elemental)))
+    print("     -> eta_elemental (m,M) %.3e %.3e " %(np.min(eta_elemental),np.max(eta_elemental)))
+    print("     -> rho_nodal (m,M) %.3e %.3e " %(np.min(rho_nodal),np.max(rho_nodal)))
+    print("     -> eta_nodal (m,M) %.3e %.3e " %(np.min(eta_nodal),np.max(eta_nodal)))
 
     if debug_ascii: np.savetxt('rho_elemental.ascii',np.array([xc,yc,rho_elemental]).T,header='# x,y,rho')
     if debug_ascii: np.savetxt('eta_elemental.ascii',np.array([xc,yc,eta_elemental]).T,header='# x,y,eta')
@@ -780,7 +780,7 @@ for istep in range(0,nstep):
 
     print("project particle fields on mesh: %.3fs" % (clock.time()-start))
 
-    t16+=clock.time()-start
+    timings[16]+=clock.time()-start
 
     ###########################################################################
     # build FE matrix
@@ -877,7 +877,7 @@ for istep in range(0,nstep):
 
     print("build FE matrix: %.3fs" % (clock.time()-start))
 
-    t01+=clock.time()-start
+    timings[1]+=clock.time()-start
 
     ###########################################################################
     # solve system
@@ -888,7 +888,7 @@ for istep in range(0,nstep):
 
     sol=sps.linalg.spsolve(sparse_matrix,rhs)
 
-    t02+=clock.time()-start
+    timings[2]+=clock.time()-start
 
     print("solve time: %.3f s" % (clock.time()-start))
 
@@ -904,17 +904,17 @@ for istep in range(0,nstep):
     if debug_nan and np.isnan(np.sum(v)): exit('nan found in v')
     if debug_nan and np.isnan(np.sum(p)): exit('nan found in p')
 
-    print("     -> u (m,M) %e %e " %(np.min(u)/vel_scale,np.max(u)/vel_scale))
-    print("     -> v (m,M) %e %e " %(np.min(v)/vel_scale,np.max(v)/vel_scale))
-    print("     -> p (m,M) %e %e " %(np.min(p)/p_scale,np.max(p)/p_scale))
+    print("     -> u (m,M) %.3e %.3e " %(np.min(u)/vel_scale,np.max(u)/vel_scale))
+    print("     -> v (m,M) %.3e %.3e " %(np.min(v)/vel_scale,np.max(v)/vel_scale))
+    print("     -> p (m,M) %.3e %.3e " %(np.min(p)/p_scale,np.max(p)/p_scale))
 
-    vstats_file.write("%10e %10e %10e %10e %10e\n" % (istep,np.min(u)/vel_scale,np.max(u)/vel_scale,\
+    vstats_file.write("%.3e %.3e %.3e %.3e %.3e\n" % (istep,np.min(u)/vel_scale,np.max(u)/vel_scale,\
                                                             np.min(u)/vel_scale,np.max(u)/vel_scale))
 
     if debug_ascii: np.savetxt('velocity.ascii',np.array([x_V,y_V,u,v]).T,header='# x,y,u,v')
     if debug_ascii: np.savetxt('pressure.ascii',np.array([x_P,y_P,p]).T,header='# x,y,p')
 
-    t14+=clock.time()-start
+    timings[14]+=clock.time()-start
 
     print("split vel into u,v: %.3f s" % (clock.time()-start))
 
@@ -924,11 +924,11 @@ for istep in range(0,nstep):
     start=clock.time()
 
     dt1=CFLnb*(Lx/nelx)/np.max(np.sqrt(u**2+v**2))
-    print('     -> dt1= %.6f' %(dt1/time_scale))
+    print('     -> dt1= %.3e' %(dt1/time_scale))
     
     if solve_T:
        dt2=CFLnb*(Lx/nelx)**2/(hcond/hcapa/rho0)
-       print('     -> dt2= %.6f' %(dt2/time_scale))
+       print('     -> dt2= %.3e' %(dt2/time_scale))
     else:
        dt2=1e50
     dt=np.min([dt1,dt2])
@@ -960,13 +960,13 @@ for istep in range(0,nstep):
                      pressure_avrg+=np.dot(N_P[iq,:],p[icon_P[:,iel]])*jcob*weightq[iq]
              p-=pressure_avrg/Lx/Ly
 
-    print("     -> p (m,M) %e %e " %(np.min(p),np.max(p)))
+    print("     -> p (m,M) %.3e %.3e " %(np.min(p),np.max(p)))
 
-    pstats_file.write("%d %e %e\n" % (istep,np.min(p),np.max(p)))
+    pstats_file.write("%d %.3e %.3e\n" % (istep,np.min(p),np.max(p)))
 
     if debug_ascii: np.savetxt('p.ascii',np.array([x_P,y_P,p]).T,header='# x,y,p')
         
-    t12+=clock.time()-start
+    timings[12]+=clock.time()-start
 
     print("normalise pressure: %.3f s" % (clock.time()-start))
 
@@ -986,11 +986,11 @@ for istep in range(0,nstep):
     #end for
     q/=count
 
-    print("     -> q (m,M) %.6e %.6e " %(np.min(q),np.max(q)))
+    print("     -> q (m,M) %.3e %.3e " %(np.min(q),np.max(q)))
 
     if debug_ascii: np.savetxt('q.ascii',np.array([x_V,y_V,q]).T,header='# x,y,q')
 
-    t03+=clock.time()-start
+    timings[3]+=clock.time()-start
 
     print("compute nodal press: %.3f s" % (clock.time()-start))
 
@@ -1088,7 +1088,7 @@ for istep in range(0,nstep):
 
        print("build FE matrix : %.3f s" % (clock.time() - start))
 
-       t04+=clock.time()-start
+       timings[4]+=clock.time()-start
 
        ###########################################################################
        # solve system
@@ -1101,13 +1101,13 @@ for istep in range(0,nstep):
 
        if debug_nan and np.isnan(np.sum(T)): exit('nan found in T')
 
-       print("     T (m,M) %.4f %.4f " %(np.min(T),np.max(T)))
+       print("     T (m,M) %.3e %.3e " %(np.min(T),np.max(T)))
 
        if debug_ascii: np.savetxt('T.ascii',np.array([x_V,y_V,T]).T,header='# x,y,T')
 
        print("solve T time: %.3f s" % (clock.time() - start))
 
-       t05+=clock.time()-start
+       timings[5]+=clock.time()-start
 
     #end if solve_T
 
@@ -1133,37 +1133,22 @@ for istep in range(0,nstep):
 
     print("compute vrms: %.3f s" % (clock.time()-start))
 
-    t06+=clock.time()-start
+    timings[6]+=clock.time()-start
 
     ###########################################################################
     # compute nodal heat flux 
     ###########################################################################
     start=clock.time()
-    
-    qx_n=np.zeros(nn_V,dtype=np.float64)  
-    qy_n=np.zeros(nn_V,dtype=np.float64)  
 
-    if istep%every_q==0 and solve_T: 
-       count=np.zeros(nn_V,dtype=np.int32)  
+    if solve_T: 
+       qx_nodal,qy_nodal=compute_heat_flux(icon_V,T,hcond,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n)
 
-       for iel in range(0,nel):
-           for i in range(0,m_V):
-               inode=icon_V[i,iel]
-               qx_n[inode]-=np.dot(hcond*dNdx_V_n[i,:],T[icon_V[:,iel]])
-               qy_n[inode]-=np.dot(hcond*dNdy_V_n[i,:],T[icon_V[:,iel]])
-               count[inode]+=1
-           #end for
-       #end for
-    
-       qx_n/=count
-       qy_n/=count
-
-       print("     -> qx_n (m,M) %.6e %.6e " %(np.min(qx_n),np.max(qx_n)))
-       print("     -> qy_n (m,M) %.6e %.6e " %(np.min(qy_n),np.max(qy_n)))
+    print("     -> qx_nodal (m,M) %.3e %.3e " %(np.min(qx_nodal),np.max(qx_nodal)))
+    print("     -> qy_nodal (m,M) %.3e %.3e " %(np.min(qy_nodal),np.max(qy_nodal)))
 
     print("compute nodal heat flux: %.3f s" % (clock.time()-start))
 
-    t07+=clock.time()-start
+    timings[7]+=clock.time()-start
 
     ###########################################################################
     # compute Nusselt number at top
@@ -1181,7 +1166,7 @@ for istep in range(0,nstep):
               for iq in range(0,nqperdim):
                   rq=qcoords[iq]
                   N=basis_functions_V(rq,sq)
-                  q_y=np.dot(N,qy_n[icon_V[:,iel]])
+                  q_y=np.dot(N,qy_nodal[icon_V[:,iel]])
                   Nusselt+=q_y*(hx/2)*qweights[iq]
                   qy_top+=q_y*(hx/2)*qweights[iq]
               #end for
@@ -1191,21 +1176,21 @@ for istep in range(0,nstep):
               for iq in range(0,nqperdim):
                   rq=qcoords[iq]
                   N=basis_functions_V(rq,sq)
-                  q_y=np.dot(N,qy_n[icon_V[:,iel]])
+                  q_y=np.dot(N,qy_nodal[icon_V[:,iel]])
                   qy_bot-=q_y*(hx/2)*qweights[iq]
            #end if
        #end for
 
        Nusselt=np.abs(Nusselt)/Lx
 
-       print("     -> qy_bot,qy_top= %e %e " %(qy_bot,qy_top))
-       print("     -> Nusselt= %e " %(Nusselt))
+       print("     -> qy_bot,qy_top= %.3e %.3e " %(qy_bot,qy_top))
+       print("     -> Nusselt= %.2e " %(Nusselt))
 
        Nu_file.write("%e %e \n" % (geological_time/time_scale,Nusselt)) ; Nu_file.flush()
 
        print("compute Nu: %.3f s" % (clock.time()-start))
 
-    t08+=clock.time()-start
+    timings[8]+=clock.time()-start
 
     ###########################################################################
     # compute temperature profile
@@ -1230,46 +1215,26 @@ for istep in range(0,nstep):
 
        print("compute T profile: %.3f s" % (clock.time() - start))
 
-    t09+=clock.time()-start
+    timings[9]+=clock.time()-start
 
     ###########################################################################
     # compute nodal strainrate
     ###########################################################################
     start=clock.time()
 
-    if istep%1==0:   
+    exx_nodal,eyy_nodal,exy_nodal=compute_strain_rate(icon_V,u,v,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n)
 
-       count=np.zeros(nn_V,dtype=np.int32)  
-       e_n=np.zeros(nn_V,dtype=np.float64)  
-       exx_n=np.zeros(nn_V,dtype=np.float64)  
-       eyy_n=np.zeros(nn_V,dtype=np.float64)  
-       exy_n=np.zeros(nn_V,dtype=np.float64)  
+    e_nodal=np.sqrt(0.5*(exx_nodal**2+eyy_nodal**2)+exy_nodal**2)
 
-       for iel in range(0,nel):
-           for i in range(0,m_V):
-               inode=icon_V[i,iel]
-               exx_n[inode]+=np.dot(dNdx_V_n[i,:],u[icon_V[:,iel]])
-               eyy_n[inode]+=np.dot(dNdy_V_n[i,:],v[icon_V[:,iel]])
-               exy_n[inode]+=0.5*np.dot(dNdx_V_n[i,:],v[icon_V[:,iel]])+\
-                             0.5*np.dot(dNdy_V_n[i,:],u[icon_V[:,iel]])
-               count[inode]+=1
-           #end for
-       #end for
-       exx_n/=count
-       eyy_n/=count
-       exy_n/=count
+    print("     -> exx_nodal (m,M) %.3e %.3e " %(np.min(exx_nodal),np.max(exx_nodal)))
+    print("     -> eyy_nodal (m,M) %.3e %.3e " %(np.min(eyy_nodal),np.max(eyy_nodal)))
+    print("     -> exy_nodal (m,M) %.3e %.3e " %(np.min(exy_nodal),np.max(exy_nodal)))
 
-       e_n=np.sqrt(0.5*(exx_n**2+eyy_n**2)+exy_n**2)
-
-       print("     -> exx_n (m,M) %.6e %.6e " %(np.min(exx_n),np.max(exx_n)))
-       print("     -> eyy_n (m,M) %.6e %.6e " %(np.min(eyy_n),np.max(eyy_n)))
-       print("     -> exy_n (m,M) %.6e %.6e " %(np.min(exy_n),np.max(exy_n)))
-
-       if debug_ascii: np.savetxt('strainrate.ascii',np.array([x_V,y_V,exx_n,eyy_n,exy_n]).T)
+    if debug_ascii: np.savetxt('strainrate.ascii',np.array([x_V,y_V,exx_nodal,eyy_nodal,exy_nodal]).T)
 
     print("compute nodal sr: %.3f s" % (clock.time()-start))
 
-    t11+=clock.time()-start
+    timings[11]+=clock.time()-start
 
     ###########################################################################
     # advect particles
@@ -1357,10 +1322,10 @@ for istep in range(0,nstep):
 
     print('     -> nb inactive particles:',nparticle-np.sum(swarm_active))
 
-    print("     -> swarm_x (m,M) %e %e " %(np.min(swarm_x),np.max(swarm_x)))
-    print("     -> swarm_y (m,M) %e %e " %(np.min(swarm_y),np.max(swarm_y)))
+    print("     -> swarm_x (m,M) %.3e %.3e " %(np.min(swarm_x),np.max(swarm_x)))
+    print("     -> swarm_y (m,M) %.3e %.3e " %(np.min(swarm_y),np.max(swarm_y)))
 
-    t13+=clock.time()-start
+    timings[13]+=clock.time()-start
 
     print("advect particles: %.3f s" % (clock.time()-start))
 
@@ -1403,17 +1368,17 @@ for istep in range(0,nstep):
        #--
        vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
        for i in range(0,nn_V):
-           vtufile.write("%.3e \n" %exx_n[i])
+           vtufile.write("%.3e \n" %exx_nodal[i])
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='eyy' Format='ascii'> \n")
        for i in range(0,nn_V):
-           vtufile.write("%.3e \n" %eyy_n[i])
+           vtufile.write("%.3e \n" %eyy_nodal[i])
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='exy' Format='ascii'> \n")
        for i in range(0,nn_V):
-           vtufile.write("%.3e \n" %exy_n[i])
+           vtufile.write("%.3e \n" %exy_nodal[i])
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")
@@ -1429,7 +1394,7 @@ for istep in range(0,nstep):
        if solve_T:
           vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Heat flux' Format='ascii'> \n")
           for i in range(0,nn_V):
-              vtufile.write("%.3e %.3e %.1e \n" %(qx_n[i],qy_n[i],0.))
+              vtufile.write("%.3e %.3e %.1e \n" %(qx_nodal[i],qy_nodal[i],0.))
           vtufile.write("</DataArray>\n")
        #--
        vtufile.write("</PointData>\n")
@@ -1481,7 +1446,7 @@ for istep in range(0,nstep):
 
        print("export solution to vtu file: %.3f s" % (clock.time()-start))
 
-       t10+=clock.time()-start
+       timings[10]+=clock.time()-start
 
     ########################################################################
     # export particles to vtu file
@@ -1519,7 +1484,7 @@ for istep in range(0,nstep):
        #--
        vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
        for im in range(0,nparticle):
-           vtufile.write("%.3e \n" % swarm_rho[im])
+           vtufile.write("%.5e \n" % swarm_rho[im])
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")
@@ -1548,7 +1513,7 @@ for istep in range(0,nstep):
               vtufile.write("%.3e \n" % swarm_T[ip])
           vtufile.write("</DataArray>\n")
        #--
-       vtufile.write("<DataArray type='Int32' Name='paint' Format='ascii'> \n")
+       vtufile.write("<DataArray type='Int32' Name='Paint' Format='ascii'> \n")
        for ip in range(0,nparticle):
            vtufile.write("%d \n" % swarm_paint[ip])
        vtufile.write("</DataArray>\n")
@@ -1594,21 +1559,21 @@ for istep in range(0,nstep):
        duration=clock.time()-topstart
 
        print("-----------------------------------------------")
-       print("build FE matrix V: %.3f s        | %.2f percent" % (t01,(t01/duration*100))) 
-       print("solve system V: %.3f s           | %.2f percent" % (t02,(t02/duration*100))) 
-       print("build matrix T: %.3f s           | %.2f percent" % (t04,(t04/duration*100))) 
-       print("solve system T: %.3f s           | %.2f percent" % (t05,(t05/duration*100))) 
-       print("compute vrms: %.3f s             | %.2f percent" % (t06,(t06/duration*100))) 
-       print("compute nodal p: %.3f s          | %.2f percent" % (t03,(t03/duration*100))) 
-       print("compute nodal sr: %.3f s         | %.2f percent" % (t11,(t11/duration*100))) 
-       print("compute nodal heat flux: %.3f s  | %.2f percent" % (t07,(t07/duration*100))) 
-       print("compute T profile: %.3f s        | %.2f percent" % (t09,(t09/duration*100))) 
-       print("export to vtu: %.3f s            | %.2f percent" % (t10,(t10/duration*100))) 
-       print("normalise pressure: %.3f s       | %.2f percent" % (t12,(t12/duration*100))) 
-       print("advect particles: %.3f s         | %.2f percent" % (t13,(t13/duration*100))) 
-       print("split solution: %.3f s           | %.2f percent" % (t14,(t14/duration*100))) 
-       print("compute swarm rho,eta: %.3f s    | %.2f percent" % (t15,(t15/duration*100))) 
-       print("comp eltal/nodal rho,eta: %.3f s | %.2f percent" % (t16,(t16/duration*100))) 
+       print("build FE matrix V: %.3f s        | %.2f percent" % (timings[1],(timings[1]/duration*100))) 
+       print("solve system V: %.3f s           | %.2f percent" % (timings[2],(timings[2]/duration*100))) 
+       print("build matrix T: %.3f s           | %.2f percent" % (timings[4],(timings[4]/duration*100))) 
+       print("solve system T: %.3f s           | %.2f percent" % (timings[5],(timings[5]/duration*100))) 
+       print("compute vrms: %.3f s             | %.2f percent" % (timings[6],(timings[6]/duration*100))) 
+       print("compute nodal p: %.3f s          | %.2f percent" % (timings[3],(timings[3]/duration*100))) 
+       print("compute nodal sr: %.3f s         | %.2f percent" % (timings[11],(timings[11]/duration*100))) 
+       print("compute nodal heat flux: %.3f s  | %.2f percent" % (timings[7],(timings[7]/duration*100))) 
+       print("compute T profile: %.3f s        | %.2f percent" % (timings[9],(timings[9]/duration*100))) 
+       print("export to vtu: %.3f s            | %.2f percent" % (timings[10],(timings[10]/duration*100))) 
+       print("normalise pressure: %.3f s       | %.2f percent" % (timings[12],(timings[12]/duration*100))) 
+       print("advect particles: %.3f s         | %.2f percent" % (timings[13],(timings[13]/duration*100))) 
+       print("split solution: %.3f s           | %.2f percent" % (timings[14],(timings[14]/duration*100))) 
+       print("compute swarm rho,eta: %.3f s    | %.2f percent" % (timings[15],(timings[15]/duration*100))) 
+       print("comp eltal/nodal rho,eta: %.3f s | %.2f percent" % (timings[16],(timings[16]/duration*100))) 
        print("-----------------------------------------------")
 
 #end for istep
@@ -1626,8 +1591,8 @@ Nu_file.close()
 ###############################################################################
 
 print("-----------------------------")
-print("total compute time: %.3f s" % (duration))
-print(t01+t02+t03+t04+t05+t06+t07+t08+t09+t10+t11+t12+t14+t15+t16,duration)
+print("total compute time: %.1f s" % (duration))
+print("sum timings: %.1f s" % (np.sum(timings)))
 print("-----------------------------")
     
 ###############################################################################
