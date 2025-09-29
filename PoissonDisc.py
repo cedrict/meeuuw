@@ -1,5 +1,7 @@
 import numpy as np
 
+# this is 99% taken from https://scipython.com/blog/poisson-disc-sampling-in-python/
+
 def PoissonDisc(k,r,width,height):
     # k: Choose up to k points around each reference pt as candidates for a new
     # sample point

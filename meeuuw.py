@@ -2,108 +2,12 @@ import numpy as np
 import sys as sys
 import numba
 import random
-import jatten
 import time as clock
-from scipy import sparse
 import scipy.sparse as sps
-
-###############################################################################
-# velocity basis functions
-###############################################################################
-
-@numba.njit
-def basis_functions_V(r,s):
-    N_0= 0.5*r*(r-1.) * 0.5*s*(s-1.)
-    N_1=    (1.-r**2) * 0.5*s*(s-1.)
-    N_2= 0.5*r*(r+1.) * 0.5*s*(s-1.)
-    N_3= 0.5*r*(r-1.) *    (1.-s**2)
-    N_4=    (1.-r**2) *    (1.-s**2)
-    N_5= 0.5*r*(r+1.) *    (1.-s**2)
-    N_6= 0.5*r*(r-1.) * 0.5*s*(s+1.)
-    N_7=    (1.-r**2) * 0.5*s*(s+1.)
-    N_8= 0.5*r*(r+1.) * 0.5*s*(s+1.)
-    return np.array([N_0,N_1,N_2,N_3,N_4,N_5,N_6,N_7,N_8],dtype=np.float64)
-
-@numba.njit
-def basis_functions_V_dr(r,s):
-    dNdr_0= 0.5*(2.*r-1.) * 0.5*s*(s-1)
-    dNdr_1=       (-2.*r) * 0.5*s*(s-1)
-    dNdr_2= 0.5*(2.*r+1.) * 0.5*s*(s-1)
-    dNdr_3= 0.5*(2.*r-1.) *   (1.-s**2)
-    dNdr_4=       (-2.*r) *   (1.-s**2)
-    dNdr_5= 0.5*(2.*r+1.) *   (1.-s**2)
-    dNdr_6= 0.5*(2.*r-1.) * 0.5*s*(s+1)
-    dNdr_7=       (-2.*r) * 0.5*s*(s+1)
-    dNdr_8= 0.5*(2.*r+1.) * 0.5*s*(s+1)
-    return np.array([dNdr_0,dNdr_1,dNdr_2,dNdr_3,dNdr_4,dNdr_5,\
-                     dNdr_6,dNdr_7,dNdr_8],dtype=np.float64)
-
-@numba.njit
-def basis_functions_V_ds(r,s):
-    dNds_0= 0.5*r*(r-1.) * 0.5*(2.*s-1.)
-    dNds_1=    (1.-r**2) * 0.5*(2.*s-1.)
-    dNds_2= 0.5*r*(r+1.) * 0.5*(2.*s-1.)
-    dNds_3= 0.5*r*(r-1.) *       (-2.*s)
-    dNds_4=    (1.-r**2) *       (-2.*s)
-    dNds_5= 0.5*r*(r+1.) *       (-2.*s)
-    dNds_6= 0.5*r*(r-1.) * 0.5*(2.*s+1.)
-    dNds_7=    (1.-r**2) * 0.5*(2.*s+1.)
-    dNds_8= 0.5*r*(r+1.) * 0.5*(2.*s+1.)
-    return np.array([dNds_0,dNds_1,dNds_2,dNds_3,dNds_4,dNds_5,\
-                     dNds_6,dNds_7,dNds_8],dtype=np.float64)
-
-###############################################################################
-# pressure basis functions 
-###############################################################################
-
-@numba.njit
-def basis_functions_P(r,s):
-    N_0=0.25*(1-r)*(1-s)
-    N_1=0.25*(1+r)*(1-s)
-    N_2=0.25*(1-r)*(1+s)
-    N_3=0.25*(1+r)*(1+s)
-    return np.array([N_0,N_1,N_2,N_3],dtype=np.float64)
-
-###############################################################################
-# jit on this function really makes a difference - keep it
-###############################################################################
-
-@numba.njit
-def interpolate_vel_on_pt(xm,ym,u,v):
-    ielx=int(xm/Lx*nelx)
-    iely=int(ym/Ly*nely)
-    #if ielx<0: exit('ielx<0')
-    #if iely<0: exit('iely<0')
-    #if ielx>=nelx: exit('ielx>nelx')
-    #if iely>=nely: exit('iely>nely')
-    iel=nelx*iely+ielx
-    xmin=x_V[icon_V[0,iel]] 
-    ymin=y_V[icon_V[0,iel]] 
-    rm=((xm-xmin)/hx-0.5)*2
-    sm=((ym-ymin)/hy-0.5)*2
-    N=basis_functions_V(rm,sm)
-    um=np.dot(N,u[icon_V[:,iel]])
-    vm=np.dot(N,v[icon_V[:,iel]])
-    return um,vm,rm,sm,iel
-
-@numba.njit
-def interpolate_T_on_pt(xm,ym,T):
-    ielx=int(xm/Lx*nelx)
-    iely=int(ym/Ly*nely)
-    iel=nelx*iely+ielx
-    xmin=x_V[icon_V[0,iel]] 
-    ymin=y_V[icon_V[0,iel]] 
-    rm=((xm-xmin)/hx-0.5)*2
-    sm=((ym-ymin)/hy-0.5)*2
-    N=basis_functions_V(rm,sm)
-    Tm=np.dot(N,T[icon_V[:,iel]])
-    return Tm
-
-@numba.njit
-def locate_pt(x,y):
-    ielx=int(x/Lx*nelx)
-    iely=int(y/Ly*nely)
-    return nelx*iely+ielx
+from scipy import sparse
+from PoissonDisc import *
+from basis_functions import *
+from pic_functions import *
 
 ###############################################################################
 # constants
@@ -118,14 +22,15 @@ print("----------- MEEUUW ----------")
 print("-----------------------------")
 
 ###############################################################################
-# experiment 0: Blankenbach et al, 1993
-# experiment 1: van Keken et al, JGR, 1997
-# experiment 2: Schmeling et al, PEPI 2008
+# experiment 0: Blankenbach et al, 1993    - isoviscous convection
+# experiment 1: van Keken et al, JGR, 1997 - Rayleigh-Taylor experiment
+# experiment 2: Schmeling et al, PEPI 2008 - Newtonian subduction
+# experiment 3: Tosi et al, 2015           - visco-plastic convection
 
-experiment=0
+experiment=1
 
 match(experiment):
-     case(0):
+     case 0 | 3:
          Lx=1
          Ly=1
          eta_ref=1
@@ -145,7 +50,18 @@ match(experiment):
          pressure_normalisation='surface'
          every_Nu=1
          every_q=1
-     case(1):
+         if experiment==3: 
+            import tosi
+            case_tosi=1
+            gamma_T=np.log(1e5)
+            eta_star=1e-3 
+            eta_ref=1e-2
+            alphaT=1e-4
+            Ra,sigma_y,gamma_y=tosi.assign_parameters(case_tosi)
+            eta_min=1e-5
+            eta_max=1
+           
+     case 1 :
          Lx=0.9142
          Ly=1
          gy=-10 
@@ -157,7 +73,7 @@ match(experiment):
          pressure_normalisation='volume'
          every_Nu=1000
          every_q=1000
-     case(2):
+     case 2 :
          eta_ref=1e21
          p_scale=1e6
          vel_scale=cm/year
@@ -165,24 +81,26 @@ match(experiment):
          every_Nu=1000
          every_q=1000
      case _ :
-         exit('unknown experiment')  
+         exit('setup - unknown experiment')  
 
 if int(len(sys.argv) == 4):
    nelx  = int(sys.argv[1])
    nely  = int(sys.argv[2])
    nstep = int(sys.argv[3])
 else:
-   nelx=48
-   nely=48
-   nstep=2000
+   nelx=32
+   nely=32
+   nstep=100
 
-CFLnb=0.85
+CFLnb=0.5
          
-every_vtu=10
+every_vtu=1
 
-RKorder=2
+RKorder=4
 nparticle_per_dim=5
 particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc
+use_nodal_rho=True
+use_nodal_eta=True
 
 ndim=2                     # number of dimensions
 ndof_V=2                   # number of velocity dofs per node
@@ -194,8 +112,8 @@ m_V=9 # number of velocity nodes per element
 m_P=4 # number of pressure nodes per element
 m_T=9 # number of temperature nodes per element
 
-r_V=[-1,0,+1,-1,0,+1,-1,0,+1]
-s_V=[-1,-1,-1,0,0,0,+1,+1,+1]
+r_V=[-1, 1,1,-1, 0,1,0,-1,0]
+s_V=[-1,-1,1, 1,-1,0,1, 0,0]
 
 ndof_V_el=m_V*ndof_V
 
@@ -209,7 +127,8 @@ hy=Ly/nely # element size in y direction
 
 EBA=False
 
-debug=False
+debug_ascii=False
+debug_nan=False
 
 ###############################################################################
 
@@ -243,16 +162,19 @@ Nu_file=open('Nu.ascii',"w")
 ###############################################################################
 
 print('experiment=',experiment)
-print('Lx        =',Lx)
-print('Ly        =',Ly)
-print('nn_V      =',nn_V)
-print('nn_P      =',nn_P)
-print('nel       =',nel)
-print('Nfem_V    =',Nfem_V)
-print('Nfem_P    =',Nfem_P)
-print('Nfem      =',Nfem)
-print('nqperdim  =',nqperdim)
-print('particle_distribution =',particle_distribution)
+print('Lx=',Lx)
+print('Ly=',Ly)
+print('nn_V=',nn_V)
+print('nn_P=',nn_P)
+print('nel=',nel)
+print('Nfem_V=',Nfem_V)
+print('Nfem_P=',Nfem_P)
+print('Nfem=',Nfem)
+print('nqperdim=',nqperdim)
+print('particle_distribution=',particle_distribution)
+print('RKorder=',RKorder)
+print('use_nodal_rho=',use_nodal_rho)
+print('use_nodal_eta=',use_nodal_eta)
 print("-----------------------------")
 
 ###############################################################################
@@ -272,7 +194,7 @@ for j in range(0,2*nely+1):
     #end for
 #end for
 
-if debug: np.savetxt('gridV.ascii',np.array([x_V,y_V]).T,header='# x,y')
+if debug_ascii: np.savetxt('gridV.ascii',np.array([x_V,y_V]).T,header='# x,y')
 
 print("build V grid: %.3f s" % (clock.time() - start))
 
@@ -289,14 +211,16 @@ nny=2*nely+1
 counter=0
 for j in range(0,nely):
     for i in range(0,nelx):
-        counter2=0
-        for k in range(0,3):
-            for l in range(0,3):
-                icon_V[counter2,counter]=i*2+l+j*2*nnx+nnx*k
-                counter2+=1
-            #end for
-        #end for
-        counter += 1
+        icon_V[0,counter]=(i)*2+1+(j)*2*nnx -1
+        icon_V[1,counter]=(i)*2+3+(j)*2*nnx -1
+        icon_V[2,counter]=(i)*2+3+(j)*2*nnx+nnx*2 -1
+        icon_V[3,counter]=(i)*2+1+(j)*2*nnx+nnx*2 -1
+        icon_V[4,counter]=(i)*2+2+(j)*2*nnx -1
+        icon_V[5,counter]=(i)*2+3+(j)*2*nnx+nnx -1
+        icon_V[6,counter]=(i)*2+2+(j)*2*nnx+nnx*2 -1
+        icon_V[7,counter]=(i)*2+1+(j)*2*nnx+nnx -1
+        icon_V[8,counter]=(i)*2+2+(j)*2*nnx+nnx -1
+        counter+=1
     #end for
 #end for
 
@@ -319,7 +243,7 @@ for j in range(0,nely+1):
     #end for
  #end for
 
-if debug: np.savetxt('gridP.ascii',np.array([xP,yP]).T,header='# x,y')
+if debug_ascii: np.savetxt('gridP.ascii',np.array([xP,yP]).T,header='# x,y')
 
 print("build P grid: %.3f s" % (clock.time() - start))
 
@@ -333,13 +257,10 @@ icon_P=np.zeros((m_P,nel),dtype=np.int32)
 counter=0
 for j in range(0,nely):
     for i in range(0,nelx):
-        counter2=0
-        for k in range(0,2):
-            for l in range(0,2):
-                icon_P[counter2,counter]=i+l+j*(nelx+1)+(nelx+1)*k 
-                counter2+=1
-            #end for
-        #end for
+        icon_P[0,counter]=i+j*(nelx+1)
+        icon_P[1,counter]=i+1+j*(nelx+1)
+        icon_P[2,counter]=i+1+(j+1)*(nelx+1)
+        icon_P[3,counter]=i+(j+1)*(nelx+1)
         counter+=1
     #end for
 #end for
@@ -356,7 +277,7 @@ bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
 
 match(experiment):
 
-     case(0): # Blankenbach et al convection, free slip all sides
+     case 0 | 3 : # Blankenbach et al convection, Tosi et al 2015, free slip all sides
          for i in range(0,nn_V):
              if x_V[i]/Lx<eps:
                 bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
@@ -367,7 +288,7 @@ match(experiment):
              if y_V[i]/Ly>(1-eps):
                 bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
-     case(1): # van Keken et al Rayleigh-Taylor instability, no slip top, bottom 
+     case 1 : # van Keken et al Rayleigh-Taylor instability, no slip top, bottom 
          for i in range(0,nn_V):
              if x_V[i]/Lx<eps:
                 bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
@@ -380,7 +301,7 @@ match(experiment):
                 bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
                 bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
      case _ :
-         exit('unknown experiment')  
+         exit('bc_V - unknown experiment')  
 
 print("velocity b.c.: %.3f s" % (clock.time()-start))
 
@@ -395,14 +316,14 @@ if solve_T:
    bc_val_T=np.zeros(Nfem_T,dtype=np.float64) 
 
    match(experiment):
-        case(0):
+        case 0 | 3 :
             for i in range(0,nn_V):
                 if y_V[i]<eps:
                    bc_fix_T[i]=True ; bc_val_T[i]=Tbottom
                 if y_V[i]>(Ly-eps):
                    bc_fix_T[i]=True ; bc_val_T[i]=Ttop
         case _:
-            exit('unknown experiment')  
+            exit('bc_T - unknown experiment')  
 
    print("temperature b.c.: %.3f s" % (clock.time()-start))
 
@@ -416,24 +337,26 @@ T=np.zeros(nn_V,dtype=np.float64)
 if solve_T:
 
    match(experiment):
-        case(0):
+        case 0 | 3 :
             for i in range(0,nn_V):
                 T[i]=(Tbottom-Ttop)*(Ly-y_V[i])/Ly+Ttop\
-                    -0.01*np.cos(np.pi*x_V[i]/Lx)*np.sin(np.pi*y_V[i]/Ly)
+                    +0.01*np.cos(np.pi*x_V[i]/Lx)*np.sin(np.pi*y_V[i]/Ly)
         case _:
             exit('unknown experiment')  
 
    T_mem=T.copy()
 
-   if debug: np.savetxt('temperature_init.ascii',np.array([x,y,T]).T,header='# x,y,T')
+   if debug_ascii: np.savetxt('temperature_init.ascii',np.array([x,y,T]).T,header='# x,y,T')
 
    print("initial temperature: %.3f s" % (clock.time()-start))
 
 ###############################################################################
-# compute area of elements
+# compute area of elements / sanity check
 ###############################################################################
 start=clock.time()
 
+xc=np.zeros(nel,dtype=np.float64) 
+yc=np.zeros(nel,dtype=np.float64) 
 area=np.zeros(nel,dtype=np.float64) 
 jcb=np.zeros((ndim,ndim),dtype=np.float64)
 
@@ -453,8 +376,10 @@ for iel in range(0,nel):
             jcbi=np.linalg.inv(jcb)
             JxWq=np.linalg.det(jcb)*weightq
             area[iel]+=JxWq
-       #end for
-   #end for
+        #end for
+    #end for
+    xc[iel]=0.5*(x_V[icon_V[0,iel]]+x_V[icon_V[2,iel]])
+    yc[iel]=0.5*(y_V[icon_V[0,iel]]+y_V[icon_V[2,iel]])
 #end for
 
 print("     -> area (m,M) %.4e %.4e " %(np.min(area),np.max(area)))
@@ -477,25 +402,22 @@ jcob=hx*hy/4
 ###############################################################################
 start=clock.time()
 
+rq=np.zeros(nqel,dtype=np.float64) 
+sq=np.zeros(nqel,dtype=np.float64) 
+weightq=np.zeros(nqel,dtype=np.float64) 
 N_V=np.zeros((nqel,m_V),dtype=np.float64) 
 N_P=np.zeros((nqel,m_P),dtype=np.float64) 
 dNdr_V=np.zeros((nqel,m_V),dtype=np.float64) 
 dNds_V=np.zeros((nqel,m_V),dtype=np.float64) 
 dNdx_V=np.zeros((nqel,m_V),dtype=np.float64) 
 dNdy_V=np.zeros((nqel,m_V),dtype=np.float64) 
-
-rq=np.zeros(nqel,dtype=np.float64) 
-sq=np.zeros(nqel,dtype=np.float64) 
-weightq=np.zeros(nqel,dtype=np.float64) 
    
 counterq=0 
 for iq in range(0,nqperdim):
     for jq in range(0,nqperdim):
-
         rq[counterq]=qcoords[iq]
         sq[counterq]=qcoords[jq]
         weightq[counterq]=qweights[iq]*qweights[jq]
-
         N_V[counterq,0:m_V]=basis_functions_V(rq[counterq],sq[counterq])
         N_P[counterq,0:m_P]=basis_functions_P(rq[counterq],sq[counterq])
         dNdr_V[counterq,0:m_V]=basis_functions_V_dr(rq[counterq],sq[counterq])
@@ -511,22 +433,14 @@ print("compute N & grad(N) at q pts: %.3f s" % (clock.time()-start))
 ###############################################################################
 start=clock.time()
 
-N_V_n=np.zeros((m_V,m_V),dtype=np.float64) 
 N_P_n=np.zeros((m_V,m_P),dtype=np.float64) 
-dNdr_V_n=np.zeros((m_V,m_V),dtype=np.float64) 
-dNds_V_n=np.zeros((m_V,m_V),dtype=np.float64) 
 dNdx_V_n=np.zeros((m_V,m_V),dtype=np.float64) 
 dNdy_V_n=np.zeros((m_V,m_V),dtype=np.float64) 
    
 for i in range(0,m_V):
-    rq=r_V[i]
-    sq=s_V[i]
-    N_V_n[i,0:m_V]=basis_functions_V(rq,sq)
-    N_P_n[i,0:m_P]=basis_functions_P(rq,sq)
-    dNdr_V_n[i,0:m_V]=basis_functions_V_dr(rq,sq)
-    dNds_V_n[i,0:m_V]=basis_functions_V_ds(rq,sq)
-    dNdx_V_n[i,0:m_V]=jcbi[0,0]*dNdr_V_n[i,0:m_V]
-    dNdy_V_n[i,0:m_V]=jcbi[1,1]*dNds_V_n[i,0:m_V]
+    N_P_n[i,0:m_P]=basis_functions_P(r_V[i],s_V[i])
+    dNdx_V_n[i,0:m_V]=jcbi[0,0]*basis_functions_V_dr(r_V[i],s_V[i])
+    dNdy_V_n[i,0:m_V]=jcbi[1,1]*basis_functions_V_ds(r_V[i],s_V[i])
 
 print("compute N & grad(N) at V nodes: %.3f s" % (clock.time()-start))
 
@@ -612,6 +526,9 @@ nparticle=nel*nparticle_per_element
 
 swarm_x=np.zeros(nparticle,dtype=np.float64)
 swarm_y=np.zeros(nparticle,dtype=np.float64)
+swarm_r=np.zeros(nparticle,dtype=np.float64)
+swarm_s=np.zeros(nparticle,dtype=np.float64)
+swarm_iel=np.zeros(nparticle,dtype=np.int32)
 
 match(particle_distribution):
 
@@ -624,6 +541,9 @@ match(particle_distribution):
                  N=basis_functions_V(r,s)
                  swarm_x[counter]=np.dot(N[:],x_V[icon_V[:,iel]])
                  swarm_y[counter]=np.dot(N[:],y_V[icon_V[:,iel]])
+                 swarm_r[counter]=r
+                 swarm_r[counter]=s
+                 swarm_iel[counter]=iel
                  counter+=1
              #end for
          #end for
@@ -639,6 +559,9 @@ match(particle_distribution):
                      N=basis_functions_V(r,s)
                      swarm_x[counter]=np.dot(N[:],x_V[icon_V[:,iel]])
                      swarm_y[counter]=np.dot(N[:],y_V[icon_V[:,iel]])
+                     swarm_r[counter]=r
+                     swarm_r[counter]=s
+                     swarm_iel[counter]=iel
                      counter+=1
                  #end for
              #end for
@@ -650,8 +573,11 @@ match(particle_distribution):
          nparticle_wish=nel*nparticle_per_element # target
          print ('     -> nparticle_wish: %d ' % (nparticle_wish) )
          avrgdist=np.sqrt(Lx*Ly/nparticle_wish)/1.25
-         nparticle,swarm_x,swarm_y=jatten.PoissonDisc(kpoisson,avrgdist,Lx,Ly)
+         nparticle,swarm_x,swarm_y=PoissonDisc(kpoisson,avrgdist,Lx,Ly)
          print ('     -> nparticle: %d ' % (nparticle) )
+
+         for ip in range(nparticle):
+             swarm_r[ip],swarm_s[ip],swarm_iel[ip]=locate_pt(swarm_x[ip],swarm_y[ip],hx,hy,x_V,y_V,icon_V,nelx)
 
      case _ :
          exit('unknown particle_distribution')
@@ -695,9 +621,9 @@ start=clock.time()
 swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
 match(experiment):
-     case(0):
+     case 0 | 3 :
          swarm_mat[:]=1
-     case(1):
+     case 1 :
          for im in range (0,nparticle):
              if swarm_y[im]<0.2+0.02*np.cos(swarm_x[im]*np.pi/0.9142):
                 swarm_mat[im]=1
@@ -705,7 +631,7 @@ match(experiment):
                 swarm_mat[im]=2
      #case(2):
      case _ :
-         exit('unknown experiment')  
+         exit('mat - unknown experiment')  
 
 print("     -> swarm_mat (m,M) %e %e " %(np.min(swarm_mat),np.max(swarm_mat)))
 
@@ -721,6 +647,10 @@ print("particle layout: %.3f s" % (clock.time()-start))
 C=np.array([[2,0,0],[0,2,0],[0,0,1]],dtype=np.float64) 
 
 geological_time=0.
+       
+exx_n=np.zeros(nn_V,dtype=np.float64)  
+eyy_n=np.zeros(nn_V,dtype=np.float64)  
+exy_n=np.zeros(nn_V,dtype=np.float64)  
 
 topstart=clock.time()
 
@@ -740,14 +670,17 @@ for istep in range(0,nstep):
     swarm_T=np.zeros(nparticle,dtype=np.float64)
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
+    swarm_exx=np.zeros(nparticle,dtype=np.float64)
+    swarm_eyy=np.zeros(nparticle,dtype=np.float64)
+    swarm_exy=np.zeros(nparticle,dtype=np.float64)
 
     match(experiment):
-         case(0):
+         case 0 :
              for ip in range(0,nparticle):
-                 swarm_T[ip]=interpolate_T_on_pt(swarm_x[ip],swarm_y[ip],T)
+                 swarm_T[ip]=interpolate_field_on_particle(swarm_r[ip],swarm_s[ip],swarm_iel[ip],T,icon_V)
                  swarm_rho[ip]=rho0*(1-alphaT*swarm_T[ip])
                  swarm_eta[ip]=1
-         case(1):
+         case 1 :
              for ip in range(0,nparticle):
                  if swarm_mat[ip]==1:
                     swarm_rho[ip]=1000
@@ -757,12 +690,23 @@ for istep in range(0,nstep):
                     swarm_eta[ip]=100
 
          #case(2):
-         case _ :
-            exit('unknown experiment')  
+         case 3 :
+             for ip in range(0,nparticle):
+                 swarm_T[ip]=interpolate_field_on_particle(swarm_r[ip],swarm_s[ip],swarm_iel[ip],T,icon_V)
+                 swarm_exx[ip]=interpolate_field_on_particle(swarm_r[ip],swarm_s[ip],swarm_iel[ip],exx_n,icon_V)
+                 swarm_eyy[ip]=interpolate_field_on_particle(swarm_r[ip],swarm_s[ip],swarm_iel[ip],eyy_n,icon_V)
+                 swarm_exy[ip]=interpolate_field_on_particle(swarm_r[ip],swarm_s[ip],swarm_iel[ip],exy_n,icon_V)
 
-    print("     -> swarm_T   (m,M) %e %e " %(np.min(swarm_T),np.max(swarm_T)))
+                 swarm_rho[ip]=rho0*(1-alphaT*swarm_T[ip])
+                 swarm_eta[ip]=tosi.viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip],\
+                                              gamma_T,gamma_y,sigma_y,eta_star,case_tosi)
+
+         case _ :
+            exit('rho,eta - unknown experiment')  
+
     print("     -> swarm_rho (m,M) %e %e " %(np.min(swarm_rho),np.max(swarm_rho)))
     print("     -> swarm_eta (m,M) %e %e " %(np.min(swarm_eta),np.max(swarm_eta)))
+    if solve_T: print("     -> swarm_T   (m,M) %e %e " %(np.min(swarm_T),np.max(swarm_T)))
 
     print("compute rho,eta on particles: %.3fs" % (clock.time()-start))
 
@@ -770,20 +714,49 @@ for istep in range(0,nstep):
 
     ###########################################################################
     # project particle properties on mesh
+    # nodal rho & eta are computed on nodes 0,1,2,3, while values on nodes
+    # 4,5,6,7,8 are obtained by simple averages. In the end we obtaine Q1 fields 
     ###########################################################################
     start=clock.time()
 
     rho_elemental=np.zeros(nel,dtype=np.float64) 
     eta_elemental=np.zeros(nel,dtype=np.float64) 
     nparticle_elemental=np.zeros(nel,dtype=np.float64) 
+    rho_nodal=np.zeros(nn_V,dtype=np.float64) 
+    eta_nodal=np.zeros(nn_V,dtype=np.float64) 
+    count_nodal=np.zeros(nn_V,dtype=np.float64) 
 
     for ip in range(0,nparticle):
-        iel=locate_pt(swarm_x[ip],swarm_y[ip])
+        swarm_r[ip],swarm_s[ip],iel=locate_pt(swarm_x[ip],swarm_y[ip],hx,hy,x_V,y_V,icon_V,nelx)
+        swarm_iel[ip]=iel 
         rho_elemental[iel]+=swarm_rho[ip] # arithmetic 
         eta_elemental[iel]+=swarm_eta[ip] # arithmetic 
         nparticle_elemental[iel]+=1
+        for k in (0,1,2,3):
+            rho_nodal[icon_V[k,iel]]+=swarm_rho[ip] # arithmetic 
+            eta_nodal[icon_V[k,iel]]+=swarm_eta[ip] # arithmetic 
+            count_nodal[icon_V[k,iel]]+=1
 
-    if np.min(nparticle_elemental)==0: exit('Abort: element without particle')
+    for i in range(0,nn_V):
+        if count_nodal[i]!=0:
+            rho_nodal[i]/=count_nodal[i]
+            eta_nodal[i]/=count_nodal[i]
+
+    for iel in range(0,nel):
+        rho_nodal[icon_V[4,iel]]=0.5*(rho_nodal[icon_V[0,iel]]+rho_nodal[icon_V[1,iel]])
+        rho_nodal[icon_V[5,iel]]=0.5*(rho_nodal[icon_V[1,iel]]+rho_nodal[icon_V[2,iel]])
+        rho_nodal[icon_V[6,iel]]=0.5*(rho_nodal[icon_V[2,iel]]+rho_nodal[icon_V[3,iel]])
+        rho_nodal[icon_V[7,iel]]=0.5*(rho_nodal[icon_V[0,iel]]+rho_nodal[icon_V[3,iel]])
+        rho_nodal[icon_V[8,iel]]=0.25*(rho_nodal[icon_V[0,iel]]+rho_nodal[icon_V[1,iel]]\
+                                      +rho_nodal[icon_V[2,iel]]+rho_nodal[icon_V[3,iel]])
+        eta_nodal[icon_V[4,iel]]=0.5*(eta_nodal[icon_V[0,iel]]+eta_nodal[icon_V[1,iel]])
+        eta_nodal[icon_V[5,iel]]=0.5*(eta_nodal[icon_V[1,iel]]+eta_nodal[icon_V[2,iel]])
+        eta_nodal[icon_V[6,iel]]=0.5*(eta_nodal[icon_V[2,iel]]+eta_nodal[icon_V[3,iel]])
+        eta_nodal[icon_V[7,iel]]=0.5*(eta_nodal[icon_V[0,iel]]+eta_nodal[icon_V[3,iel]])
+        eta_nodal[icon_V[8,iel]]=0.25*(eta_nodal[icon_V[0,iel]]+eta_nodal[icon_V[1,iel]]\
+                                      +eta_nodal[icon_V[2,iel]]+eta_nodal[icon_V[3,iel]])
+
+    if np.min(nparticle_elemental)<=0: exit('Abort: element without particle')
 
     rho_elemental/=nparticle_elemental
     eta_elemental/=nparticle_elemental
@@ -791,6 +764,19 @@ for istep in range(0,nstep):
     ptcl_stats_file.write("%d %d %d\n" % (istep,np.min(nparticle_elemental),\
                                                 np.max(nparticle_elemental)))
     ptcl_stats_file.flush()
+
+    print("     -> rho_elemental (m,M) %e %e " %(np.min(rho_elemental),np.max(rho_elemental)))
+    print("     -> eta_elemental (m,M) %e %e " %(np.min(eta_elemental),np.max(eta_elemental)))
+    print("     -> rho_nodal (m,M) %e %e " %(np.min(rho_nodal),np.max(rho_nodal)))
+    print("     -> eta_nodal (m,M) %e %e " %(np.min(eta_nodal),np.max(eta_nodal)))
+
+    if debug_ascii: np.savetxt('rho_elemental.ascii',np.array([xc,yc,rho_elemental]).T,header='# x,y,rho')
+    if debug_ascii: np.savetxt('eta_elemental.ascii',np.array([xc,yc,eta_elemental]).T,header='# x,y,eta')
+    if debug_ascii: np.savetxt('rho_nodal.ascii',np.array([x_V,y_V,rho_nodal]).T,header='# x,y,rho')
+    if debug_ascii: np.savetxt('eta_nodal.ascii',np.array([x_V,y_V,eta_nodal]).T,header='# x,y,eta')
+
+    if debug_nan and np.isnan(np.sum(rho_elemental)): exit('nan found in rho_elemental')
+    if debug_nan and np.isnan(np.sum(eta_elemental)): exit('nan found in eta_elemental')
 
     print("project particle fields on mesh: %.3fs" % (clock.time()-start))
 
@@ -831,10 +817,20 @@ for istep in range(0,nstep):
                 B[2,2*i  ]=dNdy
                 B[2,2*i+1]=dNdx
 
-            K_el+=B.T.dot(C.dot(B))*eta_elemental[iel]*JxWq
+            if use_nodal_rho:
+               rhoq=np.dot(N_P[iq,0:m_P],rho_nodal[icon_V[0:4,iel]])
+            else:
+               rhoq=rho_elemental[iel]
+
+            if use_nodal_eta:
+               etaq=np.dot(N_P[iq,0:m_P],eta_nodal[icon_V[0:4,iel]])
+            else:
+               etaq=eta_elemental[iel]
+
+            K_el+=B.T.dot(C.dot(B))*etaq*JxWq
 
             for i in range(0,m_V):
-                f_el[ndof_V*i+1]+=N_V[iq,i]*JxWq*rho_elemental[iel]*gy
+                f_el[ndof_V*i+1]+=N_V[iq,i]*JxWq*rhoq*gy
 
             N_mat[0,0:m_P]=N_P[iq,0:m_P]
             N_mat[1,0:m_P]=N_P[iq,0:m_P]
@@ -875,6 +871,10 @@ for istep in range(0,nstep):
             m2=icon_P[k2,iel]
             rhs[Nfem_V+m2]+=h_el[k2]
 
+    if debug_nan and np.isnan(np.sum(II_V)): exit('nan found in II_V')
+    if debug_nan and np.isnan(np.sum(JJ_V)): exit('nan found in JJ_V')
+    if debug_nan and np.isnan(np.sum(VV_V)): exit('nan found in VV_V')
+
     print("build FE matrix: %.3fs" % (clock.time()-start))
 
     t01+=clock.time()-start
@@ -900,6 +900,10 @@ for istep in range(0,nstep):
     u,v=np.reshape(sol[0:Nfem_V],(nn_V,2)).T
     p=sol[Nfem_V:Nfem]*(eta_ref/Lx)
 
+    if debug_nan and np.isnan(np.sum(u)): exit('nan found in u')
+    if debug_nan and np.isnan(np.sum(v)): exit('nan found in v')
+    if debug_nan and np.isnan(np.sum(p)): exit('nan found in p')
+
     print("     -> u (m,M) %e %e " %(np.min(u)/vel_scale,np.max(u)/vel_scale))
     print("     -> v (m,M) %e %e " %(np.min(v)/vel_scale,np.max(v)/vel_scale))
     print("     -> p (m,M) %e %e " %(np.min(p)/p_scale,np.max(p)/p_scale))
@@ -907,9 +911,8 @@ for istep in range(0,nstep):
     vstats_file.write("%10e %10e %10e %10e %10e\n" % (istep,np.min(u)/vel_scale,np.max(u)/vel_scale,\
                                                             np.min(u)/vel_scale,np.max(u)/vel_scale))
 
-    if debug:
-       np.savetxt('velocity.ascii',np.array([x_V,y_V,u,v]).T,header='# x,y,u,v')
-       np.savetxt('pressure.ascii',np.array([x_P,y_P,p]).T,header='# x,y,p')
+    if debug_ascii: np.savetxt('velocity.ascii',np.array([x_V,y_V,u,v]).T,header='# x,y,u,v')
+    if debug_ascii: np.savetxt('pressure.ascii',np.array([x_P,y_P,p]).T,header='# x,y,p')
 
     t14+=clock.time()-start
 
@@ -961,7 +964,7 @@ for istep in range(0,nstep):
 
     pstats_file.write("%d %e %e\n" % (istep,np.min(p),np.max(p)))
 
-    if debug: np.savetxt('p.ascii',np.array([x_P,y_P,p]).T,header='# x,y,p')
+    if debug_ascii: np.savetxt('p.ascii',np.array([x_P,y_P,p]).T,header='# x,y,p')
         
     t12+=clock.time()-start
 
@@ -985,7 +988,7 @@ for istep in range(0,nstep):
 
     print("     -> q (m,M) %.6e %.6e " %(np.min(q),np.max(q)))
 
-    if debug: np.savetxt('q.ascii',np.array([x_V,y_V,q]).T,header='# x,y,q')
+    if debug_ascii: np.savetxt('q.ascii',np.array([x_V,y_V,q]).T,header='# x,y,q')
 
     t03+=clock.time()-start
 
@@ -1096,7 +1099,11 @@ for istep in range(0,nstep):
 
        T=sps.linalg.spsolve(sparse_matrix,rhs)
 
+       if debug_nan and np.isnan(np.sum(T)): exit('nan found in T')
+
        print("     T (m,M) %.4f %.4f " %(np.min(T),np.max(T)))
+
+       if debug_ascii: np.savetxt('T.ascii',np.array([x_V,y_V,T]).T,header='# x,y,T')
 
        print("solve T time: %.3f s" % (clock.time() - start))
 
@@ -1230,7 +1237,7 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    if istep%5==0:   
+    if istep%1==0:   
 
        count=np.zeros(nn_V,dtype=np.int32)  
        e_n=np.zeros(nn_V,dtype=np.float64)  
@@ -1258,7 +1265,7 @@ for istep in range(0,nstep):
        print("     -> eyy_n (m,M) %.6e %.6e " %(np.min(eyy_n),np.max(eyy_n)))
        print("     -> exy_n (m,M) %.6e %.6e " %(np.min(exy_n),np.max(exy_n)))
 
-       if debug: np.savetxt('strainrate.ascii',np.array([x_V,y_V,exx_n,eyy_n,exy_n]).T)
+       if debug_ascii: np.savetxt('strainrate.ascii',np.array([x_V,y_V,exx_n,eyy_n,exy_n]).T)
 
     print("compute nodal sr: %.3f s" % (clock.time()-start))
 
@@ -1273,7 +1280,8 @@ for istep in range(0,nstep):
 
        for im in range(0,nparticle):
            if swarm_active[im]:
-              swarm_u[im],swarm_v[im],rm,sm,iel=interpolate_vel_on_pt(swarm_x[im],swarm_y[im],u,v)
+              swarm_u[im],swarm_v[im],iel=interpolate_vel_on_pt(swarm_x[im],swarm_y[im],u,v,\
+                                                                hx,hy,nelx,nely,icon_V,x_V,y_V)
               swarm_x[im]+=swarm_u[im]*dt
               swarm_y[im]+=swarm_v[im]*dt
               if swarm_x[im]<0 or swarm_x[im]>Lx or swarm_y[im]<0 or swarm_y[im]>Ly:
@@ -1287,13 +1295,15 @@ for istep in range(0,nstep):
            if swarm_active[im]:
               xA=swarm_x[im]
               yA=swarm_y[im]
-              uA,vA,rm,sm,iel=interpolate_vel_on_pt(xA,yA,u,v)
+              uA,vA,iel=interpolate_vel_on_pt(xA,yA,u,v,\
+                                              hx,hy,nelx,nely,icon_V,x_V,y_V)
               xB=xA+uA*dt/2.
               yB=yA+vA*dt/2.
               if xB<0 or xB>Lx or yB<0 or yB>Ly:
                  swarm_active[im]=False
               else:
-                 uB,vB,rm,sm,iel=interpolate_vel_on_pt(xB,yB,u,v)
+                 uB,vB,iel=interpolate_vel_on_pt(xB,yB,u,v,\
+                                                 hx,hy,nelx,nely,icon_V,x_V,y_V)
                  swarm_x[im]=xA+uB*dt
                  swarm_y[im]=yA+vB*dt
                  swarm_u[im]=uB
@@ -1308,25 +1318,25 @@ for istep in range(0,nstep):
            if swarm_active[im]:
               xA=swarm_x[im]
               yA=swarm_y[im]
-              uA,vA,rm,sm,iel=interpolate_vel_on_pt(xA,yA,u,v)
+              uA,vA,iel=interpolate_vel_on_pt(xA,yA,u,v,hx,hy,nelx,nely,icon_V,x_V,y_V)
               xB=xA+uA*dt/2.
               yB=yA+vA*dt/2.
               if xB<0 or xB>Lx or yB<0 or yB>Ly:
                  swarm_active[im]=False
               else:
-                 uB,vB,rm,sm,iel=interpolate_vel_on_pt(xB,yB,u,v)
+                 uB,vB,iel=interpolate_vel_on_pt(xB,yB,u,v,hx,hy,nelx,nely,icon_V,x_V,y_V)
                  xC=xA+uB*dt/2.
                  yC=yA+vB*dt/2.
                  if xC<0 or xC>Lx or yC<0 or yC>Ly:
                     swarm_active[im]=False
                  else:
-                    uC,vC,rm,sm,iel=interpolate_vel_on_pt(xC,yC,u,v)
+                    uC,vC,iel=interpolate_vel_on_pt(xC,yC,u,v,hx,hy,nelx,nely,icon_V,x_V,y_V)
                     xD=xA+uC*dt
                     yD=yA+vC*dt
                     if xD<0 or xD>Lx or yD<0 or yD>Ly:
                        swarm_active[im]=False
                     else:
-                       uD,vD,rm,sm,iel=interpolate_vel_on_pt(xD,yD,u,v)
+                       uD,vD,iel=interpolate_vel_on_pt(xD,yD,u,v,hx,hy,nelx,nely,icon_V,x_V,y_V)
                        swarm_u[im]=(uA+2*uB+2*uC+uD)/6
                        swarm_v[im]=(vA+2*vB+2*vC+vD)/6
                        swarm_x[im]=xA+swarm_u[im]*dt
@@ -1369,7 +1379,7 @@ for istep in range(0,nstep):
        vtufile.write("<Points> \n")
        vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Format='ascii'> \n")
        for i in range(0,nn_V):
-           vtufile.write("%10f %10f %10f \n" %(x_V[i],y_V[i],0.))
+           vtufile.write("%.3e %.3e %.1e \n" %(x_V[i],y_V[i],0.))
        vtufile.write("</DataArray>\n")
        vtufile.write("</Points> \n")
        #####
@@ -1377,65 +1387,49 @@ for istep in range(0,nstep):
        #--
        vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Velocity' Format='ascii'> \n")
        for i in range(0,nn_V):
-           vtufile.write("%e %e %e \n" %(u[i]/vel_scale,v[i]/vel_scale,0.))
+           vtufile.write("%.3e %.3e %.1e \n" %(u[i]/vel_scale,v[i]/vel_scale,0.))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='Pressure' Format='ascii'> \n")
        for i in range(0,nn_V):
-           vtufile.write("%e \n" % (q[i]))
+           vtufile.write("%.3e \n" % (q[i]))
        vtufile.write("</DataArray>\n")
        #--
        if solve_T:
           vtufile.write("<DataArray type='Float32' Name='Temperature' Format='ascii'> \n")
           for i in range(0,nn_V):
-              vtufile.write("%e \n" %(T[i]-TKelvin))
+              vtufile.write("%.3e \n" %(T[i]-TKelvin))
           vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
        for i in range(0,nn_V):
-           vtufile.write("%e \n" %exx_n[i])
+           vtufile.write("%.3e \n" %exx_n[i])
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='eyy' Format='ascii'> \n")
        for i in range(0,nn_V):
-           vtufile.write("%e \n" %eyy_n[i])
+           vtufile.write("%.3e \n" %eyy_n[i])
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='exy' Format='ascii'> \n")
        for i in range(0,nn_V):
-           vtufile.write("%e \n" %exy_n[i])
+           vtufile.write("%.3e \n" %exy_n[i])
        vtufile.write("</DataArray>\n")
        #--
-       #vtufile.write("<DataArray type='Float32' Name='density' Format='ascii'> \n")
-       #for i in range(0,nn_V):
-       #    vtufile.write("%e \n" %(rho(rho0,alphaT,T[i],T0)))
-       #vtufile.write("</DataArray>\n")
+       vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")
+       for i in range(0,nn_V):
+           vtufile.write("%.3e \n" %eta_nodal[i])
+       vtufile.write("</DataArray>\n")
        #--
-       #vtufile.write("<DataArray type='Float32' Name='Shear heating (2*eta*e^2)' Format='ascii'> \n")
-       #for i in range(0,nn_V):
-       #    vtufile.write("%e \n" % (2*eta(T[i],x_V[i],y_V[i],eta0)*e_n[i]**2))
-       #vtufile.write("</DataArray>\n")
-       #--
-       #vtufile.write("<DataArray type='Float32' Name='adiab heating (linearised)' Format='ascii'> \n")
-       #for i in range(0,NV):
-       #    vtufile.write("%.15f \n" % (alphaT*T[i]*rho0*v[i]*gy))
-       #vtufile.write("</DataArray>\n")
-       #
-       #vtufile.write("<DataArray type='Float32' Name='adiab heating (true)' Format='ascii'> \n")
-       #for i in range(0,NV):
-       #    vtufile.write("%.15f \n" % (alphaT*T[i]*(u[i]*dpdx_n[i]+v[i]*dpdy_n[i]))) 
-       #vtufile.write("</DataArray>\n")
-       #
-       #vtufile.write("<DataArray type='Float32' Name='adiab heating (diff)' Format='ascii'> \n")
-       #for i in range(0,NV):
-       #    vtufile.write("%.15f \n" % (alphaT*T[i]*(u[i]*dpdx_n[i]+v[i]*dpdy_n[i])-\
-       #                                alphaT*T[i]*rho0*v[i]*gy))
-       #vtufile.write("</DataArray>\n")
+       vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
+       for i in range(0,nn_V):
+           vtufile.write("%.3e \n" %rho_nodal[i])
+       vtufile.write("</DataArray>\n")
        #--
        if solve_T:
           vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Heat flux' Format='ascii'> \n")
           for i in range(0,nn_V):
-              vtufile.write("%e %e %e \n" %(qx_n[i],qy_n[i],0.))
+              vtufile.write("%.3e %.3e %.1e \n" %(qx_n[i],qy_n[i],0.))
           vtufile.write("</DataArray>\n")
        #--
        vtufile.write("</PointData>\n")
@@ -1444,12 +1438,12 @@ for istep in range(0,nstep):
        #--
        vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")
        for iel in range (0,nel):
-           vtufile.write("%e\n" % (eta_elemental[iel]))
+           vtufile.write("%.3e\n" % (eta_elemental[iel]))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
        for iel in range (0,nel):
-           vtufile.write("%e\n" % (rho_elemental[iel]))
+           vtufile.write("%.3e\n" % (rho_elemental[iel]))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Int32' Name='nb particles' Format='ascii'> \n")
@@ -1463,9 +1457,9 @@ for istep in range(0,nstep):
        #--
        vtufile.write("<DataArray type='Int32' Name='connectivity' Format='ascii'> \n")
        for iel in range (0,nel):
-           vtufile.write("%d %d %d %d %d %d %d %d %d\n" %(icon_V[0,iel],icon_V[2,iel],icon_V[8,iel],\
-                                                          icon_V[6,iel],icon_V[1,iel],icon_V[5,iel],\
-                                                          icon_V[7,iel],icon_V[3,iel],icon_V[4,iel]))
+           vtufile.write("%d %d %d %d %d %d %d %d %d\n" %(icon_V[0,iel],icon_V[1,iel],icon_V[2,iel],\
+                                                          icon_V[3,iel],icon_V[4,iel],icon_V[5,iel],\
+                                                          icon_V[6,iel],icon_V[7,iel],icon_V[8,iel]))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Int32' Name='offsets' Format='ascii'> \n")
@@ -1494,9 +1488,9 @@ for istep in range(0,nstep):
     ########################################################################
     start=clock.time()
 
-    if istep%5==0 or istep==nstep-1: 
+    if istep%every_vtu==0 or istep==nstep-1: 
 
-       filename = 'particles_{:04d}.vtu'.format(istep)
+       filename='swarm_{:04d}.vtu'.format(istep)
        vtufile=open(filename,"w")
        vtufile.write("<VTKFile type='UnstructuredGrid' version='0.1' byte_order='BigEndian'> \n")
        vtufile.write("<UnstructuredGrid> \n")
@@ -1506,7 +1500,7 @@ for istep in range(0,nstep):
        #--
        vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Format='ascii'> \n")
        for im in range(0,nparticle):
-           vtufile.write("%10e %10e %10e \n" %(swarm_x[im],swarm_y[im],0.))
+           vtufile.write("%.3e %.3e %.1e \n" %(swarm_x[im],swarm_y[im],0.))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("</Points> \n")
@@ -1515,7 +1509,7 @@ for istep in range(0,nstep):
        #--
        vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='velocity' Format='ascii'> \n")
        for im in range(0,nparticle):
-           vtufile.write("%10e %10e %10e \n" %(swarm_u[im]/vel_scale,swarm_v[im]/vel_scale,0.))
+           vtufile.write("%.3e %.3e %.1e \n" %(swarm_u[im]/vel_scale,swarm_v[im]/vel_scale,0.))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Int32' Name='mat' Format='ascii'> \n")
@@ -1523,20 +1517,35 @@ for istep in range(0,nstep):
            vtufile.write("%d \n" % swarm_mat[im])
        vtufile.write("</DataArray>\n")
        #--
-       vtufile.write("<DataArray type='Float32' Name='rho' Format='ascii'> \n")
+       vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
        for im in range(0,nparticle):
-           vtufile.write("%e \n" % swarm_rho[im])
+           vtufile.write("%.3e \n" % swarm_rho[im])
        vtufile.write("</DataArray>\n")
        #--
-       vtufile.write("<DataArray type='Float32' Name='eta' Format='ascii'> \n")
+       vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")
        for im in range(0,nparticle):
-           vtufile.write("%e \n" % swarm_eta[im])
+           vtufile.write("%.3e \n" % swarm_eta[im])
+       vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
+       for im in range(0,nparticle):
+           vtufile.write("%.3e \n" % swarm_exx[im])
+       vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("<DataArray type='Float32' Name='eyy' Format='ascii'> \n")
+       for im in range(0,nparticle):
+           vtufile.write("%.3e \n" % swarm_eyy[im])
+       vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("<DataArray type='Float32' Name='exy' Format='ascii'> \n")
+       for im in range(0,nparticle):
+           vtufile.write("%.3e \n" % swarm_exy[im])
        vtufile.write("</DataArray>\n")
        #--
        if solve_T:
-          vtufile.write("<DataArray type='Float32' Name='T' Format='ascii'> \n")
+          vtufile.write("<DataArray type='Float32' Name='Temperature' Format='ascii'> \n")
           for ip in range(0,nparticle):
-              vtufile.write("%e \n" % swarm_T[ip])
+              vtufile.write("%.3e \n" % swarm_T[ip])
           vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Int32' Name='paint' Format='ascii'> \n")
@@ -1585,21 +1594,21 @@ for istep in range(0,nstep):
        duration=clock.time()-topstart
 
        print("-----------------------------------------------")
-       print("build FE matrix V: %.3f s       | %.2f percent" % (t01,(t01/duration*100))) 
-       print("solve system V: %.3f s          | %.2f percent" % (t02,(t02/duration*100))) 
-       print("build matrix T: %.3f s          | %.2f percent" % (t04,(t04/duration*100))) 
-       print("solve system T: %.3f s          | %.2f percent" % (t05,(t05/duration*100))) 
-       print("compute vrms: %.3f s            | %.2f percent" % (t06,(t06/duration*100))) 
-       print("compute nodal p: %.3f s         | %.2f percent" % (t03,(t03/duration*100))) 
-       print("compute nodal sr: %.3f s        | %.2f percent" % (t11,(t11/duration*100))) 
-       print("compute nodal heat flux: %.3f s | %.2f percent" % (t07,(t07/duration*100))) 
-       print("compute T profile: %.3f s       | %.2f percent" % (t09,(t09/duration*100))) 
-       print("export to vtu: %.3f s           | %.2f percent" % (t10,(t10/duration*100))) 
-       print("normalise pressure: %.3f s      | %.2f percent" % (t12,(t12/duration*100))) 
-       print("advect particles: %.3f s        | %.2f percent" % (t13,(t13/duration*100))) 
-       print("split solution: %.3f s          | %.2f percent" % (t14,(t14/duration*100))) 
-       print("compute swarm rho,eta: %.3f s   | %.2f percent" % (t15,(t15/duration*100))) 
-       print("compute eltal rho,eta: %.3f s   | %.2f percent" % (t16,(t16/duration*100))) 
+       print("build FE matrix V: %.3f s        | %.2f percent" % (t01,(t01/duration*100))) 
+       print("solve system V: %.3f s           | %.2f percent" % (t02,(t02/duration*100))) 
+       print("build matrix T: %.3f s           | %.2f percent" % (t04,(t04/duration*100))) 
+       print("solve system T: %.3f s           | %.2f percent" % (t05,(t05/duration*100))) 
+       print("compute vrms: %.3f s             | %.2f percent" % (t06,(t06/duration*100))) 
+       print("compute nodal p: %.3f s          | %.2f percent" % (t03,(t03/duration*100))) 
+       print("compute nodal sr: %.3f s         | %.2f percent" % (t11,(t11/duration*100))) 
+       print("compute nodal heat flux: %.3f s  | %.2f percent" % (t07,(t07/duration*100))) 
+       print("compute T profile: %.3f s        | %.2f percent" % (t09,(t09/duration*100))) 
+       print("export to vtu: %.3f s            | %.2f percent" % (t10,(t10/duration*100))) 
+       print("normalise pressure: %.3f s       | %.2f percent" % (t12,(t12/duration*100))) 
+       print("advect particles: %.3f s         | %.2f percent" % (t13,(t13/duration*100))) 
+       print("split solution: %.3f s           | %.2f percent" % (t14,(t14/duration*100))) 
+       print("compute swarm rho,eta: %.3f s    | %.2f percent" % (t15,(t15/duration*100))) 
+       print("comp eltal/nodal rho,eta: %.3f s | %.2f percent" % (t16,(t16/duration*100))) 
        print("-----------------------------------------------")
 
 #end for istep

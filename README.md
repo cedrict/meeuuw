@@ -7,15 +7,22 @@ Code description:
 - Q2 finite element for temperature
 - 2d 
 - linear viscous
-- particle-in-cell (passive)
+- particle-in-cell
 - Runge-Kutta in space: 1st, 2nd, 4th order
 - export to vtu file
 - direct solver for both linear systems
 - Crank-Nicolson time scheme for T equation
 
+Available experiments:
+- experiment 0: Blankenbach et al, GJI, 1989. Mantle convection benchmark.
+- experiment 1: van Keken et al, JGR, 1997. Rayleigh-Taylor instability.
+- experiment 2: 
+- experiment 3: Tosi et al, G3, 2015. Viscoplastic thermal convection benchmark.
+
 to do:
-- more accurate heat flux calculations
+- more accurate heat flux calculations (CBF?)
+- more accurate whole domain velocity gradient method
 - SUPG and/or Lenardic & Kaula filter
-- do Tosi et al, 2015 benchmark
 - nonlinear iterations
- 
+- cvi for Q2 ? 
+- 
