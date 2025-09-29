@@ -1,8 +1,10 @@
 import numpy as np
+import numba
 
 ###############################################################################
 
-def compute_heat_flux(icon_V,T,hcond,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n):
+@numba.njit
+def compute_nodal_heat_flux(icon_V,T,hcond,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n):
 
     qx_n=np.zeros(nn_V,dtype=np.float64)  
     qy_n=np.zeros(nn_V,dtype=np.float64)  

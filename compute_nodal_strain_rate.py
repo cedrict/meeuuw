@@ -1,8 +1,10 @@
 import numpy as np
+import numba
 
 ###############################################################################
 
-def compute_strain_rate(icon_V,u,v,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n):
+@numba.njit
+def compute_nodal_strain_rate(icon_V,u,v,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n):
 
     count=np.zeros(nn_V,dtype=np.float64)  
     exx_n=np.zeros(nn_V,dtype=np.float64)  
