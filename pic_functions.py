@@ -50,19 +50,6 @@ def interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,phi,icon)
 
 ###############################################################################
 
-#@numba.njit
-#def locate_pt(xp,yp,hx,hy,x_V,y_V,icon_V,nelx):
-#    ielx=int(xp/hx)
-#    iely=int(yp/hy)
-#    iel=nelx*iely+ielx
-#    xmin=x_V[icon_V[0,iel]] 
-#    ymin=y_V[icon_V[0,iel]] 
-#    rp=((xp-xmin)/hx-0.5)*2
-#    sp=((yp-ymin)/hy-0.5)*2
-#    return rp,sp,iel
-
-###############################################################################
-
 @numba.njit
 def locate_particles(nparticle,swarm_x,swarm_y,hx,hy,x_V,y_V,icon_V,nelx):
 
@@ -197,38 +184,29 @@ def project_particles_on_elements(nel,nparticle,swarm_rho,swarm_eta,swarm_iel):
 ###############################################################################
 
 @numba.njit
-def project_particles_on_nodes(nel,nn_V,nparticle,swarm_rho,swarm_eta,icon_V,swarm_iel):
+def project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_phi,icon_V,swarm_iel):
 
-    rho_nodal=np.zeros(nn_V,dtype=np.float64) 
-    eta_nodal=np.zeros(nn_V,dtype=np.float64) 
+    phi_nodal=np.zeros(nn_V,dtype=np.float64) 
     count_nodal=np.zeros(nn_V,dtype=np.float64) 
 
     for ip in range(0,nparticle):
         iel=swarm_iel[ip]
         for k in (0,1,2,3):
-            rho_nodal[icon_V[k,iel]]+=swarm_rho[ip] # arithmetic 
-            eta_nodal[icon_V[k,iel]]+=swarm_eta[ip] # arithmetic 
+            phi_nodal[icon_V[k,iel]]+=swarm_phi[ip] # arithmetic 
             count_nodal[icon_V[k,iel]]+=1
 
     for i in range(0,nn_V):
         if count_nodal[i]!=0:
-            rho_nodal[i]/=count_nodal[i]
-            eta_nodal[i]/=count_nodal[i]
+            phi_nodal[i]/=count_nodal[i]
 
     for iel in range(0,nel):
-        rho_nodal[icon_V[4,iel]]=0.5*(rho_nodal[icon_V[0,iel]]+rho_nodal[icon_V[1,iel]])
-        rho_nodal[icon_V[5,iel]]=0.5*(rho_nodal[icon_V[1,iel]]+rho_nodal[icon_V[2,iel]])
-        rho_nodal[icon_V[6,iel]]=0.5*(rho_nodal[icon_V[2,iel]]+rho_nodal[icon_V[3,iel]])
-        rho_nodal[icon_V[7,iel]]=0.5*(rho_nodal[icon_V[0,iel]]+rho_nodal[icon_V[3,iel]])
-        rho_nodal[icon_V[8,iel]]=0.25*(rho_nodal[icon_V[0,iel]]+rho_nodal[icon_V[1,iel]]\
-                                      +rho_nodal[icon_V[2,iel]]+rho_nodal[icon_V[3,iel]])
-        eta_nodal[icon_V[4,iel]]=0.5*(eta_nodal[icon_V[0,iel]]+eta_nodal[icon_V[1,iel]])
-        eta_nodal[icon_V[5,iel]]=0.5*(eta_nodal[icon_V[1,iel]]+eta_nodal[icon_V[2,iel]])
-        eta_nodal[icon_V[6,iel]]=0.5*(eta_nodal[icon_V[2,iel]]+eta_nodal[icon_V[3,iel]])
-        eta_nodal[icon_V[7,iel]]=0.5*(eta_nodal[icon_V[0,iel]]+eta_nodal[icon_V[3,iel]])
-        eta_nodal[icon_V[8,iel]]=0.25*(eta_nodal[icon_V[0,iel]]+eta_nodal[icon_V[1,iel]]\
-                                      +eta_nodal[icon_V[2,iel]]+eta_nodal[icon_V[3,iel]])
+        phi_nodal[icon_V[4,iel]]=0.5*(phi_nodal[icon_V[0,iel]]+phi_nodal[icon_V[1,iel]])
+        phi_nodal[icon_V[5,iel]]=0.5*(phi_nodal[icon_V[1,iel]]+phi_nodal[icon_V[2,iel]])
+        phi_nodal[icon_V[6,iel]]=0.5*(phi_nodal[icon_V[2,iel]]+phi_nodal[icon_V[3,iel]])
+        phi_nodal[icon_V[7,iel]]=0.5*(phi_nodal[icon_V[0,iel]]+phi_nodal[icon_V[3,iel]])
+        phi_nodal[icon_V[8,iel]]=0.25*(phi_nodal[icon_V[0,iel]]+phi_nodal[icon_V[1,iel]]\
+                                      +phi_nodal[icon_V[2,iel]]+phi_nodal[icon_V[3,iel]])
 
-    return rho_nodal,eta_nodal
+    return phi_nodal
 
 ###############################################################################

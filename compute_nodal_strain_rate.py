@@ -25,6 +25,8 @@ def compute_nodal_strain_rate(icon_V,u,v,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n):
     eyy_n/=count
     exy_n/=count
 
-    return exx_n,eyy_n,exy_n
+    e_n=np.sqrt(0.5*(exx_n**2+eyy_n**2)+exy_n**2)
+
+    return exx_n,eyy_n,exy_n,e_n
 
 ###############################################################################
