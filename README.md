@@ -3,13 +3,13 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 
 Code description:
 - FEM
-- Q2Q1 finite element pair for velocity
-- Q2 finite element for temperature
-- 2d 
-- linear viscous
-- particle-in-cell
+- Q_2xQ_1 finite element pair for velocity
+- Q_2 finite element for temperature
+- 2d Cartesian geometry
+- flexible nonlinear viscous rheology 
+- particle-in-cell technique
 - Runge-Kutta in space: 1st, 2nd, 4th order
-- export to vtu file
+- export to vtu file (nodes, swarm, and quadrature points)
 - direct solver for both linear systems
 - Crank-Nicolson time scheme for T equation
 

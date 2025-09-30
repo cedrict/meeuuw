@@ -15,6 +15,7 @@ from compute_vrms import *
 from project_nodal_field_onto_qpoints import *
 from export_swarm_to_vtu import *
 from export_solution_to_vtu import *
+from export_quadpoints_to_vtu import *
 
 ###############################################################################
 # constants
@@ -109,8 +110,8 @@ every_vtu=5
 RKorder=4
 nparticle_per_dim=5
 particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc
-use_nodal_rho=True
-use_nodal_eta=True
+#use_nodal_rho=True
+#use_nodal_eta=True
 
 ndim=2                     # number of dimensions
 ndof_V=2                   # number of velocity dofs per node
@@ -140,7 +141,7 @@ EBA=False
 debug_ascii=False
 debug_nan=False
 
-timings=np.zeros(21+1)
+timings=np.zeros(22+1)
 
 ###############################################################################
 # quadrature rule points and weights
@@ -181,8 +182,8 @@ print('Nfem=',Nfem)
 print('nqperdim=',nqperdim)
 print('particle_distribution=',particle_distribution)
 print('RKorder=',RKorder)
-print('use_nodal_rho=',use_nodal_rho)
-print('use_nodal_eta=',use_nodal_eta)
+#print('use_nodal_rho=',use_nodal_rho)
+#print('use_nodal_eta=',use_nodal_eta)
 print("-----------------------------")
 
 ###############################################################################
@@ -830,10 +831,6 @@ for istep in range(0,nstep):
 
             JxWq=jcob*weightq[iq]
 
-            xq=np.dot(N_V[iq,:],x_V[icon_V[:,iel]])
-            yq=np.dot(N_V[iq,:],y_V[icon_V[:,iel]])
-            Tq=np.dot(N_V[iq,:],T[icon_V[:,iel]])
-
             for i in range(0,m_V):
                 dNdx=dNdx_V[iq,i] 
                 dNdy=dNdy_V[iq,i] 
@@ -1005,7 +1002,7 @@ for istep in range(0,nstep):
 
     if solve_T: 
 
-       #VV_T=build_matrix_T(nel,nqel,m_V,u,v,T,N_V,dNdx_V,dNdy_V,\
+       #VV_T,rhs=build_matrix_T(nel,nqel,m_V,u,v,T,N_V,dNdx_V,dNdy_V,\
        #                             icon_V,jcob,weightq,bc_fix_T,bc_val_T
 
        Tvect=np.zeros(m_T,dtype=np.float64)   
@@ -1044,8 +1041,6 @@ for istep in range(0,nstep):
                Ka+=np.outer(N,velq.dot(B))*rho0*hcapa*JxWq # advection matrix
 
                if EBA:
-                  xq=np.dot(N_V[iq,:],x_V[icon_V[:,iel]])
-                  yq=np.dot(N_V[iq,:],y_V[icon_V[:,iel]])
                   Tq=np.dot(N_V[iq,:],T[icon_V[:,iel]])
                   exxq=np.dot(dNdx_V[iq,:],u[icon_V[:,iel]])
                   eyyq=np.dot(dNdy_V[iq,:],v[icon_V[:,iel]])
@@ -1107,7 +1102,7 @@ for istep in range(0,nstep):
 
        if debug_ascii: np.savetxt('T.ascii',np.array([x_V,y_V,T]).T,header='# x,y,T')
 
-       print("solve T time: %.3f s" % (clock.time() - start)) ; timings[5]+=clock.time()-start
+       print("solve T time: %.3f s" % (clock.time()-start)) ; timings[5]+=clock.time()-start
 
     #end if solve_T
 
@@ -1251,7 +1246,6 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if istep%every_vtu==0: 
-
        export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,u,v,q,T,
                               eta_nodal,rho_nodal,exx_nodal,eyy_nodal,exy_nodal,qx_nodal,qy_nodal,
                               rho_elemental,eta_elemental,nparticle_elemental,icon_V)
@@ -1264,13 +1258,22 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if istep%every_vtu==0 or istep==nstep-1: 
-
        export_swarm_to_vtu(istep,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
                            swarm_u,swarm_v,swarm_mat,swarm_rho,swarm_eta,\
                            swarm_paint,swarm_exx,swarm_eyy,swarm_exy,swarm_T,\
                            swarm_hcond,swarm_hcapa) 
 
-       print("export particles to vtu file: %.3f s" % (clock.time() - start)) ; timings[20]+=clock.time()-start
+       print("export particles to vtu file: %.3f s" % (clock.time()-start)) ; timings[20]+=clock.time()-start
+
+    ########################################################################
+    # export quadrature points to vtu file
+    ########################################################################
+    start=clock.time()
+
+    if istep%every_vtu==0 or istep==nstep-1: 
+       export_quadpoints_to_vtu(istep,nel,nqel,nq,xq,yq,rhoq,etaq)
+
+       print("export particles to vtu file: %.3f s" % (clock.time()-start)) ; timings[22]+=clock.time()-start
 
     ###########################################################################
 
@@ -1304,6 +1307,7 @@ for istep in range(0,nstep):
        print("comp timestep: %8.3f s          (%.3f s per call) | %5.2f percent" % (timings[19],timings[19]/(istep+1),timings[19]/duration*100))
        print("export solution to vtu: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[10],timings[10]/(istep+1),timings[10]/duration*100))
        print("export swarm to vtu: %8.3f s    (%.3f s per call) | %5.2f percent" % (timings[20],timings[20]/(istep+1),timings[20]/duration*100))
+       print("export qpts to vtu: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[22],timings[22]/(istep+1),timings[22]/duration*100))
        print("project fields on qpts: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[21],timings[21]/(istep+1),timings[21]/duration*100))
        print("----------------------------------------------------------------------")
 
