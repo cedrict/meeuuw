@@ -44,7 +44,7 @@ match(experiment):
          Ly=1
          eta_ref=1
          solve_T=True
-         vel_scale=1
+         vel_scale=1 ; vel_unit=' '
          time_scale=1
          p_scale=1
          Ttop=0
@@ -84,9 +84,9 @@ match(experiment):
      case 2 :
          eta_ref=1e21
          solve_T=False
-         p_scale=1e6 # Pa
-         vel_scale=cm/year
-         time_scale=year
+         p_scale=1e6 ; p_unit="MPa"
+         vel_scale=cm/year ; vel_unit='cm/yr'
+         time_scale=year ; time_unit='yr'
          every_Nu=100000
          TKelvin=0
          pressure_normalisation='surface'
@@ -103,8 +103,8 @@ if int(len(sys.argv)==4):
    nely  = int(sys.argv[2])
    nstep = int(sys.argv[3])
 else:
-   nelx=256
-   nely=64
+   nelx=200
+   nely=50
    nstep=1
 
 CFLnb=0.5
@@ -112,8 +112,11 @@ CFLnb=0.5
 every_vtu=5
 
 RKorder=4
-nparticle_per_dim=5
+nparticle_per_dim=10
 particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc
+#averaging='arithmetic'
+#averaging='geometric'
+averaging='harmonic'
 #use_nodal_rho=True
 #use_nodal_eta=True
 
@@ -695,7 +698,7 @@ for istep in range(0,nstep):
     print("-------------------------------------")
 
     ###########################################################################
-    # evaluate density and viscosity on particles
+    # evaluate density and viscosity on particles (and T, hcond, hcapa)
     ###########################################################################
     start=clock.time()
 
@@ -768,7 +771,7 @@ for istep in range(0,nstep):
     start=clock.time()
 
     rho_elemental,eta_elemental,nparticle_elemental=\
-    project_particles_on_elements(nel,nparticle,swarm_rho,swarm_eta,swarm_iel)
+    project_particles_on_elements(nel,nparticle,swarm_rho,swarm_eta,swarm_iel,averaging)
 
     ptcl_stats_file.write("%d %d %d\n" % (istep,np.min(nparticle_elemental),\
                                                 np.max(nparticle_elemental)))
@@ -792,12 +795,12 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    rho_nodal=project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_rho,icon_V,swarm_iel)
-    eta_nodal=project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_eta,icon_V,swarm_iel)
+    rho_nodal=project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_rho,icon_V,swarm_iel,'arithmetic')
+    eta_nodal=project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_eta,icon_V,swarm_iel,averaging)
 
     if solve_T:
-       hcond_nodal=project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_hcond,icon_V,swarm_iel)
-       hcapa_nodal=project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_hcapa,icon_V,swarm_iel)
+       hcond_nodal=project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_hcond,icon_V,swarm_iel,'arithmetic')
+       hcapa_nodal=project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_hcapa,icon_V,swarm_iel,'arithmetic')
 
     print("     -> rho_nodal (m,M) %.3e %.3e " %(np.min(rho_nodal),np.max(rho_nodal)))
     print("     -> eta_nodal (m,M) %.3e %.3e " %(np.min(eta_nodal),np.max(eta_nodal)))
@@ -940,9 +943,9 @@ for istep in range(0,nstep):
     if debug_nan and np.isnan(np.sum(v)): exit('nan found in v')
     if debug_nan and np.isnan(np.sum(p)): exit('nan found in p')
 
-    print("     -> u (m,M) %.3e %.3e " %(np.min(u)/vel_scale,np.max(u)/vel_scale))
-    print("     -> v (m,M) %.3e %.3e " %(np.min(v)/vel_scale,np.max(v)/vel_scale))
-    print("     -> p (m,M) %.3e %.3e " %(np.min(p)/p_scale,np.max(p)/p_scale))
+    print("     -> u (m,M) %.3e %.3e %s" %(np.min(u)/vel_scale,np.max(u)/vel_scale,vel_unit))
+    print("     -> v (m,M) %.3e %.3e %s" %(np.min(v)/vel_scale,np.max(v)/vel_scale,vel_unit))
+    print("     -> p (m,M) %.3e %.3e %s" %(np.min(p)/p_scale,np.max(p)/p_scale,p_unit))
 
     vstats_file.write("%.3e %.3e %.3e %.3e %.3e\n" % (istep,np.min(u)/vel_scale,np.max(u)/vel_scale,\
                                                             np.min(u)/vel_scale,np.max(u)/vel_scale))
@@ -958,19 +961,19 @@ for istep in range(0,nstep):
     start=clock.time()
 
     dt1=CFLnb*(Lx/nelx)/np.max(np.sqrt(u**2+v**2))
-    print('     -> dt1= %.3e' %(dt1/time_scale))
+    print('     -> dt1= %.3e %s' %(dt1/time_scale,time_unit))
     
     if solve_T:
        dt2=CFLnb*(Lx/nelx)**2/(hcond/hcapa/rho0)
-       print('     -> dt2= %.3e' %(dt2/time_scale))
+       print('     -> dt2= %.3e %s' %(dt2/time_scale,time_unit))
     else:
        dt2=1e50
     dt=np.min([dt1,dt2])
 
     geological_time+=dt
 
-    print('     -> dt = %.6f' %(dt/time_scale))
-    print('     -> geological time = %e ' %(geological_time/time_scale))
+    print('     -> dt = %.3e %s' %(dt/time_scale,time_unit))
+    print('     -> geological time = %e %s' %(geological_time/time_scale,time_unit))
 
     dt_file.write("%e %e %e %e\n" % (geological_time,dt1,dt2,dt)) ; dt_file.flush()
 
@@ -992,7 +995,7 @@ for istep in range(0,nstep):
                      pressure_avrg+=np.dot(N_P[iq,:],p[icon_P[:,iel]])*jcob*weightq[iq]
              p-=pressure_avrg/Lx/Ly
 
-    print("     -> p (m,M) %.3e %.3e " %(np.min(p),np.max(p)))
+    print("     -> p (m,M) %.3e %.3e %s" %(np.min(p),np.max(p),p_unit))
 
     pstats_file.write("%d %.3e %.3e\n" % (istep,np.min(p),np.max(p)))
 
@@ -1007,7 +1010,7 @@ for istep in range(0,nstep):
 
     q=compute_nodal_pressure(m_V,nn_V,icon_V,icon_P,p,N_P_n)
     
-    print("     -> q (m,M) %.3e %.3e " %(np.min(q),np.max(q)))
+    print("     -> q (m,M) %.3e %.3e %s" %(np.min(q),np.max(q),p_unit))
 
     if debug_ascii: np.savetxt('q.ascii',np.array([x_V,y_V,q]).T,header='# x,y,q')
 
@@ -1143,7 +1146,7 @@ for istep in range(0,nstep):
 
     vrms_file.write("%e %e \n" % (geological_time/time_scale,vrms/vel_scale)) ; vrms_file.flush()
 
-    print("     istep= %.6d ; vrms   = %.6f" %(istep,vrms/vel_scale))
+    print("     istep= %.6d ; vrms   = %.3e %s" %(istep,vrms/vel_scale,vel_unit))
 
     print("compute vrms: %.3f s" % (clock.time()-start)) ; timings[6]+=clock.time()-start
 
@@ -1301,7 +1304,7 @@ for istep in range(0,nstep):
     if istep%every_vtu==0 or istep==nstep-1: 
        export_quadpoints_to_vtu(istep,nel,nqel,nq,xq,yq,rhoq,etaq)
 
-       print("export particles to vtu file: %.3f s" % (clock.time()-start)) ; timings[22]+=clock.time()-start
+       print("export quad pts to vtu file: %.3f s" % (clock.time()-start)) ; timings[22]+=clock.time()-start
 
     ###########################################################################
 
@@ -1337,6 +1340,8 @@ for istep in range(0,nstep):
        print("export swarm to vtu: %8.3f s    (%.3f s per call) | %5.2f percent" % (timings[20],timings[20]/(istep+1),timings[20]/duration*100))
        print("export qpts to vtu: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[22],timings[22]/(istep+1),timings[22]/duration*100))
        print("project fields on qpts: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[21],timings[21]/(istep+1),timings[21]/duration*100))
+       print("----------------------------------------------------------------------")
+       print("compute time per timestep: %.3e" %(duration/(istep+1)))
        print("----------------------------------------------------------------------")
 
 #end for istep

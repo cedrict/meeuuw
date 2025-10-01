@@ -162,43 +162,76 @@ def advect_particles(RKorder,dt,nparticle,swarm_x,swarm_y,swarm_active,u,v,\
 ###############################################################################
 
 @numba.njit
-def project_particles_on_elements(nel,nparticle,swarm_rho,swarm_eta,swarm_iel):
+def project_particles_on_elements(nel,nparticle,swarm_rho,swarm_eta,swarm_iel,averaging):
 
     rho_elemental=np.zeros(nel,dtype=np.float64) 
     eta_elemental=np.zeros(nel,dtype=np.float64) 
-    nparticle_elemental=np.zeros(nel,dtype=np.float64) 
+    nparticle_per_element=np.zeros(nel,dtype=np.float64) 
 
+    # density averaging is always arithmetic 
     for ip in range(0,nparticle):
         iel=swarm_iel[ip]
-        rho_elemental[iel]+=swarm_rho[ip] # arithmetic 
-        eta_elemental[iel]+=swarm_eta[ip] # arithmetic 
-        nparticle_elemental[iel]+=1
+        rho_elemental[iel]+=swarm_rho[ip]
+        nparticle_per_element[iel]+=1
+    rho_elemental/=nparticle_per_element
 
-    #if np.min(nparticle_elemental)<=0: exit('Abort: element without particle')
+    # viscosity
+    if averaging=='arithmetic':
+       for ip in range(0,nparticle):
+           eta_elemental[swarm_iel[ip]]+=swarm_eta[ip] # arithmetic 
+       eta_elemental/=nparticle_per_element
 
-    rho_elemental/=nparticle_elemental
-    eta_elemental/=nparticle_elemental
+    elif averaging=='geometric':
+       for ip in range(0,nparticle):
+           eta_elemental[swarm_iel[ip]]+=np.log10(swarm_eta[ip])
+       eta_elemental=10.**(eta_elemental/nparticle_per_element)
 
-    return rho_elemental,eta_elemental,nparticle_elemental
+    elif averaging=='harmonic':
+       for ip in range(0,nparticle):
+           eta_elemental[swarm_iel[ip]]+=1./swarm_eta[ip]
+       eta_elemental=nparticle_per_element/eta_elemental
+
+    return rho_elemental,eta_elemental,nparticle_per_element
 
 ###############################################################################
 
 @numba.njit
-def project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_phi,icon_V,swarm_iel):
+def project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_phi,icon_V,swarm_iel,averaging):
 
     phi_nodal=np.zeros(nn_V,dtype=np.float64) 
     count_nodal=np.zeros(nn_V,dtype=np.float64) 
 
-    for ip in range(0,nparticle):
-        iel=swarm_iel[ip]
-        for k in (0,1,2,3):
-            phi_nodal[icon_V[k,iel]]+=swarm_phi[ip] # arithmetic 
-            count_nodal[icon_V[k,iel]]+=1
+    if averaging=='arithmetic':
+       for ip in range(0,nparticle):
+           iel=swarm_iel[ip]
+           for k in (0,1,2,3):
+               phi_nodal[icon_V[k,iel]]+=swarm_phi[ip]
+               count_nodal[icon_V[k,iel]]+=1
+       for i in range(0,nn_V):
+           if count_nodal[i]!=0:
+              phi_nodal[i]/=count_nodal[i]
 
-    for i in range(0,nn_V):
-        if count_nodal[i]!=0:
-            phi_nodal[i]/=count_nodal[i]
+    elif averaging=='geometric':
+       for ip in range(0,nparticle):
+           iel=swarm_iel[ip]
+           for k in (0,1,2,3):
+               phi_nodal[icon_V[k,iel]]+=np.log10(swarm_phi[ip])
+               count_nodal[icon_V[k,iel]]+=1
+       for i in range(0,nn_V):
+           if count_nodal[i]!=0:
+              phi_nodal[i]=10**(phi_nodal[i]/count_nodal[i])
 
+    elif averaging=='harmonic':
+       for ip in range(0,nparticle):
+           iel=swarm_iel[ip]
+           for k in (0,1,2,3):
+               phi_nodal[icon_V[k,iel]]+=1./swarm_phi[ip]
+               count_nodal[icon_V[k,iel]]+=1
+       for i in range(0,nn_V):
+           if count_nodal[i]!=0:
+              phi_nodal[i]=count_nodal[i]/phi_nodal[i]
+
+    # (implicitely) use Q1 basis functions to compute field at other nodes
     for iel in range(0,nel):
         phi_nodal[icon_V[4,iel]]=0.5*(phi_nodal[icon_V[0,iel]]+phi_nodal[icon_V[1,iel]])
         phi_nodal[icon_V[5,iel]]=0.5*(phi_nodal[icon_V[1,iel]]+phi_nodal[icon_V[2,iel]])

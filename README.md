@@ -1,9 +1,9 @@
 # meeuuw
 Mantle modelling Early Earth Utrecht University Work-in-progress
 
-Code description:
+## Code description:
 - FEM
-- Q_2xQ_1 finite element pair for velocity
+- Q_2xQ_1 finite element pair for velocity-pressure
 - Q_2 finite element for temperature
 - 2d Cartesian geometry
 - flexible nonlinear viscous rheology 
@@ -13,13 +13,13 @@ Code description:
 - direct solver for both linear systems
 - Crank-Nicolson time scheme for T equation
 
-Available experiments:
+## Available experiments:
 - experiment 0: Blankenbach et al, GJI, 1989. Mantle convection benchmark.
 - experiment 1: van Keken et al, JGR, 1997. Rayleigh-Taylor instability.
 - experiment 2: Schmeling et al, PEPI, 2008. Newtonian subduction.
 - experiment 3: Tosi et al, G3, 2015. Viscoplastic thermal convection benchmark.
 
-to do:
+## to do:
 - more accurate heat flux calculations (CBF?)
 - more accurate whole domain velocity gradient method
 - SUPG and/or Lenardic & Kaula filter
@@ -30,10 +30,12 @@ to do:
 
 ## Nomenclature
 
-### finite elements
+### Finite elements
 
 - u,v:  velocity components arrays
 - T: temperature array
+- p: pressure field (on Q1 mesh)
+- q: pressure field (on Q2 mesh)
 - nelx,nely: number of elements in each direction
 - nel: number of elements
 - nn_V: number of velocity nodes
@@ -54,15 +56,17 @@ to do:
 - bc_fix_T, bc_val_T: boundary conditions arrays for temperature
 - N_V, dNdr_V, dNds_V, dNdx_V, dNdy_V: velocity basis functions and derivatives
 - N_P: pressure basis functions
+- exx_n,eyy_n,exy_n: nodal components of strain rate tensor
+- vrms: root means square velocity
 
 ### Gauss quadrature 
 
-
 - nqel: number of quadrature points per element 
 - nq: total number of quadrature points in the domain
-- xq,yq: coordinate arrays of quadrature points
+- xq(nel,nqel),yq(nel,nqel): coordinate arrays of quadrature points
+- uq(nel,nqel),vq(nel,nqel): velocity components on quadrature points
 
-### swarm of particles
+### Particles
 
 - swarm_X: field X carried by the swarm of particles
 - RKorder: order of the Runge-Kutta algorithm
