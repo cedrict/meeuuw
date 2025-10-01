@@ -16,7 +16,7 @@ Code description:
 Available experiments:
 - experiment 0: Blankenbach et al, GJI, 1989. Mantle convection benchmark.
 - experiment 1: van Keken et al, JGR, 1997. Rayleigh-Taylor instability.
-- experiment 2: 
+- experiment 2: Schmeling et al, PEPI, 2008. Newtonian subduction.
 - experiment 3: Tosi et al, G3, 2015. Viscoplastic thermal convection benchmark.
 
 to do:
@@ -25,14 +25,57 @@ to do:
 - SUPG and/or Lenardic & Kaula filter
 - nonlinear iterations
 - cvi for Q2 ? 
-- make hcond,hcapa nodal quantities
 - introduce tfinal
-0 implement EBA, ALA, TALA, ICA? 
+- implement EBA, ALA, TALA, ICA? 
 
-Nomenclature
+## Nomenclature
 
+### finite elements
+
+- u,v:  velocity components arrays
+- T: temperature array
+- nelx,nely: number of elements in each direction
 - nel: number of elements
 - nn_V: number of velocity nodes
 - nn_P: number of pressure nodes
 - Nfem_V: number of velocity degrees of freedom
 - Nfem_P: number of pressure degrees of freedom
+- Nfem_T: number of temperature degrees of freedom
+- Lx,Ly: dimensions of the domain
+- m_V: number of velocity nodes per element
+- m_P: number of pressure nodes per element
+- m_T: number of temperature nodes per element
+- hx,hy: size of an element
+- x_V,y_V: coordinates arrays of velocity nodes
+- x_P,y_P: coordinates arrays of pressure nodes
+- icon_V: connectivity array for velocity nodes
+- icon_P: connectivity array for pressure nodes
+- bc_fix_V, bc_val_V: boundary conditions arrays for velocity
+- bc_fix_T, bc_val_T: boundary conditions arrays for temperature
+- N_V, dNdr_V, dNds_V, dNdx_V, dNdy_V: velocity basis functions and derivatives
+- N_P: pressure basis functions
+
+### Gauss quadrature 
+
+
+- nqel: number of quadrature points per element 
+- nq: total number of quadrature points in the domain
+- xq,yq: coordinate arrays of quadrature points
+
+### swarm of particles
+
+- swarm_X: field X carried by the swarm of particles
+- RKorder: order of the Runge-Kutta algorithm
+- nparticle_per_dim: number of articles per dimension
+- nparticle: number of particles in the domain
+
+
+
+
+
+
+
+
+
+
+
