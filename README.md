@@ -27,4 +27,12 @@ to do:
 - cvi for Q2 ? 
 - make hcond,hcapa nodal quantities
 - introduce tfinal
- 
+0 implement EBA, ALA, TALA, ICA? 
+
+Nomenclature
+
+- nel: number of elements
+- nn_V: number of velocity nodes
+- nn_P: number of pressure nodes
+- Nfem_V: number of velocity degrees of freedom
+- Nfem_P: number of pressure degrees of freedom

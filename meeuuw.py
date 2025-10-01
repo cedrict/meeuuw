@@ -6,16 +6,16 @@ import time as clock
 import scipy.sparse as sps
 from scipy import sparse
 from PoissonDisc import *
-from basis_functions import *
+from compute_vrms import *
 from pic_functions import *
+from basis_functions import *
 from compute_nodal_strain_rate import *
 from compute_nodal_heat_flux import *
 from compute_nodal_pressure import *
-from compute_vrms import *
-from project_nodal_field_onto_qpoints import *
 from export_swarm_to_vtu import *
 from export_solution_to_vtu import *
 from export_quadpoints_to_vtu import *
+from project_nodal_field_onto_qpoints import *
 
 ###############################################################################
 # constants
@@ -36,7 +36,7 @@ print("-----------------------------")
 # experiment 3: Tosi et al, 2015           - visco-plastic convection
 ###############################################################################
 
-experiment=1
+experiment=2
 
 match(experiment):
      case 0 | 3:
@@ -58,7 +58,6 @@ match(experiment):
          TKelvin=0
          pressure_normalisation='surface'
          every_Nu=1
-         every_q=1
          if experiment==3: 
             import tosi
             case_tosi=1
@@ -81,16 +80,21 @@ match(experiment):
          time_scale=1
          pressure_normalisation='volume'
          every_Nu=1000
-         every_q=1000
          TKelvin=0
      case 2 :
          eta_ref=1e21
-         p_scale=1e6
+         solve_T=False
+         p_scale=1e6 # Pa
          vel_scale=cm/year
          time_scale=year
-         every_Nu=1000
-         every_q=1000
+         every_Nu=100000
          TKelvin=0
+         pressure_normalisation='surface'
+
+         Lx=3000e3
+         Ly=750e3
+         gy=-9.81
+
      case _ :
          exit('setup - unknown experiment')  
 
@@ -99,9 +103,9 @@ if int(len(sys.argv)==4):
    nely  = int(sys.argv[2])
    nstep = int(sys.argv[3])
 else:
-   nelx=48
-   nely=48
-   nstep=100
+   nelx=256
+   nely=64
+   nstep=1
 
 CFLnb=0.5
          
@@ -286,7 +290,7 @@ bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
 
 match(experiment):
 
-     case 0 | 3 : # Blankenbach et al convection, Tosi et al 2015, free slip all sides
+     case 0 | 2 | 3 : # Blankenbach et al convection, Tosi et al 2015, free slip all sides
          for i in range(0,nn_V):
              if x_V[i]/Lx<eps:
                 bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
@@ -650,7 +654,17 @@ match(experiment):
                 swarm_mat[im]=1
              else:
                 swarm_mat[im]=2
-     #case(2):
+     case 2 :
+         swarm_mat[:]=2 # mantle 
+         for ip in range(0,nparticle):
+             if swarm_y[ip]>Ly-50e3:
+                swarm_mat[ip]=1 # sticky air
+             if swarm_x[ip]>1000e3 and swarm_y[ip]<Ly-50e3 and swarm_y[ip]>Ly-150e3: 
+                swarm_mat[ip]=3 # lithosphere
+             if swarm_x[ip]>1000e3 and swarm_x[ip]<1100e3 and\
+                swarm_y[ip]>Ly-250e3 and swarm_y[ip]<Ly-50e3:
+                swarm_mat[ip]=3 # lithosphere
+
      case _ :
          exit('mat - unknown experiment')  
 
@@ -715,7 +729,21 @@ for istep in range(0,nstep):
                     swarm_rho[ip]=1000
                  else:
                     swarm_rho[ip]=1010
-         #case(2):
+         case 2:
+             for ip in range(0,nparticle):
+                 match(swarm_mat[ip]):
+                      case 1 :
+                            swarm_rho[ip]=0
+                            swarm_eta[ip]=1e19
+                      case 2 :
+                            swarm_rho[ip]=3200
+                            swarm_eta[ip]=1e21
+                      case 3 :
+                            swarm_rho[ip]=3300
+                            swarm_eta[ip]=1e23
+                      case _ :
+                            exit('Abort: swarm_mat unknown')   
+             
          case 3 :
              swarm_rho[:]=rho0*(1-alphaT*swarm_T[:])
              for ip in range(0,nparticle):
