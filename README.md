@@ -27,6 +27,8 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - cvi for Q2 ? 
 - introduce tfinal
 - implement EBA, ALA, TALA, ICA? 
+- solid phase transition
+- melt generation and transport
 
 ## Nomenclature
 

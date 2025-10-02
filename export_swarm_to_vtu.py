@@ -16,8 +16,8 @@ def export_swarm_to_vtu(istep,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
        vtufile.write("<Points> \n")
        #--
        vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Format='ascii'> \n")
-       for im in range(0,nparticle):
-           vtufile.write("%.3e %.3e %.1e \n" %(swarm_x[im],swarm_y[im],0.))
+       for ip in range(0,nparticle):
+           vtufile.write("%.3e %.3e %.1e \n" %(swarm_x[ip],swarm_y[ip],0.))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("</Points> \n")
@@ -25,8 +25,8 @@ def export_swarm_to_vtu(istep,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
        vtufile.write("<PointData Scalars='scalars'>\n")
        #--
        vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='velocity' Format='ascii'> \n")
-       for im in range(0,nparticle):
-           vtufile.write("%.3e %.3e %.1e \n" %(swarm_u[im]/vel_scale,swarm_v[im]/vel_scale,0.))
+       for ip in range(0,nparticle):
+           vtufile.write("%.3e %.3e %.1e \n" %(swarm_u[ip]/vel_scale,swarm_v[ip]/vel_scale,0.))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Int32' Name='mat' Format='binary'> \n")
@@ -41,17 +41,17 @@ def export_swarm_to_vtu(istep,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
        swarm_eta.tofile(vtufile,sep=' ')
        vtufile.write("</DataArray>\n")
        #--
-       vtufile.write("<DataArray type='Float32' Name='exx' Format='binary'> \n")
-       swarm_exx.tofile(vtufile,sep=' ')
-       vtufile.write("</DataArray>\n")
+       #vtufile.write("<DataArray type='Float32' Name='exx' Format='binary'> \n")
+       #swarm_exx.tofile(vtufile,sep=' ')
+       #vtufile.write("</DataArray>\n")
        #--
-       vtufile.write("<DataArray type='Float32' Name='eyy' Format='binary'> \n")
-       swarm_eyy.tofile(vtufile,sep=' ')
-       vtufile.write("</DataArray>\n")
+       #vtufile.write("<DataArray type='Float32' Name='eyy' Format='binary'> \n")
+       #swarm_eyy.tofile(vtufile,sep=' ')
+       #vtufile.write("</DataArray>\n")
        #--
-       vtufile.write("<DataArray type='Float32' Name='exy' Format='binary'> \n")
-       swarm_exy.tofile(vtufile,sep=' ')
-       vtufile.write("</DataArray>\n")
+       #vtufile.write("<DataArray type='Float32' Name='exy' Format='binary'> \n")
+       #swarm_exy.tofile(vtufile,sep=' ')
+       #vtufile.write("</DataArray>\n")
        #--
        if solve_T:
           vtufile.write("<DataArray type='Float32' Name='Temperature' Format='binary'> \n")
@@ -75,17 +75,17 @@ def export_swarm_to_vtu(istep,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
        vtufile.write("<Cells>\n")
        #--
        vtufile.write("<DataArray type='Int32' Name='connectivity' Format='ascii'> \n")
-       for im in range (0,nparticle):
-           vtufile.write("%d " % im )
+       for ip in range (0,nparticle):
+           vtufile.write("%d " % ip)
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Int32' Name='offsets' Format='ascii'> \n")
-       for im in range (0,nparticle):
-           vtufile.write("%d " % (im+1) )
+       for ip in range (0,nparticle):
+           vtufile.write("%d " % (ip+1) )
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Int32' Name='types' Format='ascii'>\n")
-       for im in range (0,nparticle):
+       for ip in range (0,nparticle):
            vtufile.write("%d " % 1)
        vtufile.write("</DataArray>\n")
        #--

@@ -4,6 +4,9 @@
 \usepackage{graphicx}
 \usepackage{upgreek}
 \usepackage{amsmath}
+\usepackage{amsmath}
+\usepackage{csquotes}
+\usepackage[dvipsnames]{xcolor}
 \usepackage{bm}
 \usepackage{url}
 
@@ -67,7 +70,6 @@ velocity $\vec\upnu$, pressure $p$ and temperature $T$:
   %+\alpha T \left( \vec \upnu \cdot \vec\nabla p \right)
   +\alpha T \left( \frac{\partial p}{\partial t} +  \vec \upnu \cdot \vec\nabla p \right)
   && \textrm{in $\Omega$},
-  \notag
 \end{align}
 where $\dot{\bm \varepsilon}(\vec\upnu) = \frac{1}{2}(\vec\nabla \vec\upnu + \vec\nabla \vec\upnu^T)$
 is the symmetric gradient of the velocity (often called the
@@ -91,8 +93,9 @@ terms of this equation correspond to
 \end{itemize}
 
 
+\newpage
 %==============================================================
-\section{Boussinesq approximation}
+\section{Boussinesq approximation (BA)}
 
 In the case of an incompressible flow, then $\partial \rho/\partial t=0$ and
 ${\vec \nabla}\rho=0$, i.e. $D\rho/Dt=0$ and the mass conservation equation becomes:
@@ -105,19 +108,16 @@ solenoidal\footnote{\url{https://en.wikipedia.org/wiki/Solenoidal_vector_field}}
 In this case the equations above can now be written
 
 \begin{align}
-  \label{eq:stokes-1}
   - \vec\nabla p +  
   \vec\nabla \cdot \left[2\eta \left(\dot{\bm \varepsilon}(\vec \upnu)  \right)
                 \right] +  \rho \vec g &= \vec{0}
   &
   & \textrm{in $\Omega$},
   \\
-  \label{eq:stokes-2}
   \vec\nabla \cdot \vec \upnu &= 0
   &
   & \textrm{in $\Omega$},
   \\
-  \label{eq:temperature}
   \rho C_p \left(\frac{\partial T}{\partial t} + \vec \upnu\cdot\vec\nabla T\right)
   - \vec\nabla\cdot k\vec\nabla T
   &=
@@ -127,16 +127,109 @@ In this case the equations above can now be written
   %+\alpha T \left( \vec \upnu \cdot \vec\nabla p \right)
   +\alpha T \left( \frac{\partial p}{\partial t} +  \vec \upnu \cdot \vec\nabla p \right)
   && \textrm{in $\Omega$},
-  \notag
 \end{align}
 
+\noindent As nicely explained in \textcite{spve60}: 
+\begin{displayquote}
+{\color{darkgray}
+In the study of problems of thermal convection it is a frequent practice to simplify the basic 
+equations by introducing certain approximations which are attributed to
+Boussinesq (1903). The Boussinesq approximations can best be summarized by two
+statements: 
+\begin{enumerate}
+\item The fluctuations in density which appear with the advent of motion
+result principally from thermal (as opposed to pressure) effects. 
+\item In the equations
+for the rate of change of momentum and mass, density variations may be neglected except
+when they are coupled to the gravitational acceleration in the buoyancy force."
+\end{enumerate}
+}
+\end{displayquote}
+Note that their paper examines the Boussinesq approximation for compressible fluids.  
+
+The Boussinesq approximation assumes that the density can be
+considered constant in all occurrences in the equations with the exception of
+the buoyancy term on the right hand side of \eqref{eq:stokes-1}. The primary
+result of this assumption is that the continuity equation \eqref{eq:stokes-2}
+will now read ${\vec \nabla}\cdot{\vec \upnu} = 0$.
+This implies that the strain rate tensor is deviatoric.
+Under the Boussinesq approximation, the equations are much simplified:
+
+\begin{align}
+  -\vec\nabla p + \vec\nabla \cdot \left[2\eta \dot{\bm \varepsilon}(\vec\upnu) \right] + \rho \vec{g} &= \vec{0}
+  &
+  & \textrm{in $\Omega$},  \\
+  \vec\nabla \cdot  \vec\upnu &= 0 
+  &
+  & \textrm{in $\Omega$},
+  \\
+  \rho_0 C_p \left(\frac{\partial T}{\partial t} + \vec\upnu \cdot\vec\nabla T\right)
+  - \vec\nabla\cdot k\vec\nabla T
+  &=
+  \rho H
+  &
+  & \textrm{in $\Omega$}
+\end{align}
+Note that all terms on the rhs of the temperature equations have disappeared, with the exception 
+of the source term.
+
+In \textcite{vacp22} we read: 
+\begin{displayquote}
+The Boussinesq approximation (\textcite{ober79}; Boussinesq, 1903; Rayleigh, 1916) 
+assumes that density
+variations are so small that they can be neglected everywhere
+except in the buoyancy term in the momentum equation in
+Eq. (5), which is equivalent to using a constant reference
+density profile. This implies incompressibility, i.e. the use of
+Eq. (4) for mass conservation. In addition, adiabatic heating
+and shear heating are not considered in the energy equation
+in Eq. (6). This approximation is valid as long as density vari-
+ations are small and the modelled processes would cause no substantial 
+shear or adiabatic heating.
+The Boussinesq approximation is often used in lithosphere-
+scale models. Due to its simplicity, the approximation of in-
+compressibility is sometimes also adopted for whole-mantle
+convection models, wherein it is only approximately valid,
+and it has been shown that compressibility can have a large
+effect on the pattern of convective flow (e.g. Tackley, 1996).
+\end{displayquote}
 
 
 
 
+
+\newpage
 %==============================================================
-\section{Extended Boussinesq approximation}
+\section{Extended Boussinesq approximation (EBA)}
 
+In \textcite{vacp22} we read: 
+\begin{displayquote}
+The extended Boussinesq approximation (\cite{chyu85,oxtu78}) is based
+on the same assumptions as the BA but does consider adiabatic 
+and shear heating. Since it includes adiabatic heating,
+but not the associated volume and density changes, it can
+lead to artificial changes of energy in the model, i.e. material 
+is being heated or cooled based on the assumption that
+it is compressed or it expands, but the mechanical work that
+causes compression or expansion is not done. Consequently,
+the extended Boussinesq approximation should only be used
+in models without substantial adiabatic temperature changes.
+
+For a comparison between some of these approximations
+using benchmark models, see e.g. \textcite{sthe89},
+\textcite{lezh08}, \textcite{kilv10}, \textcite{gadb20}. 
+In addition, the choice of approximation may
+also be limited by the numerical methods being employed
+(for example, the accuracy of the solution for the variables
+that affect the density). Also note that, technically, these 
+approximations are all internally inconsistent to varying 
+degrees, since they do not fulfil the definitions of
+thermodynamic variables but use linearised versions instead,
+and they use different density formulations in the different 
+equations. Nevertheless, many of them are generally accepted 
+and widely used in geodynamic modelling studies, as
+they allow for simpler equations and more easily obtained solutions.
+\end{displayquote}
 
 
 

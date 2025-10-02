@@ -161,6 +161,8 @@ def advect_particles(RKorder,dt,nparticle,swarm_x,swarm_y,swarm_active,u,v,\
 
 ###############################################################################
 
+# iel inside or out ?
+
 @numba.njit
 def project_particles_on_elements(nel,nparticle,swarm_rho,swarm_eta,swarm_iel,averaging):
 
@@ -178,7 +180,7 @@ def project_particles_on_elements(nel,nparticle,swarm_rho,swarm_eta,swarm_iel,av
     # viscosity
     if averaging=='arithmetic':
        for ip in range(0,nparticle):
-           eta_elemental[swarm_iel[ip]]+=swarm_eta[ip] # arithmetic 
+           eta_elemental[swarm_iel[ip]]+=swarm_eta[ip] 
        eta_elemental/=nparticle_per_element
 
     elif averaging=='geometric':
