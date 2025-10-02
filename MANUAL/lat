@@ -1,0 +1,2 @@
+pdflatex manual.tex
+biber --output-safechars manual
