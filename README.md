@@ -29,6 +29,7 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - implement EBA, ALA, TALA, ICA? 
 - solid phase transition
 - melt generation and transport
+- C matrix for compressible case
 
 ## Nomenclature
 

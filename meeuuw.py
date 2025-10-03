@@ -62,6 +62,7 @@ match(experiment):
          TKelvin=0
          pressure_normalisation='surface'
          every_Nu=1
+         end_time=0.25
          if experiment==3: 
             import tosi
             case_tosi=1
@@ -85,6 +86,7 @@ match(experiment):
          pressure_normalisation='volume'
          every_Nu=1000
          TKelvin=0
+         end_time=2000
      case 2 :
          eta_ref=1e21
          solve_T=False
@@ -94,6 +96,7 @@ match(experiment):
          every_Nu=100000
          TKelvin=0
          pressure_normalisation='surface'
+         end_time=50*Myear
 
          Lx=3000e3
          Ly=750e3
@@ -109,14 +112,16 @@ if int(len(sys.argv)==4):
 else:
    nelx=64
    nely=int(Ly/Lx*nelx)
-   nstep=2500
+   nstep=200
 
-CFLnb=0.25
+CFLnb=0.75
          
-every_vtu=5
+every_solution_vtu=10
+every_swarm_vtu=10
+every_quadpoints_vtu=25
 
 RKorder=2
-nparticle_per_dim=7
+nparticle_per_dim=6
 particle_distribution=3 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 averaging='arithmetic'
 #averaging='geometric'
@@ -1191,7 +1196,7 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    if istep%every_vtu==0: 
+    if istep%every_solution_vtu==0: 
        export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,u,v,q,T,
                               eta_nodal,rho_nodal,exx_nodal,eyy_nodal,exy_nodal,qx_nodal,qy_nodal,
                               rho_elemental,eta_elemental,nparticle_elemental,icon_V)
@@ -1203,7 +1208,7 @@ for istep in range(0,nstep):
     ########################################################################
     start=clock.time()
 
-    if istep%every_vtu==0 or istep==nstep-1: 
+    if istep%every_swarm_vtu==0 or istep==nstep-1: 
        export_swarm_to_vtu(istep,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
                            swarm_u,swarm_v,swarm_mat,swarm_rho,swarm_eta,\
                            swarm_paint,swarm_exx,swarm_eyy,swarm_exy,swarm_T,\
@@ -1216,7 +1221,7 @@ for istep in range(0,nstep):
     ########################################################################
     start=clock.time()
 
-    if istep%every_vtu==0 or istep==nstep-1: 
+    if istep%every_quadpoints_vtu==0 or istep==nstep-1: 
        export_quadpoints_to_vtu(istep,nel,nqel,nq,solve_T,xq,yq,rhoq,etaq,Tq,hcondq,hcapaq,dpdxq,dpdyq)
 
        print("export quad pts to vtu file: %.3f s" % (clock.time()-start)) ; timings[22]+=clock.time()-start
@@ -1263,6 +1268,11 @@ for istep in range(0,nstep):
     dtimings=timings-timings_mem
     dtimings[0]=istep ; dtimings.tofile(timings_file,sep=' ',format='%e') ; timings_file.write(" \n" ) 
     timings_mem[:]=timings[:]
+
+
+    if geological_time>end_time: 
+       print('***** end time reached *****')
+       break
 
 #end for istep
 
