@@ -18,6 +18,8 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - experiment 1: van Keken et al, JGR, 1997. Rayleigh-Taylor instability.
 - experiment 2: Schmeling et al, PEPI, 2008. Newtonian subduction.
 - experiment 3: Tosi et al, G3, 2015. Viscoplastic thermal convection benchmark.
+- experiment 4: convection
+- experiment 5: Trompert & Hansen, Nature 1998.
 
 ## to do:
 - more accurate heat flux calculations (CBF?)
@@ -25,13 +27,19 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - SUPG and/or Lenardic & Kaula filter
 - nonlinear iterations
 - cvi for Q2 ? 
-- introduce tfinal
 - implement EBA, ALA, TALA, ICA? 
 - solid phase transition
 - melt generation and transport
 - C matrix for compressible case
+- implement blbc89 non isoviscous
 
 ## Nomenclature
+
+### Flags/parameters
+
+- Lx,Ly: dimensions of the domain
+- formulation: can take value 'BA', 'EBA', ...?
+- averaging: 'arithmetic', 'geometric', 'harmonic' 
 
 ### Finite elements
 
@@ -43,13 +51,14 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - nel: number of elements
 - nn_V: number of velocity nodes
 - nn_P: number of pressure nodes
+- ndof_V_el: number of V dofs per element (=18)
 - Nfem_V: number of velocity degrees of freedom
 - Nfem_P: number of pressure degrees of freedom
 - Nfem_T: number of temperature degrees of freedom
-- Lx,Ly: dimensions of the domain
-- m_V: number of velocity nodes per element
-- m_P: number of pressure nodes per element
-- m_T: number of temperature nodes per element
+- Nfem: total number of degrees of freedom (Stokes eqs) 
+- m_V: number of velocity nodes per element (=9)
+- m_P: number of pressure nodes per element (=4)
+- m_T: number of temperature nodes per element (=9)
 - hx,hy: size of an element
 - x_V,y_V: coordinates arrays of velocity nodes
 - x_P,y_P: coordinates arrays of pressure nodes
@@ -61,6 +70,10 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - N_P: pressure basis functions
 - exx_n,eyy_n,exy_n: nodal components of strain rate tensor
 - vrms: root means square velocity
+- qx_nodal, qy_nodal: nodal heat flux component
+- II_V, JJ_V, VV_V: arrays to store Stokes FEM matrix
+- II_T, JJ_T, VV_T: arrays to store energy FEM matrix
+- r_V, s_V: arrays of size m_V containing red coords of V nodes
 
 ### Gauss quadrature 
 
@@ -68,9 +81,15 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - nq: total number of quadrature points in the domain
 - xq(nel,nqel),yq(nel,nqel): coordinate arrays of quadrature points
 - uq(nel,nqel),vq(nel,nqel): velocity components on quadrature points
+- rhoq: density on quadrature points
+- etaq: viscosity on quadrature points
+- exxq, eyyq, exyq: strain rate components on quadrature points
+- dpdxq, dpdyq: pressure gradient on quadrature points
+
 
 ### Particles
 
+- particle_distribution: 
 - swarm_X: field X carried by the swarm of particles
 - RKorder: order of the Runge-Kutta algorithm
 - nparticle_per_dim: number of articles per dimension

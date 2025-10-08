@@ -3,7 +3,7 @@ import numpy as np
 ###############################################################################
 
 def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,u,v,q,T,
-                           eta_nodal,rho_nodal,exx_nodal,eyy_nodal,exy_nodal,qx_nodal,qy_nodal,
+                           eta_nodal,rho_nodal,exx_nodal,eyy_nodal,exy_nodal,e_nodal,qx_nodal,qy_nodal,
                            rho_elemental,eta_elemental,nparticle_elemental,icon_V):
 
        filename = 'solution_{:04d}.vtu'.format(istep)
@@ -34,7 +34,7 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
        if solve_T:
           vtufile.write("<DataArray type='Float32' Name='Temperature' Format='ascii'> \n")
           for i in range(0,nn_V):
-              vtufile.write("%.3e \n" %(T[i]-TKelvin))
+              vtufile.write("%.4e \n" %(T[i]-TKelvin))
           vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
@@ -50,6 +50,11 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
        vtufile.write("<DataArray type='Float32' Name='exy' Format='ascii'> \n")
        for i in range(0,nn_V):
            vtufile.write("%.4e \n" %exy_nodal[i])
+       vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("<DataArray type='Float32' Name='e' Format='ascii'> \n")
+       for i in range(0,nn_V):
+           vtufile.write("%.4e \n" %e_nodal[i])
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")

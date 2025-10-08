@@ -27,6 +27,41 @@ def assign_parameters(icase):
 
 ###############################################################################
 
+Lx=1
+Ly=1
+eta_ref=1
+solve_T=True
+vel_scale=1 ; vel_unit=' '
+time_scale=1 ; time_unit=' '
+p_scale=1 ; p_unit=' '
+Ttop=0
+Tbottom=1
+alphaT=1e-4
+hcond=1  
+hcapa=1 
+rho0=1
+Ra=1e4
+gy=-Ra/alphaT 
+TKelvin=0
+pressure_normalisation='surface'
+every_Nu=1
+end_time=0.25
+case_tosi=1
+gamma_T=np.log(1e5)
+eta_star=1e-3 
+eta_ref=1e-2
+Ra,sigma_y,gamma_y=assign_parameters(case_tosi)
+eta_min=1e-5
+eta_max=1
+
+nelx=32
+nely=32
+nstep=10
+
+CFLnb=0.5
+
+###############################################################################
+
 @numba.njit
 def viscosity(T,exx,eyy,exy,y,gamma_T,gamma_y,sigma_y,eta_star,icase):
     #-------------------

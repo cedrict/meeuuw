@@ -38,96 +38,36 @@ print("-----------------------------")
 # experiment 1: van Keken et al, JGR, 1997 - Rayleigh-Taylor experiment
 # experiment 2: Schmeling et al, PEPI 2008 - Newtonian subduction
 # experiment 3: Tosi et al, 2015           - visco-plastic convection
+# experiment 4: not sure. mantle size convection
+# experiment 5: Trompert & Hansen, Nature 1998 - convection w/ plate-like  
 ###############################################################################
 
-experiment=0
+experiment=1
 
 match(experiment):
-     case 0 | 3:
-         Lx=1
-         Ly=1
-         eta_ref=1
-         solve_T=True
-         vel_scale=1 ; vel_unit=' '
-         time_scale=1 ; time_unit=' '
-         p_scale=1 ; p_unit=' '
-         Ttop=0
-         Tbottom=1
-         alphaT=1e-2   # thermal expansion coefficient
-         hcond=1       # thermal conductivity
-         hcapa=1       # heat capacity
-         rho0=1
-         Ra=1e4
-         gy=-Ra/alphaT 
-         TKelvin=0
-         pressure_normalisation='surface'
-         every_Nu=1
-         end_time=0.25
-         if experiment==3: 
-            import tosi
-            case_tosi=1
-            gamma_T=np.log(1e5)
-            eta_star=1e-3 
-            eta_ref=1e-2
-            alphaT=1e-4
-            Ra,sigma_y,gamma_y=tosi.assign_parameters(case_tosi)
-            eta_min=1e-5
-            eta_max=1
-           
-     case 1 :
-         Lx=0.9142
-         Ly=1
-         gy=-10 
-         eta_ref=100
-         solve_T=False
-         vel_scale=1
-         p_scale=1
-         time_scale=1
-         pressure_normalisation='volume'
-         every_Nu=1000
-         TKelvin=0
-         end_time=2000
-     case 2 :
-         eta_ref=1e21
-         solve_T=False
-         p_scale=1e6 ; p_unit="MPa"
-         vel_scale=cm/year ; vel_unit='cm/yr'
-         time_scale=year ; time_unit='yr'
-         every_Nu=100000
-         TKelvin=0
-         pressure_normalisation='surface'
-         end_time=50*Myear
-
-         Lx=3000e3
-         Ly=750e3
-         gy=-9.81
-
-     case _ :
-         exit('setup - unknown experiment')  
+     case 0 : from experiment0 import *
+     case 1 : from experiment1 import *
+     case 2 : from experiment2 import *
+     case 3 : from experiment3 import *
+     case 4 : from experiment4 import *
+     case 5 : from experiment5 import *
+     case _ : exit('setup - unknown experiment')  
 
 if int(len(sys.argv)==4):
    nelx  = int(sys.argv[1])
    nely  = int(sys.argv[2])
    nstep = int(sys.argv[3])
-else:
-   nelx=64
-   nely=int(Ly/Lx*nelx)
-   nstep=200
-
-CFLnb=0.75
          
-every_solution_vtu=10
-every_swarm_vtu=10
-every_quadpoints_vtu=25
+every_solution_vtu=5
+every_swarm_vtu=5
+every_quadpoints_vtu=250
 
-RKorder=2
-nparticle_per_dim=6
-particle_distribution=3 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
+RKorder=4
+nparticle_per_dim=7
+particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 averaging='arithmetic'
 #averaging='geometric'
 #averaging='harmonic'
-#use_nodal_rho=True
-#use_nodal_eta=True
 
 formulation='BA'
 #formulation='EBA'
@@ -186,6 +126,7 @@ pstats_file=open('pressure_stats.ascii',"w")
 pstats_file.write("#istep,min p, max p\n")
 vstats_file=open('velocity_stats.ascii',"w")
 vstats_file.write("#istep,min(u),max(u),min(v),max(v)\n")
+Tstats_file=open('temperature_stats.ascii',"w")
 dt_file=open('dt.ascii',"w")
 dt_file.write("#time dt1 dt2 dt\n")
 ptcl_stats_file=open('particle_stats.ascii',"w")
@@ -195,6 +136,8 @@ timings_file=open('timings.ascii',"w")
 ###############################################################################
 
 print('experiment=',experiment)
+print('nelx=',nelx)
+print('nely=',nely)
 print('Lx=',Lx)
 print('Ly=',Ly)
 print('nn_V=',nn_V)
@@ -206,9 +149,8 @@ print('Nfem=',Nfem)
 print('nqperdim=',nqperdim)
 print('particle_distribution=',particle_distribution)
 print('RKorder=',RKorder)
+print('CFLnb=',CFLnb)
 print('nparticle=',nparticle)
-#print('use_nodal_rho=',use_nodal_rho)
-#print('use_nodal_eta=',use_nodal_eta)
 print("-----------------------------")
 
 ###############################################################################
@@ -245,15 +187,15 @@ nny=2*nely+1
 counter=0
 for j in range(0,nely):
     for i in range(0,nelx):
-        icon_V[0,counter]=(i)*2+1+(j)*2*nnx -1
-        icon_V[1,counter]=(i)*2+3+(j)*2*nnx -1
-        icon_V[2,counter]=(i)*2+3+(j)*2*nnx+nnx*2 -1
-        icon_V[3,counter]=(i)*2+1+(j)*2*nnx+nnx*2 -1
-        icon_V[4,counter]=(i)*2+2+(j)*2*nnx -1
-        icon_V[5,counter]=(i)*2+3+(j)*2*nnx+nnx -1
-        icon_V[6,counter]=(i)*2+2+(j)*2*nnx+nnx*2 -1
-        icon_V[7,counter]=(i)*2+1+(j)*2*nnx+nnx -1
-        icon_V[8,counter]=(i)*2+2+(j)*2*nnx+nnx -1
+        icon_V[0,counter]=i*2+1+j*2*nnx -1
+        icon_V[1,counter]=i*2+3+j*2*nnx -1
+        icon_V[2,counter]=i*2+3+j*2*nnx+nnx*2 -1
+        icon_V[3,counter]=i*2+1+j*2*nnx+nnx*2 -1
+        icon_V[4,counter]=i*2+2+j*2*nnx -1
+        icon_V[5,counter]=i*2+3+j*2*nnx+nnx -1
+        icon_V[6,counter]=i*2+2+j*2*nnx+nnx*2 -1
+        icon_V[7,counter]=i*2+1+j*2*nnx+nnx -1
+        icon_V[8,counter]=i*2+2+j*2*nnx+nnx -1
         counter+=1
     #end for
 #end for
@@ -311,7 +253,7 @@ bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
 
 match(experiment):
 
-     case 0 | 2 | 3 : # Blankenbach et al convection, Tosi et al 2015, free slip all sides
+     case 0 | 2 | 3 | 4 | 5 : # free slip all sides
          for i in range(0,nn_V):
              if x_V[i]/Lx<eps:
                 bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
@@ -350,7 +292,7 @@ if solve_T:
    bc_val_T=np.zeros(Nfem_T,dtype=np.float64) 
 
    match(experiment):
-        case 0 | 3 :
+        case 0 | 3 | 4 | 5 :
             for i in range(0,nn_V):
                 if y_V[i]<eps:
                    bc_fix_T[i]=True ; bc_val_T[i]=Tbottom
@@ -375,8 +317,19 @@ if solve_T:
             for i in range(0,nn_V):
                 T[i]=(Tbottom-Ttop)*(Ly-y_V[i])/Ly+Ttop\
                     +0.01*np.cos(np.pi*x_V[i]/Lx)*np.sin(np.pi*y_V[i]/Ly)
-        case _:
-            exit('unknown experiment')  
+        case 4 :
+            for i in range(0,nn_V):
+                #T[i]=(Tbottom-Ttop)*(Ly-y_V[i])/Ly+Ttop\
+                T[i]=(Tbottom+Ttop)/2\
+                    +11*np.cos(3.33*np.pi*x_V[i]/Lx)*np.sin(1*np.pi*y_V[i]/Ly)\
+                    +12*np.cos(5.55*np.pi*x_V[i]/Lx)*np.sin(3*np.pi*y_V[i]/Ly)**2\
+                    +13*np.cos(7.77*np.pi*x_V[i]/Lx)*np.sin(5*np.pi*y_V[i]/Ly)**3
+
+        case 5 :
+            for i in range(0,nn_V):
+                T[i]=initial_temperature(x_V[i],y_V[i])
+
+        case _: exit('unknown experiment')  
 
    T_mem=T.copy()
 
@@ -689,7 +642,7 @@ start=clock.time()
 swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
 match(experiment):
-     case 0 | 3 :
+     case 0 | 3 | 4 | 5 :
          swarm_mat[:]=1
      case 1 :
          for im in range (0,nparticle):
@@ -708,8 +661,7 @@ match(experiment):
                 swarm_y[ip]>Ly-250e3 and swarm_y[ip]<Ly-50e3:
                 swarm_mat[ip]=3 # lithosphere
 
-     case _ :
-         exit('mat - unknown experiment')  
+     case _ : exit('mat - unknown experiment')  
 
 print("     -> swarm_mat (m,M) %.3e %.3e " %(np.min(swarm_mat),np.max(swarm_mat)))
 
@@ -736,7 +688,7 @@ topstart=clock.time()
 
 for istep in range(0,nstep):
     print("-------------------------------------")
-    print("istep= %d | time= %.4e " %(istep,geological_time))
+    print("istep= %d | time= %.4e " %(istep,geological_time/time_scale))
     print("-------------------------------------")
 
     ###########################################################################
@@ -789,10 +741,25 @@ for istep in range(0,nstep):
          case 3 :
              swarm_rho[:]=rho0*(1-alphaT*swarm_T[:])
              for ip in range(0,nparticle):
-                 swarm_eta[ip]=tosi.viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip],\
-                                              gamma_T,gamma_y,sigma_y,eta_star,case_tosi)
+                 swarm_eta[ip]=viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip],\
+                                         gamma_T,gamma_y,sigma_y,eta_star,case_tosi)
              swarm_hcond[:]=1
              swarm_hcapa[:]=1
+
+         case 4 :
+             swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-T0))
+             swarm_eta[:]=eta0
+             swarm_hcond[:]=hcond0
+             swarm_hcapa[:]=hcapa0
+
+         case 5 :
+
+             swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-T0))
+             for ip in range(0,nparticle):
+                 swarm_eta[ip]=viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip])
+             swarm_hcond[:]=hcond0
+             swarm_hcapa[:]=hcapa0
+
          case _ :
             exit('rho,eta - unknown experiment')  
 
@@ -811,6 +778,9 @@ for istep in range(0,nstep):
 
     rho_elemental,eta_elemental,nparticle_elemental=\
     project_particles_on_elements(nel,nparticle,swarm_rho,swarm_eta,swarm_iel,averaging)
+
+    if np.min(nparticle_elemental)==0: 
+       exit('ABORT: an element contains no particle!')
 
     ptcl_stats_file.write("%d %d %d\n" % (istep,np.min(nparticle_elemental),\
                                                 np.max(nparticle_elemental)))
@@ -948,7 +918,10 @@ for istep in range(0,nstep):
     print('     -> dt1= %.3e %s' %(dt1/time_scale,time_unit))
     
     if solve_T:
-       dt2=CFLnb*(Lx/nelx)**2/(hcond/hcapa/rho0)
+       avrg_hcond=np.average(swarm_hcond)
+       avrg_hcapa=np.average(swarm_hcapa)
+       avrg_rho=np.average(swarm_rho)
+       dt2=CFLnb*(Lx/nelx)**2/(avrg_hcond/avrg_hcapa/avrg_rho)
        print('     -> dt2= %.3e %s' %(dt2/time_scale,time_unit))
     else:
        dt2=1e50
@@ -1033,9 +1006,11 @@ for istep in range(0,nstep):
 
        if debug_nan and np.isnan(np.sum(T)): exit('nan found in T')
 
-       print("     T (m,M) %.3e %.3e " %(np.min(T),np.max(T)))
+       print("     -> T (m,M) %.3e %.3e " %(np.min(T),np.max(T)))
 
        if debug_ascii: np.savetxt('T.ascii',np.array([x_V,y_V,T]).T,header='# x,y,T')
+
+       Tstats_file.write("%.3e %.3e %.3e\n" %(istep,np.min(T)-TKelvin,np.max(T)-TKelvin)) ; Tstats_file.flush()
 
        print("solve T time: %.3f s" % (clock.time()-start)) ; timings[5]+=clock.time()-start
 
@@ -1063,7 +1038,7 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if solve_T: 
-       qx_nodal,qy_nodal=compute_nodal_heat_flux(icon_V,T,hcond,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n)
+       qx_nodal,qy_nodal=compute_nodal_heat_flux(icon_V,T,hcond_nodal,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n)
 
        print("     -> qx_nodal (m,M) %.3e %.3e " %(np.min(qx_nodal),np.max(qx_nodal)))
        print("     -> qy_nodal (m,M) %.3e %.3e " %(np.min(qy_nodal),np.max(qy_nodal)))
@@ -1135,7 +1110,7 @@ for istep in range(0,nstep):
 
        np.savetxt('T_profile_'+str(istep)+'.ascii',np.array([y_profile,T_profile]).T,header='#y,T')
 
-       print("compute T profile: %.3f s" % (clock.time() - start)) ; timings[9]+=clock.time()-start
+       print("compute T profile: %.3f s" % (clock.time()-start)) ; timings[9]+=clock.time()-start
 
     ###########################################################################
     # compute nodal strainrate
@@ -1197,9 +1172,10 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if istep%every_solution_vtu==0: 
-       export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,u,v,q,T,
-                              eta_nodal,rho_nodal,exx_nodal,eyy_nodal,exy_nodal,qx_nodal,qy_nodal,
-                              rho_elemental,eta_elemental,nparticle_elemental,icon_V)
+       export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
+                              u,v,q,T,eta_nodal,rho_nodal,exx_nodal,eyy_nodal,
+                              exy_nodal,e_nodal,qx_nodal,qy_nodal,rho_elemental,
+                              eta_elemental,nparticle_elemental,icon_V)
 
        print("export solution to vtu file: %.3f s" % (clock.time()-start)) ; timings[10]+=clock.time()-start
 
@@ -1269,6 +1245,7 @@ for istep in range(0,nstep):
     dtimings[0]=istep ; dtimings.tofile(timings_file,sep=' ',format='%e') ; timings_file.write(" \n" ) 
     timings_mem[:]=timings[:]
 
+    ###########################################################################
 
     if geological_time>end_time: 
        print('***** end time reached *****')
