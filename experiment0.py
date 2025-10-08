@@ -21,5 +21,5 @@ end_time=0.25
 
 nelx=32
 nely=32
-nstep=100
+nstep=10000
 CFLnb=0.5           

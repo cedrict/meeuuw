@@ -42,7 +42,7 @@ print("-----------------------------")
 # experiment 5: Trompert & Hansen, Nature 1998 - convection w/ plate-like  
 ###############################################################################
 
-experiment=1
+experiment=0
 
 match(experiment):
      case 0 : from experiment0 import *
@@ -106,6 +106,8 @@ timings_mem=np.zeros(22+1)
 
 L_ref=(Lx+Ly)/2
 
+tol=1e-4
+
 ###############################################################################
 # quadrature rule points and weights
 ###############################################################################
@@ -120,18 +122,17 @@ nq=nqel*nel
 # open output files & write headers
 ###############################################################################
 
-vrms_file=open('vrms.ascii',"w")
-vrms_file.write("#time,vrms\n")
-pstats_file=open('pressure_stats.ascii',"w")
-pstats_file.write("#istep,min p, max p\n")
-vstats_file=open('velocity_stats.ascii',"w")
-vstats_file.write("#istep,min(u),max(u),min(v),max(v)\n")
-Tstats_file=open('temperature_stats.ascii',"w")
-dt_file=open('dt.ascii',"w")
-dt_file.write("#time dt1 dt2 dt\n")
+vrms_file=open('vrms.ascii',"w") ; vrms_file.write("#time,vrms\n")
+pstats_file=open('pressure_stats.ascii',"w") ; pstats_file.write("#istep,min p, max p\n")
+vstats_file=open('velocity_stats.ascii',"w") ; vstats_file.write("#istep,min(u),max(u),min(v),max(v)\n")
+Tstats_file=open('temperature_stats.ascii',"w") 
+dt_file=open('dt.ascii',"w") ; dt_file.write("#time dt1 dt2 dt\n")
 ptcl_stats_file=open('particle_stats.ascii',"w")
 Nu_file=open('Nu.ascii',"w")
 timings_file=open('timings.ascii',"w")
+TM_file=open('total_mass.ascii',"w") 
+EK_file=open('kinetic_energy.ascii',"w") 
+TVD_file=open('viscous_dissipation.ascii',"w") 
 
 ###############################################################################
 
@@ -160,12 +161,20 @@ start=clock.time()
 
 x_V=np.zeros(nn_V,dtype=np.float64) # x coordinates
 y_V=np.zeros(nn_V,dtype=np.float64) # y coordinates
+top_node=np.zeros(nn_V,dtype=bool)
+bottom_node=np.zeros(nn_V,dtype=bool)
+left_node=np.zeros(nn_V,dtype=bool)
+right_node=np.zeros(nn_V,dtype=bool)
 
 counter=0    
 for j in range(0,2*nely+1):
     for i in range(0,2*nelx+1):
         x_V[counter]=i*hx/2
         y_V[counter]=j*hy/2
+        if (i==0): left_node[counter]=True
+        if (i==2*nelx): right_node[counter]=True
+        if (j==0): bottom_node[counter]=True
+        if (j==2*nely): top_node[counter]=True
         counter+=1
     #end for
 #end for
@@ -180,6 +189,10 @@ print("build V grid: %.3f s" % (clock.time() - start))
 start=clock.time()
 
 icon_V=np.zeros((m_V,nel),dtype=np.int32)
+top_element=np.zeros(nel,dtype=bool)
+bottom_element=np.zeros(nel,dtype=bool)
+left_element=np.zeros(nel,dtype=bool)
+right_element=np.zeros(nel,dtype=bool)
 
 nnx=2*nelx+1 
 nny=2*nely+1 
@@ -196,6 +209,10 @@ for j in range(0,nely):
         icon_V[6,counter]=i*2+2+j*2*nnx+nnx*2 -1
         icon_V[7,counter]=i*2+1+j*2*nnx+nnx -1
         icon_V[8,counter]=i*2+2+j*2*nnx+nnx -1
+        if (i==0): left_element[counter]=True
+        if (i==nelx-1): right_element[counter]=True
+        if (j==0): bottom_element[counter]=True
+        if (j==nely-1): top_element[counter]=True
         counter+=1
     #end for
 #end for
@@ -683,6 +700,9 @@ eyy_nodal=np.zeros(nn_V,dtype=np.float64)
 exy_nodal=np.zeros(nn_V,dtype=np.float64)  
 dpdx_nodal=np.zeros(nn_V,dtype=np.float64)  
 dpdy_nodal=np.zeros(nn_V,dtype=np.float64)  
+u_mem=np.zeros(nn_V,dtype=np.float64)  
+v_mem=np.zeros(nn_V,dtype=np.float64)  
+p_mem=np.zeros(nn_P,dtype=np.float64)  
 
 topstart=clock.time()
 
@@ -1021,12 +1041,13 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    vrms,EK,WAG,TVD,GPE,ITE=\
+    vrms,EK,WAG,TVD,GPE,ITE,TM=\
     global_quantities(nel,nqel,xq,yq,uq,vq,Tq,rhoq,hcapaq,etaq,exxq,eyyq,exyq,Lx,Ly,JxWq,gy)
-    
-    #vrms=compute_vrms(nel,nqel,weightq,icon_V,u,v,N_V,Lx,Ly,jcob)
 
     vrms_file.write("%e %e \n" % (geological_time/time_scale,vrms/vel_scale)) ; vrms_file.flush()
+    TM_file.write("%e %e \n" % (geological_time/time_scale,TM)) ; TM_file.flush()
+    EK_file.write("%e %e \n" % (geological_time/time_scale,EK)) ; EK_file.flush()
+    TVD_file.write("%e %e \n" % (geological_time/time_scale,TVD)) ; TVD_file.flush()
 
     print("     istep= %.6d ; vrms   = %.3e %s" %(istep,vrms/vel_scale,vel_unit))
 
@@ -1060,7 +1081,7 @@ for istep in range(0,nstep):
        qy_bot=0
        Nusselt=0
        for iel in range(0,nel):
-           if y_V[icon_V[m_V-1,iel]]/Ly>1-eps: # top row of nodes 
+           if top_element[iel]: 
               sq=+1
               for iq in range(0,nqperdim):
                   rq=qcoords[iq]
@@ -1070,7 +1091,7 @@ for istep in range(0,nstep):
                   qy_top+=q_y*(hx/2)*qweights[iq]
               #end for
            #end if
-           if y_V[icon_V[0,iel]]/Ly<eps: # bottom row of nodes
+           if bottom_element[iel]: 
               sq=-1
               for iq in range(0,nqperdim):
                   rq=qcoords[iq]
@@ -1203,10 +1224,32 @@ for istep in range(0,nstep):
        print("export quad pts to vtu file: %.3f s" % (clock.time()-start)) ; timings[22]+=clock.time()-start
 
     ###########################################################################
+    # assess steady state
+    ###########################################################################
+    start=clock.time()
+
+    steady_state_u=np.linalg.norm(u_mem-u,2)/np.linalg.norm(u,2)<tol
+    steady_state_v=np.linalg.norm(v_mem-v,2)/np.linalg.norm(v,2)<tol
+    steady_state_p=np.linalg.norm(p_mem-p,2)/np.linalg.norm(p,2)<tol
+
+    if solve_T:
+       steady_state_T=np.linalg.norm(T_mem-T,2)/np.linalg.norm(T,2)<tol 
+       print('     -> steady state u,v,p,T',steady_state_u,steady_state_v,\
+                                            steady_state_p,steady_state_T)
+    else:
+       steady_state_T=True
+       print('     -> steady state u,v,p',steady_state_u,steady_state_v,\
+                                          steady_state_p)
+
+    steady_state=steady_state_u and steady_state_v and\
+                 steady_state_p and steady_state_T 
 
     u_mem=u.copy()
     v_mem=v.copy()
-    T_mem=T.copy()
+    p_mem=p.copy()
+    if solve_T: T_mem=T.copy()
+
+    print("assess steady state: %.4f s" % (clock.time()-start)) #; timings[22]+=clock.time()-start
 
     ###########################################################################
 
@@ -1251,6 +1294,10 @@ for istep in range(0,nstep):
        print('***** end time reached *****')
        break
 
+    if steady_state: 
+       print('***** steady state reached *****')
+       break
+
 #end for istep
 
 ###############################################################################
@@ -1262,6 +1309,9 @@ pstats_file.close()
 vrms_file.close()
 dt_file.close()
 Nu_file.close()
+TM_file.close()
+EK_file.close()
+TVD_file.close()
 
 ###############################################################################
 

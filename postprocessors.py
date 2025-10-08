@@ -27,6 +27,6 @@ def global_quantities(nel,nqel,xq,yq,uq,vq,Tq,rhoq,hcapaq,etaq,exxq,eyyq,exyq,Lx
     #end for iel
     vrms=np.sqrt(vrms/(Lx*Ly)) 
 
-    return vrms,EK,WAG,TVD,GPE,ITE
+    return vrms,EK,WAG,TVD,GPE,ITE,TM
 
 ###############################################################################

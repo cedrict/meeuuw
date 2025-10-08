@@ -10,6 +10,8 @@ def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon
 
     C=np.array([[2,0,0],[0,2,0],[0,0,1]],dtype=np.float64) 
 
+    #C=np.array([[4/3,-2/3,0],[-2/3,4/3,0],[0,0,1]],dtype=np.float64) 
+
     VV_V=np.zeros(bignb,dtype=np.float64)    
 
     B=np.zeros((3,ndof_V*m_V),dtype=np.float64) # gradient matrix B 
