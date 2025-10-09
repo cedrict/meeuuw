@@ -19,7 +19,7 @@ pressure_normalisation='surface'
 every_Nu=1
 end_time=0.25
 
-nelx=32
-nely=32
+nelx=16
+nely=16
 nstep=10000
 CFLnb=0.5           

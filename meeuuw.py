@@ -128,11 +128,18 @@ vstats_file=open('velocity_stats.ascii',"w") ; vstats_file.write("#istep,min(u),
 Tstats_file=open('temperature_stats.ascii',"w") 
 dt_file=open('dt.ascii',"w") ; dt_file.write("#time dt1 dt2 dt\n")
 ptcl_stats_file=open('particle_stats.ascii',"w")
-Nu_file=open('Nu.ascii',"w")
+Nu_file=open('Nu.ascii',"w") ; dt_file.write("#time Nu\n")
+avrg_T_bottom_file=open('avrg_T_bottom.ascii',"w") 
+avrg_T_top_file=open('avrg_T_top.ascii',"w") 
+avrg_dTdy_bottom_file=open('avrg_dTdy_bottom.ascii',"w") 
+avrg_dTdy_top_file=open('avrg_dTdy_top.ascii',"w") 
 timings_file=open('timings.ascii',"w")
 TM_file=open('total_mass.ascii',"w") 
 EK_file=open('kinetic_energy.ascii',"w") 
 TVD_file=open('viscous_dissipation.ascii',"w") 
+pvd_solution_file=open('solution.pvd',"w")
+pvd_swarm_file=open('swarm.pvd',"w")
+corner_q_file=open('corner_heat_flux.ascii','w')
 
 ###############################################################################
 
@@ -156,25 +163,39 @@ print("-----------------------------")
 
 ###############################################################################
 # build velocity nodes coordinates 
+# BL: bottom left, BR: bottom right, TL: top left, TR: top right
 ###############################################################################
 start=clock.time()
 
 x_V=np.zeros(nn_V,dtype=np.float64) # x coordinates
 y_V=np.zeros(nn_V,dtype=np.float64) # y coordinates
-top_node=np.zeros(nn_V,dtype=bool)
-bottom_node=np.zeros(nn_V,dtype=bool)
-left_node=np.zeros(nn_V,dtype=bool)
-right_node=np.zeros(nn_V,dtype=bool)
+top_nodes=np.zeros(nn_V,dtype=bool)
+bottom_nodes=np.zeros(nn_V,dtype=bool)
+left_nodes=np.zeros(nn_V,dtype=bool)
+right_nodes=np.zeros(nn_V,dtype=bool)
+middleH_nodes=np.zeros(nn_V,dtype=bool)
+middleV_nodes=np.zeros(nn_V,dtype=bool)
+
+nnx=2*nelx+1 
+nny=2*nely+1 
 
 counter=0    
 for j in range(0,2*nely+1):
     for i in range(0,2*nelx+1):
         x_V[counter]=i*hx/2
         y_V[counter]=j*hy/2
-        if (i==0): left_node[counter]=True
-        if (i==2*nelx): right_node[counter]=True
-        if (j==0): bottom_node[counter]=True
-        if (j==2*nely): top_node[counter]=True
+        if (i==0): left_nodes[counter]=True
+        if (i==2*nelx): right_nodes[counter]=True
+        if (j==0): bottom_nodes[counter]=True
+        if (j==2*nely): top_nodes[counter]=True
+        if abs(x_V[counter]/Lx-0.5)<eps: middleV_nodes[counter]=True
+        if abs(y_V[counter]/Ly-0.5)<eps: middleH_nodes[counter]=True
+
+        if i==0 and j==0: cornerBL=counter
+        if i==nnx-1 and j==0: cornerBR=counter
+        if i==0 and j==nny-1: cornerTL=counter
+        if i==nnx-1 and j==nny-1: cornerTR=counter
+
         counter+=1
     #end for
 #end for
@@ -193,9 +214,6 @@ top_element=np.zeros(nel,dtype=bool)
 bottom_element=np.zeros(nel,dtype=bool)
 left_element=np.zeros(nel,dtype=bool)
 right_element=np.zeros(nel,dtype=bool)
-
-nnx=2*nelx+1 
-nny=2*nely+1 
 
 counter=0
 for j in range(0,nely):
@@ -1054,15 +1072,28 @@ for istep in range(0,nstep):
     print("compute global quantities: %.3f s" % (clock.time()-start)) ; timings[6]+=clock.time()-start
 
     ###########################################################################
-    # compute nodal heat flux 
+    # compute nodal heat flux (corners numbered as in blbc89)
+    # 1-2
+    # 4-3
     ###########################################################################
     start=clock.time()
 
     if solve_T: 
-       qx_nodal,qy_nodal=compute_nodal_heat_flux(icon_V,T,hcond_nodal,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n)
+       dTdx_nodal,dTdy_nodal,qx_nodal,qy_nodal=\
+       compute_nodal_heat_flux(icon_V,T,hcond_nodal,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n)
 
+       print("     -> dTdx_nodal (m,M) %.3e %.3e " %(np.min(dTdx_nodal),np.max(dTdx_nodal)))
+       print("     -> dTdy_nodal (m,M) %.3e %.3e " %(np.min(dTdy_nodal),np.max(dTdy_nodal)))
        print("     -> qx_nodal (m,M) %.3e %.3e " %(np.min(qx_nodal),np.max(qx_nodal)))
        print("     -> qy_nodal (m,M) %.3e %.3e " %(np.min(qy_nodal),np.max(qy_nodal)))
+
+       qx1=qx_nodal[cornerTL] ; qy1=qy_nodal[cornerTL]
+       qx2=qx_nodal[cornerTR] ; qy2=qy_nodal[cornerTR]
+       qx3=qx_nodal[cornerBR] ; qy3=qy_nodal[cornerBR]
+       qx4=qx_nodal[cornerBL] ; qy4=qy_nodal[cornerBL]
+
+       corner_q_file.write("%e %e %e %e %e %e %e %e %e\n" % (geological_time/time_scale,qx1,qy1,qx2,qy2,qx3,qy3,qx4,qy4)) 
+       corner_q_file.flush()
 
     else:
        qx_nodal=0 
@@ -1071,42 +1102,24 @@ for istep in range(0,nstep):
     print("compute nodal heat flux: %.3f s" % (clock.time()-start)) ; timings[7]+=clock.time()-start
 
     ###########################################################################
-    # compute Nusselt number at top
+    # compute heat flux and Nusselt at top and bottom
     ###########################################################################
     start=clock.time()
 
     if istep%every_Nu==0 and solve_T: 
 
-       qy_top=0
-       qy_bot=0
-       Nusselt=0
-       for iel in range(0,nel):
-           if top_element[iel]: 
-              sq=+1
-              for iq in range(0,nqperdim):
-                  rq=qcoords[iq]
-                  N=basis_functions_V(rq,sq)
-                  q_y=np.dot(N,qy_nodal[icon_V[:,iel]])
-                  Nusselt+=q_y*(hx/2)*qweights[iq]
-                  qy_top+=q_y*(hx/2)*qweights[iq]
-              #end for
-           #end if
-           if bottom_element[iel]: 
-              sq=-1
-              for iq in range(0,nqperdim):
-                  rq=qcoords[iq]
-                  N=basis_functions_V(rq,sq)
-                  q_y=np.dot(N,qy_nodal[icon_V[:,iel]])
-                  qy_bot-=q_y*(hx/2)*qweights[iq]
-           #end if
-       #end for
+       avrg_T_bottom,avrg_T_top,avrg_dTdy_bottom,avrg_dTdy_top,Nu=\
+       compute_Nu(Lx,Ly,nel,top_element,bottom_element,icon_V,T,dTdy_nodal,nqperdim,qcoords,qweights,hx)
 
-       Nusselt=np.abs(Nusselt)/Lx
+       print("     -> <T> (bottom,top)= %.3e %.3e " %(avrg_T_bottom,avrg_T_top))
+       print("     -> <dTdy> (bottom,top)= %.3e %.3e " %(avrg_dTdy_bottom,avrg_dTdy_top))
+       print("     -> Nusselt= %.3e " %(Nu))
 
-       print("     -> qy_bot,qy_top= %.3e %.3e " %(qy_bot,qy_top))
-       print("     -> Nusselt= %.2e " %(Nusselt))
-
-       Nu_file.write("%e %e \n" % (geological_time/time_scale,Nusselt)) ; Nu_file.flush()
+       Nu_file.write("%e %e \n" % (geological_time/time_scale,Nu)) ; Nu_file.flush()
+       avrg_T_bottom_file.write("%e %e \n" % (geological_time/time_scale,avrg_T_bottom)) ; avrg_T_bottom_file.flush()
+       avrg_T_top_file.write("%e %e \n" % (geological_time/time_scale,avrg_T_top)) ; avrg_T_top_file.flush()
+       avrg_dTdy_bottom_file.write("%e %e \n" % (geological_time/time_scale,avrg_dTdy_bottom)) ; avrg_dTdy_bottom_file.flush()
+       avrg_dTdy_top_file.write("%e %e \n" % (geological_time/time_scale,avrg_dTdy_top)) ; avrg_dTdy_top_file.flush()
 
        print("compute Nu: %.3f s" % (clock.time()-start)) ; timings[8]+=clock.time()-start
 
@@ -1149,6 +1162,19 @@ for istep in range(0,nstep):
     print("compute nodal sr: %.3f s" % (clock.time()-start)) ; timings[11]+=clock.time()-start
 
     ###########################################################################
+    # compute full stress 
+    ###########################################################################
+
+    ## dev strain rate ?!
+
+    sigmaxx_nodal=-q+2*eta_nodal*exx_nodal
+    sigmayy_nodal=-q+2*eta_nodal*eyy_nodal
+    sigmaxy_nodal=   2*eta_nodal*exy_nodal
+
+    np.savetxt('dynamic_topography_top.ascii',np.array([x_V[top_nodes],sigmayy_nodal[top_nodes]/gy/rho_nodal[top_nodes]]).T)
+    np.savetxt('dynamic_topography_bottom.ascii',np.array([x_V[bottom_nodes],sigmayy_nodal[bottom_nodes]/gy/rho_nodal[bottom_nodes]]).T)
+
+    ###########################################################################
     # compute nodal pressure gradient 
     ###########################################################################
     start=clock.time()
@@ -1188,14 +1214,37 @@ for istep in range(0,nstep):
     print("locate particles: %.3fs" % (clock.time()-start)) ; timings[16]+=clock.time()-start
 
     ###########################################################################
+    # generate/write in pvd files
+    ###########################################################################
+
+    if istep==0:
+       pvd_solution_file.write('<?xml version="1.0"?> \n')
+       pvd_solution_file.write('<VTKFile type="Collection" version="0.1" ByteOrder="LittleEndian"> \n')
+       pvd_solution_file.write('  <Collection> \n')
+       pvd_swarm_file.write('<?xml version="1.0"?> \n')
+       pvd_swarm_file.write('<VTKFile type="Collection" version="0.1" ByteOrder="LittleEndian"> \n')
+       pvd_swarm_file.write('  <Collection> \n')
+    
+    if istep%every_solution_vtu==0 or istep==nstep-1: 
+       pvd_solution_file.write('    <DataSet timestep="%s" group="" part="0" file="solution_%04d.vtu"/>  \n'\
+                             %(geological_time,istep))
+       pvd_solution_file.flush()
+
+    if istep%every_swarm_vtu==0 or istep==nstep-1: 
+       pvd_swarm_file.write('    <DataSet timestep="%s" group="" part="0" file="swarm_%04d.vtu"/>  \n'\
+                             %(geological_time,istep))
+       pvd_swarm_file.flush()
+
+    ###########################################################################
     # plot of solution
     ###########################################################################
     start=clock.time()
 
-    if istep%every_solution_vtu==0: 
-       export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
-                              u,v,q,T,eta_nodal,rho_nodal,exx_nodal,eyy_nodal,
-                              exy_nodal,e_nodal,qx_nodal,qy_nodal,rho_elemental,
+    if istep%every_solution_vtu==0 or istep==nstep-1: 
+       export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,\
+                              u,v,q,T,eta_nodal,rho_nodal,exx_nodal,eyy_nodal,\
+                              exy_nodal,e_nodal,qx_nodal,qy_nodal,rho_elemental,\
+                              sigmaxx_nodal,sigmayy_nodal,sigmaxy_nodal,\
                               eta_elemental,nparticle_elemental,icon_V)
 
        print("export solution to vtu file: %.3f s" % (clock.time()-start)) ; timings[10]+=clock.time()-start
@@ -1222,6 +1271,8 @@ for istep in range(0,nstep):
        export_quadpoints_to_vtu(istep,nel,nqel,nq,solve_T,xq,yq,rhoq,etaq,Tq,hcondq,hcapaq,dpdxq,dpdyq)
 
        print("export quad pts to vtu file: %.3f s" % (clock.time()-start)) ; timings[22]+=clock.time()-start
+
+
 
     ###########################################################################
     # assess steady state
@@ -1300,6 +1351,28 @@ for istep in range(0,nstep):
 
 #end for istep
 
+pvd_solution_file.write('  </Collection>\n')
+pvd_solution_file.write('</VTKFile>\n')
+pvd_swarm_file.write('  </Collection>\n')
+pvd_swarm_file.write('</VTKFile>\n')
+
+###########################################################################
+# export horizontal and vertical profiles
+###########################################################################
+start=clock.time()
+
+np.savetxt('profile_vertical.ascii',np.array([y_V[middleV_nodes],\
+                                              u[middleV_nodes],\
+                                              v[middleV_nodes],\
+                                              q[middleV_nodes],\
+                                              T[middleV_nodes]]).T)
+
+np.savetxt('profile_horizontal.ascii',np.array([x_V[middleH_nodes],\
+                                                  u[middleH_nodes],\
+                                                  v[middleH_nodes],\
+                                                  q[middleH_nodes],\
+                                                  T[middleH_nodes]]).T)
+
 ###############################################################################
 # close files
 ###############################################################################
@@ -1312,6 +1385,7 @@ Nu_file.close()
 TM_file.close()
 EK_file.close()
 TVD_file.close()
+corner_q_file.close()
 
 ###############################################################################
 

@@ -32,6 +32,7 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - melt generation and transport
 - C matrix for compressible case
 - implement blbc89 non isoviscous
+- compute sr or dev sr ?
 
 ## Nomenclature
 
