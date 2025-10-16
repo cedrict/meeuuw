@@ -40,9 +40,10 @@ print("-----------------------------")
 # experiment 3: Tosi et al, 2015           - visco-plastic convection
 # experiment 4: not sure. mantle size convection
 # experiment 5: Trompert & Hansen, Nature 1998 - convection w/ plate-like  
+# experiment 6: Crameri et al, GJI 2012 (cosine perturbation) 
 ###############################################################################
 
-experiment=0
+experiment=6
 
 match(experiment):
      case 0 : from experiment0 import *
@@ -51,6 +52,7 @@ match(experiment):
      case 3 : from experiment3 import *
      case 4 : from experiment4 import *
      case 5 : from experiment5 import *
+     case 6 : from experiment6 import *
      case _ : exit('setup - unknown experiment')  
 
 if int(len(sys.argv)==4):
@@ -58,15 +60,15 @@ if int(len(sys.argv)==4):
    nely  = int(sys.argv[2])
    nstep = int(sys.argv[3])
          
-every_solution_vtu=5
-every_swarm_vtu=5
-every_quadpoints_vtu=250
+every_solution_vtu=1
+every_swarm_vtu=1
+every_quadpoints_vtu=1
 
 RKorder=4
 nparticle_per_dim=7
 particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
-averaging='arithmetic'
-#averaging='geometric'
+#averaging='arithmetic'
+averaging='geometric'
 #averaging='harmonic'
 
 formulation='BA'
@@ -124,11 +126,13 @@ nq=nqel*nel
 
 vrms_file=open('vrms.ascii',"w") ; vrms_file.write("#time,vrms\n")
 pstats_file=open('pressure_stats.ascii',"w") ; pstats_file.write("#istep,min p, max p\n")
-vstats_file=open('velocity_stats.ascii',"w") ; vstats_file.write("#istep,min(u),max(u),min(v),max(v)\n")
+vstats_file=open('velocity_stats.ascii',"w") 
+vstats_file.write("#istep,min(u),max(u),min(v),max(v)\n")
+vstats_file.write("# "+vel_unit+"\n")
 Tstats_file=open('temperature_stats.ascii',"w") 
-dt_file=open('dt.ascii',"w") ; dt_file.write("#time dt1 dt2 dt\n")
+dt_file=open('dt.ascii',"w") ; dt_file.write("#time dt1 dt2 dt\n") ; dt_file.write('#'+time_unit+'\n')
 ptcl_stats_file=open('particle_stats.ascii',"w")
-Nu_file=open('Nu.ascii',"w") ; dt_file.write("#time Nu\n")
+Nu_file=open('Nu.ascii',"w") ; Nu_file.write("#time Nu\n")
 avrg_T_bottom_file=open('avrg_T_bottom.ascii',"w") 
 avrg_T_top_file=open('avrg_T_top.ascii',"w") 
 avrg_dTdy_bottom_file=open('avrg_dTdy_bottom.ascii',"w") 
@@ -140,6 +144,7 @@ TVD_file=open('viscous_dissipation.ascii',"w")
 pvd_solution_file=open('solution.pvd',"w")
 pvd_swarm_file=open('swarm.pvd',"w")
 corner_q_file=open('corner_heat_flux.ascii','w')
+mats_file=open('mats.ascii','w')
 
 ###############################################################################
 
@@ -148,6 +153,8 @@ print('nelx=',nelx)
 print('nely=',nely)
 print('Lx=',Lx)
 print('Ly=',Ly)
+print('hx=',hx)
+print('hy=',hy)
 print('nn_V=',nn_V)
 print('nn_P=',nn_P)
 print('nel=',nel)
@@ -311,6 +318,11 @@ match(experiment):
              if y_V[i]/Ly>(1-eps):
                 bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
                 bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+
+     case 6 : # Crameri cosinusoidal perturbation
+ 
+          bc_fix_V,bc_val_V=assign_boundary_conditions(x_V,y_V,ndof_V,Nfem_V,nn_V)
+
      case _ :
          exit('bc_V - unknown experiment')  
 
@@ -696,6 +708,14 @@ match(experiment):
                 swarm_y[ip]>Ly-250e3 and swarm_y[ip]<Ly-50e3:
                 swarm_mat[ip]=3 # lithosphere
 
+     case 6 :
+         swarm_mat[:]=2 # mantle 
+         for ip in range(0,nparticle):
+             if swarm_y[ip]>600e3:
+                swarm_mat[ip]=1 # lithosphere
+             if swarm_y[ip]>700e3+7e3*np.cos(swarm_x[ip]/Lx*np.pi):
+                swarm_mat[ip]=0 # sticky air
+
      case _ : exit('mat - unknown experiment')  
 
 print("     -> swarm_mat (m,M) %.3e %.3e " %(np.min(swarm_mat),np.max(swarm_mat)))
@@ -771,10 +791,10 @@ for istep in range(0,nstep):
                     swarm_eta[ip]=1e19
                  elif swarm_mat[ip]==2: 
                     swarm_rho[ip]=3200
-                    swarm_eta[ip]=1e21
+                    swarm_eta[ip]=1e23
                  else:
                     swarm_rho[ip]=3300
-                    swarm_eta[ip]=1e23
+                    swarm_eta[ip]=1e21
              
          case 3 :
              swarm_rho[:]=rho0*(1-alphaT*swarm_T[:])
@@ -797,6 +817,19 @@ for istep in range(0,nstep):
                  swarm_eta[ip]=viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip])
              swarm_hcond[:]=hcond0
              swarm_hcapa[:]=hcapa0
+
+         case 6 :
+             for ip in range(0,nparticle):
+                 if swarm_mat[ip]==0: 
+                    swarm_rho[ip]=0
+                    swarm_eta[ip]=1e19
+                 elif swarm_mat[ip]==1: 
+                    swarm_rho[ip]=3300
+                    swarm_eta[ip]=1e23
+                 else:
+                    swarm_rho[ip]=3300
+                    swarm_eta[ip]=1e21
+
 
          case _ :
             exit('rho,eta - unknown experiment')  
@@ -940,7 +973,8 @@ for istep in range(0,nstep):
     print("     -> p (m,M) %.3e %.3e %s" %(np.min(p)/p_scale,np.max(p)/p_scale,p_unit))
 
     vstats_file.write("%.3e %.3e %.3e %.3e %.3e\n" % (istep,np.min(u)/vel_scale,np.max(u)/vel_scale,\
-                                                            np.min(u)/vel_scale,np.max(u)/vel_scale))
+                                                            np.min(v)/vel_scale,np.max(v)/vel_scale))
+    vstats_file.flush()
 
     if debug_ascii: np.savetxt('velocity.ascii',np.array([x_V,y_V,u,v]).T,header='# x,y,u,v')
     if debug_ascii: np.savetxt('pressure.ascii',np.array([x_P,y_P,p]).T,header='# x,y,p')
@@ -970,7 +1004,8 @@ for istep in range(0,nstep):
     print('     -> dt = %.3e %s' %(dt/time_scale,time_unit))
     print('     -> geological time = %e %s' %(geological_time/time_scale,time_unit))
 
-    dt_file.write("%e %e %e %e\n" % (geological_time,dt1,dt2,dt)) ; dt_file.flush()
+    dt_file.write("%e %e %e %e\n" % (geological_time/time_scale,dt1/time_scale,dt2/time_scale,dt/time_scale)) 
+    dt_file.flush()
 
     print("compute time step: %.3f s" % (clock.time()-start)) ; timings[19]+=clock.time()-start
 
@@ -993,6 +1028,7 @@ for istep in range(0,nstep):
     print("     -> p (m,M) %.3e %.3e %s" %(np.min(p),np.max(p),p_unit))
 
     pstats_file.write("%d %.3e %.3e\n" % (istep,np.min(p),np.max(p)))
+    pstats_file.flush()
 
     if debug_ascii: np.savetxt('p.ascii',np.array([x_P,y_P,p]).T,header='# x,y,p')
 
@@ -1048,7 +1084,8 @@ for istep in range(0,nstep):
 
        if debug_ascii: np.savetxt('T.ascii',np.array([x_V,y_V,T]).T,header='# x,y,T')
 
-       Tstats_file.write("%.3e %.3e %.3e\n" %(istep,np.min(T)-TKelvin,np.max(T)-TKelvin)) ; Tstats_file.flush()
+       Tstats_file.write("%.3e %.3e %.3e\n" %(istep,np.min(T)-TKelvin,np.max(T)-TKelvin)) 
+       Tstats_file.flush()
 
        print("solve T time: %.3f s" % (clock.time()-start)) ; timings[5]+=clock.time()-start
 
@@ -1212,6 +1249,29 @@ for istep in range(0,nstep):
     swarm_r,swarm_s,swarm_iel=locate_particles(nparticle,swarm_x,swarm_y,hx,hy,x_V,y_V,icon_V,nelx)
 
     print("locate particles: %.3fs" % (clock.time()-start)) ; timings[16]+=clock.time()-start
+
+    ###########################################################################
+    # export min/max coordinates of each material in one single file
+    ###########################################################################
+    start=clock.time()
+
+    imat=np.min(swarm_mat)
+    jmat=np.max(swarm_mat)
+    mats=np.zeros(4*(jmat-imat+1)+1,dtype=np.float64)
+
+    mats[0]=geological_time/time_scale
+
+    counter=1
+    for i in range(imat,jmat+1):
+        xmin=np.min(swarm_x[swarm_mat==i]) ; mats[counter]=xmin ; counter+=1
+        xmax=np.max(swarm_x[swarm_mat==i]) ; mats[counter]=xmax ; counter+=1
+        ymin=np.min(swarm_y[swarm_mat==i]) ; mats[counter]=ymin ; counter+=1
+        ymax=np.max(swarm_y[swarm_mat==i]) ; mats[counter]=ymax ; counter+=1
+
+    mats.tofile(mats_file,sep=' ',format='%.4e ') ; mats_file.write('\n')
+    mats_file.flush()
+
+    print("write min/max extents: %.3fs" % (clock.time()-start)) #; timings[16]+=clock.time()-start
 
     ###########################################################################
     # generate/write in pvd files

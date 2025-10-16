@@ -31,7 +31,8 @@
 \section{Generic mass, momentum, energy conservation equations}
 
 We focus on the system of equations in a $d=2$- or $d=3$-dimensional
-domain $\Omega$ that describes the motion of a highly viscous fluid driven
+domain $\Omega$ that describes the motion of a highly viscous fluid (i.e.
+near infinite Prandlt number) driven
 by differences in the gravitational force due to a density variations. 
 In the following, we largely follow the exposition of this
 material in Schubert, Turcotte and Olson \cite{scto01}.
@@ -91,6 +92,66 @@ terms of this equation correspond to
 \item friction (shear) heating;
 \item adiabatic compression of material;
 \end{itemize}
+
+
+\newpage
+%==============================================================
+\section{Equation of state}
+
+%taken from mayu07
+The equation of state gives the density as a function of the
+pressure and temperature: $\rho=\rho(p,T)$.
+The density is then either obtained from precomputed lookup
+tables or a simpler functional approach is often taken
+by means of a linearisation.
+
+The widely used Boussinesq approximation (see below) linearizes these
+basic conservation laws near the reference hydrostatic state.
+If density changes caused by the pressure deviations
+$p' = p-p_0$ are neglected, we may linearize the state equation with respect to
+the temperature deviations $T-T_0$, where $T_0$ is a reference
+temperature, and write:
+\[
+\rho=\rho_0(1-\alpha(T-T_0))
+\]
+This approximation thus means that the inﬂuence of hydrostatic pressure 
+(as well as temperature $T_0$) on density is hidden
+in a spatial dependence of the reference density $\rho_0$.
+
+The reference density $\rho_0$ is assumed to be a time-independent function. 
+Considering only the largest term in the equation of continuity, that is, 
+neglecting thermal expansion, we arrive at the simpliﬁed equation:
+\[
+\vec\nabla\cdot(\rho_0 \vec\upnu) =0
+\]
+
+
+\newpage
+%==============================================================
+\section{Anelastic liquid approximation (ALA)}
+
+This comes from \textcite{mayu07}.
+
+If we assume that there is a reference hydrostatic state characterized 
+by $\vec\upnu = 0$ in which the hydrostatic pressure $p_0$, 
+hydrostatic density $\rho_0$, and hydrostatic gravity acceleration $g_0$ are
+related by $\vec\nabla p_0 = \rho_0 \vec{g}_0$,
+and moreover that pressure deviations $p'=p-p_0$
+are negligible in the heat equation, the transfer of heat in a homogeneous
+material (i.e., entropy may be considered as a function of only
+p and T) is then described by the well-known equation:
+\[
+\rho C_p \left( \frac{\partial T}{\partial t} + \vec \upnu\cdot\vec\nabla T\right)
+=  \vec\nabla\cdot k\vec\nabla T  
+- \alpha T  \vec\upnu \cdot \rho \vec{g} 
++ {\bm \tau} : \vec\nabla \vec\upnu + Q
+\]
+where cp is the isobaric speciﬁc heat, $\alpha$ is the thermal expansion
+coefﬁcient and vr denotes the radial component of velocity. The
+left-hand side of equation 8 represents local changes of heat balance; 
+the second (third) term on the right-hand side describes ad-
+vection of heat (adiabatic heating and/or cooling).
+
 
 
 \newpage
@@ -178,20 +239,19 @@ In \textcite{vacp22} we read:
 The Boussinesq approximation (\textcite{ober79}; Boussinesq, 1903; Rayleigh, 1916) 
 assumes that density
 variations are so small that they can be neglected everywhere
-except in the buoyancy term in the momentum equation in
-Eq. (5), which is equivalent to using a constant reference
-density profile. This implies incompressibility, i.e. the use of
-Eq. (4) for mass conservation. In addition, adiabatic heating
-and shear heating are not considered in the energy equation
-in Eq. (6). This approximation is valid as long as density vari-
-ations are small and the modelled processes would cause no substantial 
+except in the buoyancy term in the momentum equation, 
+which is equivalent to using a constant reference density profile. 
+This implies incompressibility [...]. In addition, adiabatic heating
+and shear heating are not considered in the energy equation. 
+This approximation is valid as long as density variations are small 
+and the modelled processes would cause no substantial 
 shear or adiabatic heating.
 The Boussinesq approximation is often used in lithosphere-
 scale models. Due to its simplicity, the approximation of in-
 compressibility is sometimes also adopted for whole-mantle
 convection models, wherein it is only approximately valid,
 and it has been shown that compressibility can have a large
-effect on the pattern of convective flow (e.g. Tackley, 1996).
+effect on the pattern of convective flow \cite{tack96}.
 \end{displayquote}
 
 

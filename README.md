@@ -20,6 +20,7 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - experiment 3: Tosi et al, G3, 2015. Viscoplastic thermal convection benchmark.
 - experiment 4: convection
 - experiment 5: Trompert & Hansen, Nature 1998.
+- experiment 6: Crameria et al, GJI 2012 (free surface benchmark)
 
 ## to do:
 - more accurate heat flux calculations (CBF?)
@@ -33,6 +34,7 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - C matrix for compressible case
 - implement blbc89 non isoviscous
 - compute sr or dev sr ?
+- look at stsh04 (similar to trha98b)
 
 ## Nomenclature
 
