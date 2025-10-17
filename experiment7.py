@@ -1,58 +1,40 @@
-
 import numpy as np
+from constants import *
 
-cm=0.01
-year=365.25*3600*24
+Lx=1200e3
+Ly=600e3
+nstep=2
+nelx=100
+nely=50
 
-Lx=3000e3
-Ly=750e3
-gy=-9.81
+R_blob=50e3
+y_blob=400e3
+
+gy=-10
+
+#do not modify
 eta_ref=1e21
 solve_T=False
+RKorder=2
 p_scale=1e6 ; p_unit="MPa"
 vel_scale=cm/year ; vel_unit='cm/yr'
 time_scale=year ; time_unit='yr'
-every_Nu=100000
-TKelvin=0
 pressure_normalisation='surface'
-end_time=50e6*year
+every_Nu=1000000
+TKelvin=0
 every_solution_vtu=1
-every_swarm_vtu=5
-every_quadpoints_vtu=5
-RKorder=4
+every_swarm_vtu=1
+every_quadpoints_vtu=500
 particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
+nparticle_per_dim=7
 averaging='geometric'
 formulation='BA'
-debug_ascii=False
+debug_ascii=True
 debug_nan=False
-nparticle_per_dim=5
-
-nelx=50
-nely=40
-CFLnb=0.2
-nstep=1
+CFLnb=0.5
+end_time=100e6*year
 
 ###############################################################################
-
-def particle_layout(nparticle,swarm_x,swarm_y,Lx,Ly):
-
-    swarm_mat=np.zeros(nparticle,dtype=np.int32)
-
-    swarm_mat[:]=2 # mantle 
-
-    for ip in range(0,nparticle):
-        if swarm_y[ip]>Ly-50e3:
-           swarm_mat[ip]=1 # sticky air
-        if swarm_x[ip]>1000e3 and swarm_y[ip]<Ly-50e3 and swarm_y[ip]>Ly-150e3: 
-           swarm_mat[ip]=3 # lithosphere
-        if swarm_x[ip]>1000e3 and swarm_x[ip]<1100e3 and\
-           swarm_y[ip]>Ly-250e3 and swarm_y[ip]<Ly-50e3:
-           swarm_mat[ip]=3 # lithosphere
-
-    return swarm_mat
-
-###############################################################################
-# free slip on all sides
 
 def assign_boundary_conditions_V(x_V,y_V,ndof_V,Nfem_V,nn_V):
 
@@ -75,6 +57,20 @@ def assign_boundary_conditions_V(x_V,y_V,ndof_V,Nfem_V,nn_V):
 
 ###############################################################################
 
+def particle_layout(nparticle,swarm_x,swarm_y,Lx,Ly):
+
+    swarm_mat=np.zeros(nparticle,dtype=np.int32)
+
+    for ip in range(nparticle):
+        if (swarm_x[ip]-Lx/2)**2+(swarm_y[ip]-y_blob)**2<R_blob**2:
+           swarm_mat[ip]=2
+        else:
+           swarm_mat[ip]=1
+
+    return swarm_mat
+
+###############################################################################
+
 def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm_exy,swarm_T):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
@@ -83,11 +79,11 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm
     swarm_hcapa=0
     swarm_hprod=0
 
-    mask=(swarm_mat==1) ; swarm_eta[mask]=1e21 ; swarm_rho[mask]=3300
-    mask=(swarm_mat==2) ; swarm_eta[mask]=1e19 ; swarm_rho[mask]=0
-    mask=(swarm_mat==3) ; swarm_eta[mask]=1e23 ; swarm_rho[mask]=3200
+    mask=(swarm_mat==1) ; swarm_eta[mask]=1e21 ; swarm_rho[mask]=3300 # mantle
+    mask=(swarm_mat==2) ; swarm_eta[mask]=1e20 ; swarm_rho[mask]=3200 # blob
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
 ###############################################################################
+
 

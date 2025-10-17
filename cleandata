@@ -2,4 +2,5 @@ rm *.vtu
 rm *.ascii
 rm solution.pvd
 rm swarm.pvd
-
+rm timings.pdf
+rm opla_*

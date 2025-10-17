@@ -213,7 +213,7 @@ __marimo__/
 *.bbl
 *.bcf
 *.xml
-
-
+opla*
+timings.pdf
 
 

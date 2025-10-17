@@ -1,0 +1,18 @@
+#! /bin/bash
+
+for e in 0 1 2 3 4 5 6 ; do
+
+    echo ---------------------------------- 
+    echo 
+    echo  experiment $e
+    echo 
+    echo ---------------------------------- 
+
+    python3 meeuuw.py $e 4 5 1 > opla
+    grep nan opla
+    grep vrms opla 
+    mv opla opla_${e}
+
+done
+
+

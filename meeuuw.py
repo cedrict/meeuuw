@@ -4,6 +4,7 @@ import numba
 import random
 import time as clock
 import scipy.sparse as sps
+from constants import *
 from scipy import sparse
 from PoissonDisc import *
 from compute_vrms import *
@@ -17,17 +18,10 @@ from compute_nodal_pressure import *
 from export_swarm_to_vtu import *
 from export_solution_to_vtu import *
 from export_quadpoints_to_vtu import *
+from compute_gravity_at_point import *
 from project_nodal_field_onto_qpoints import *
 from compute_nodal_pressure_gradient import *
 from postprocessors import *
-
-###############################################################################
-# constants
-
-cm=0.01
-eps=1e-9
-year=365.25*3600*24
-Myear=365.25*3600*24*1e6
 
 print("-----------------------------")
 print("----------- MEEUUW ----------")
@@ -40,10 +34,14 @@ print("-----------------------------")
 # experiment 3: Tosi et al, 2015           - visco-plastic convection
 # experiment 4: not sure. mantle size convection
 # experiment 5: Trompert & Hansen, Nature 1998 - convection w/ plate-like  
-# experiment 6: Crameri et al, GJI 2012 (cosine perturbation) 
+# experiment 6: Crameri et al, GJI 2012 (cosine perturbation & plume) 
+# experiment 7: ESA workshop
 ###############################################################################
 
-experiment=6
+experiment=7
+
+if int(len(sys.argv)==5):
+   experiment = int(sys.argv[1])
 
 match(experiment):
      case 0 : from experiment0 import *
@@ -53,26 +51,15 @@ match(experiment):
      case 4 : from experiment4 import *
      case 5 : from experiment5 import *
      case 6 : from experiment6 import *
+     case 7 : from experiment7 import *
      case _ : exit('setup - unknown experiment')  
 
-if int(len(sys.argv)==4):
-   nelx  = int(sys.argv[1])
-   nely  = int(sys.argv[2])
-   nstep = int(sys.argv[3])
-         
-every_solution_vtu=1
-every_swarm_vtu=1
-every_quadpoints_vtu=1
+if int(len(sys.argv)==5): # override these parameters
+   nelx  = int(sys.argv[2])
+   nely  = int(sys.argv[3])
+   nstep = int(sys.argv[4])
 
-RKorder=4
-nparticle_per_dim=7
-particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
-#averaging='arithmetic'
-averaging='geometric'
-#averaging='harmonic'
-
-formulation='BA'
-#formulation='EBA'
+###############################################################################
 
 ndim=2                     # number of dimensions
 ndof_V=2                   # number of velocity dofs per node
@@ -100,15 +87,12 @@ hy=Ly/nely # element size in y direction
 nparticle_per_element=nparticle_per_dim**2
 nparticle=nel*nparticle_per_element
 
-debug_ascii=False
-debug_nan=False
-
 timings=np.zeros(22+1)
 timings_mem=np.zeros(22+1)
 
 L_ref=(Lx+Ly)/2
 
-tol=1e-4
+tol_ss=1e-4
 
 ###############################################################################
 # quadrature rule points and weights
@@ -162,11 +146,22 @@ print('Nfem_V=',Nfem_V)
 print('Nfem_P=',Nfem_P)
 print('Nfem=',Nfem)
 print('nqperdim=',nqperdim)
+print('CFLnb=',CFLnb)
+print('debug_ascii:',debug_ascii)
+print('debug_nan:',debug_nan)
+print('solve_T:',solve_T)
+print('tol_ss=',tol_ss)
+print('end_time=',end_time)
+print('averaging:',averaging)
+print('formulation:',formulation)
 print('particle_distribution=',particle_distribution)
 print('RKorder=',RKorder)
-print('CFLnb=',CFLnb)
+print('nparticle_per_dim=',nparticle_per_dim)
 print('nparticle=',nparticle)
-print("-----------------------------")
+print('every_solution_vtu',every_solution_vtu)
+print('every_swarm_vtu',every_swarm_vtu)
+print('every_quadpoints_vtu',every_quadpoints_vtu)
+print('-----------------------------')
 
 ###############################################################################
 # build velocity nodes coordinates 
@@ -287,104 +282,48 @@ print("build icon_P: %.3f s" % (clock.time()-start))
 
 ###############################################################################
 # define velocity boundary conditions
+# bc_fix_V is a vector of booleans of size Nfem_V
+# bc_val_V is a vector of float64 of size Nfem_V
 ###############################################################################
 start=clock.time()
 
-bc_fix_V=np.zeros(Nfem_V,dtype=bool) # boundary condition, yes/no
-bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
-
-match(experiment):
-
-     case 0 | 2 | 3 | 4 | 5 : # free slip all sides
-         for i in range(0,nn_V):
-             if x_V[i]/Lx<eps:
-                bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-             if x_V[i]/Lx>(1-eps):
-                bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-             if y_V[i]/Ly<eps:
-                bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-             if y_V[i]/Ly>(1-eps):
-                bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-
-     case 1 : # van Keken et al Rayleigh-Taylor instability, no slip top, bottom 
-         for i in range(0,nn_V):
-             if x_V[i]/Lx<eps:
-                bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-             if x_V[i]/Lx>(1-eps):
-                bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-             if y_V[i]/Ly<eps:
-                bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-                bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-             if y_V[i]/Ly>(1-eps):
-                bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-                bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-
-     case 6 : # Crameri cosinusoidal perturbation
- 
-          bc_fix_V,bc_val_V=assign_boundary_conditions(x_V,y_V,ndof_V,Nfem_V,nn_V)
-
-     case _ :
-         exit('bc_V - unknown experiment')  
+bc_fix_V,bc_val_V=assign_boundary_conditions_V(x_V,y_V,ndof_V,Nfem_V,nn_V)
 
 print("velocity b.c.: %.3f s" % (clock.time()-start))
 
 ###############################################################################
 # define temperature boundary conditions
+# bc_fix_T is a vector of booleans of size Nfem_T
+# bc_val_T is a vector of float64 of size Nfem_T
 ###############################################################################
 start=clock.time()
 
 if solve_T:
 
-   bc_fix_T=np.zeros(Nfem_T,dtype=bool)  
-   bc_val_T=np.zeros(Nfem_T,dtype=np.float64) 
-
-   match(experiment):
-        case 0 | 3 | 4 | 5 :
-            for i in range(0,nn_V):
-                if y_V[i]<eps:
-                   bc_fix_T[i]=True ; bc_val_T[i]=Tbottom
-                if y_V[i]>(Ly-eps):
-                   bc_fix_T[i]=True ; bc_val_T[i]=Ttop
-        case _:
-            exit('bc_T - unknown experiment')  
+   bc_fix_T,bc_val_T=assign_boundary_conditions_T(x_V,y_V,Nfem_T,nn_V)
 
    print("temperature b.c.: %.3f s" % (clock.time()-start))
 
 ###############################################################################
-# initial temperature
+# initial temperature. T is a vector of float64 of size nn_V
 ###############################################################################
 start=clock.time()
 
-T=np.zeros(nn_V,dtype=np.float64)
+if solve_T: 
 
-if solve_T:
-
-   match(experiment):
-        case 0 | 3 :
-            for i in range(0,nn_V):
-                T[i]=(Tbottom-Ttop)*(Ly-y_V[i])/Ly+Ttop\
-                    +0.01*np.cos(np.pi*x_V[i]/Lx)*np.sin(np.pi*y_V[i]/Ly)
-        case 4 :
-            for i in range(0,nn_V):
-                #T[i]=(Tbottom-Ttop)*(Ly-y_V[i])/Ly+Ttop\
-                T[i]=(Tbottom+Ttop)/2\
-                    +11*np.cos(3.33*np.pi*x_V[i]/Lx)*np.sin(1*np.pi*y_V[i]/Ly)\
-                    +12*np.cos(5.55*np.pi*x_V[i]/Lx)*np.sin(3*np.pi*y_V[i]/Ly)**2\
-                    +13*np.cos(7.77*np.pi*x_V[i]/Lx)*np.sin(5*np.pi*y_V[i]/Ly)**3
-
-        case 5 :
-            for i in range(0,nn_V):
-                T[i]=initial_temperature(x_V[i],y_V[i])
-
-        case _: exit('unknown experiment')  
+   T=initial_temperature(x_V,y_V,nn_V)
 
    T_mem=T.copy()
 
-   if debug_ascii: np.savetxt('temperature_init.ascii',np.array([x_V,y_V,T]).T,header='# x,y,T')
+   if debug_ascii: np.savetxt('T_init.ascii',np.array([x_V,y_V,T]).T,header='# x,y,T')
 
    print("     -> T init (m,M) %.3e %.3e " %(np.min(T),np.max(T)))
 
    print("initial temperature: %.3f s" % (clock.time()-start))
+
+else:
+
+   T=np.zeros(nn_V,dtype=np.float64) 
 
 ###############################################################################
 # compute area of elements / sanity check
@@ -419,7 +358,7 @@ for iel in range(0,nel):
 #end for
 
 print("     -> area (m,M) %.4e %.4e " %(np.min(area),np.max(area)))
-print("     -> total area %.6f " %(area.sum()))
+print("     -> total area %e %e " %(area.sum(),Lx*Ly))
 
 print("compute elements areas: %.3f s" % (clock.time() - start))
 
@@ -686,39 +625,11 @@ print("particles paint: %.3f s" % (clock.time()-start))
 ###############################################################################
 start=clock.time()
 
-swarm_mat=np.zeros(nparticle,dtype=np.int32)
+swarm_mat=particle_layout(nparticle,swarm_x,swarm_y,Lx,Ly)
 
-match(experiment):
-     case 0 | 3 | 4 | 5 :
-         swarm_mat[:]=1
-     case 1 :
-         for im in range (0,nparticle):
-             if swarm_y[im]<0.2+0.02*np.cos(swarm_x[im]*np.pi/0.9142):
-                swarm_mat[im]=1
-             else:
-                swarm_mat[im]=2
-     case 2 :
-         swarm_mat[:]=2 # mantle 
-         for ip in range(0,nparticle):
-             if swarm_y[ip]>Ly-50e3:
-                swarm_mat[ip]=1 # sticky air
-             if swarm_x[ip]>1000e3 and swarm_y[ip]<Ly-50e3 and swarm_y[ip]>Ly-150e3: 
-                swarm_mat[ip]=3 # lithosphere
-             if swarm_x[ip]>1000e3 and swarm_x[ip]<1100e3 and\
-                swarm_y[ip]>Ly-250e3 and swarm_y[ip]<Ly-50e3:
-                swarm_mat[ip]=3 # lithosphere
-
-     case 6 :
-         swarm_mat[:]=2 # mantle 
-         for ip in range(0,nparticle):
-             if swarm_y[ip]>600e3:
-                swarm_mat[ip]=1 # lithosphere
-             if swarm_y[ip]>700e3+7e3*np.cos(swarm_x[ip]/Lx*np.pi):
-                swarm_mat[ip]=0 # sticky air
-
-     case _ : exit('mat - unknown experiment')  
-
-print("     -> swarm_mat (m,M) %.3e %.3e " %(np.min(swarm_mat),np.max(swarm_mat)))
+print("     -> swarm_mat (m,M) %d %d " %(np.min(swarm_mat),np.max(swarm_mat)))
+    
+if debug_ascii: np.savetxt('swarm_mat.ascii',np.array([swarm_x,swarm_y,swarm_mat]).T,header='# x,y,mat')
 
 print("particle layout: %.3f s" % (clock.time()-start))
 
@@ -732,6 +643,8 @@ print("particle layout: %.3f s" % (clock.time()-start))
 C=np.array([[2,0,0],[0,2,0],[0,0,1]],dtype=np.float64) 
 
 geological_time=0.
+dt1_mem=1e50
+dt2_mem=1e50
        
 exx_nodal=np.zeros(nn_V,dtype=np.float64)  
 eyy_nodal=np.zeros(nn_V,dtype=np.float64)  
@@ -750,92 +663,85 @@ for istep in range(0,nstep):
     print("-------------------------------------")
 
     ###########################################################################
-    # evaluate density and viscosity on particles (and T, hcond, hcapa)
+    # interpolate strain rate on particles
     ###########################################################################
-    start=clock.time()
-
-    swarm_rho=np.zeros(nparticle,dtype=np.float64)
-    swarm_eta=np.zeros(nparticle,dtype=np.float64)
-
-    if solve_T:
-       swarm_hcond=np.zeros(nparticle,dtype=np.float64)
-       swarm_hcapa=np.zeros(nparticle,dtype=np.float64)
-       swarm_T=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,T,icon_V)
-       print("     -> swarm_T (m,M) %.3e %.3e " %(np.min(swarm_T),np.max(swarm_T)))
-    else:
-       swarm_T=0
-       swarm_hcond=0
-       swarm_hcapa=0
 
     swarm_exx=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,exx_nodal,icon_V)
     swarm_eyy=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,eyy_nodal,icon_V)
     swarm_exy=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,exy_nodal,icon_V)
 
-    match(experiment):
-         case 0 :
-             swarm_rho[:]=rho0*(1-alphaT*swarm_T[:])
-             swarm_eta[:]=1
-             swarm_hcond[:]=1
-             swarm_hcapa[:]=1
-         case 1 :
-             swarm_eta[:]=100
-             for ip in range(0,nparticle):
-                 if swarm_mat[ip]==1:
-                    swarm_rho[ip]=1000
-                 else:
-                    swarm_rho[ip]=1010
-         case 2:
-             for ip in range(0,nparticle):
-                 if swarm_mat[ip]==1: 
-                    swarm_rho[ip]=0
-                    swarm_eta[ip]=1e19
-                 elif swarm_mat[ip]==2: 
-                    swarm_rho[ip]=3200
-                    swarm_eta[ip]=1e23
-                 else:
-                    swarm_rho[ip]=3300
-                    swarm_eta[ip]=1e21
-             
-         case 3 :
-             swarm_rho[:]=rho0*(1-alphaT*swarm_T[:])
-             for ip in range(0,nparticle):
-                 swarm_eta[ip]=viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip],\
-                                         gamma_T,gamma_y,sigma_y,eta_star,case_tosi)
-             swarm_hcond[:]=1
-             swarm_hcapa[:]=1
+    ###########################################################################
+    # interpolate temperature on particles
+    ###########################################################################
 
-         case 4 :
-             swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-T0))
-             swarm_eta[:]=eta0
-             swarm_hcond[:]=hcond0
-             swarm_hcapa[:]=hcapa0
+    if solve_T:
+       swarm_T=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,T,icon_V)
+       print("     -> swarm_T (m,M) %.3e %.3e " %(np.min(swarm_T),np.max(swarm_T)))
+    else:
+       swarm_T=0
 
-         case 5 :
+    ###########################################################################
+    # evaluate density and viscosity on particles (and hcond, hcapa, hprod)
+    # if solve_T is false then swarm_{hcond,hcapa,hprod} are scalars equal to zero
+    ###########################################################################
+    start=clock.time()
 
-             swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-T0))
-             for ip in range(0,nparticle):
-                 swarm_eta[ip]=viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip])
-             swarm_hcond[:]=hcond0
-             swarm_hcapa[:]=hcapa0
+    swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod=\
+    material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm_exy,swarm_T) 
 
-         case 6 :
-             for ip in range(0,nparticle):
-                 if swarm_mat[ip]==0: 
-                    swarm_rho[ip]=0
-                    swarm_eta[ip]=1e19
-                 elif swarm_mat[ip]==1: 
-                    swarm_rho[ip]=3300
-                    swarm_eta[ip]=1e23
-                 else:
-                    swarm_rho[ip]=3300
-                    swarm_eta[ip]=1e21
-
-
-         case _ :
-            exit('rho,eta - unknown experiment')  
+#    swarm_rho=np.zeros(nparticle,dtype=np.float64)
+#    swarm_eta=np.zeros(nparticle,dtype=np.float64)
+#    if solve_T:
+#       swarm_hcond=np.zeros(nparticle,dtype=np.float64)
+#       swarm_hcapa=np.zeros(nparticle,dtype=np.float64)
+#    else:
+#       swarm_hcond=0
+#       swarm_hcapa=0
+#    match(experiment):
+#         case 0 :
+#             swarm_rho[:]=rho0*(1-alphaT*swarm_T[:])
+#             for ip in range(0,nparticle):
+#                 swarm_eta[ip]=viscosity(swarm_x[ip],swarm_y[ip],swarm_T[ip])
+#             swarm_hcond[:]=1
+#             swarm_hcapa[:]=1
+#         case 1 :
+#             mask=(swarm_mat==0) ; swarm_eta[mask]=100 ; swarm_rho[mask]=1010
+#             mask=(swarm_mat==1) ; swarm_eta[mask]=100 ; swarm_rho[mask]=1000
+#         case 2:
+#             mask=(swarm_mat==0) ; swarm_eta[mask]=1e21 ; swarm_rho[mask]=3300
+#             mask=(swarm_mat==1) ; swarm_eta[mask]=1e19 ; swarm_rho[mask]=0
+#             mask=(swarm_mat==2) ; swarm_eta[mask]=1e23 ; swarm_rho[mask]=3200
+#         case 3 :
+#             swarm_rho[:]=rho0*(1-alphaT*swarm_T[:])
+#             for ip in range(0,nparticle):
+#                 swarm_eta[ip]=viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip],\
+#                                         gamma_T,gamma_y,sigma_y,eta_star,case_tosi)
+#             swarm_hcond[:]=1
+#             swarm_hcapa[:]=1
+#         case 4 :
+#             swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-T0))
+#             swarm_eta[:]=eta0
+#             swarm_hcond[:]=hcond0
+#             swarm_hcapa[:]=hcapa0
+#         case 5 :
+#             swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-T0))
+#             for ip in range(0,nparticle):
+#                 swarm_eta[ip]=viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip])
+#             swarm_hcond[:]=hcond0
+#             swarm_hcapa[:]=hcapa0
+#         case 6 :
+#             mask=(swarm_mat==0) ; swarm_eta[mask]=1e19 ; swarm_rho[mask]=0
+#             mask=(swarm_mat==1) ; swarm_eta[mask]=1e23 ; swarm_rho[mask]=3300
+#             mask=(swarm_mat==2) ; swarm_eta[mask]=1e21 ; swarm_rho[mask]=3300
+#             mask=(swarm_mat==3) ; swarm_eta[mask]=1e20 ; swarm_rho[mask]=3200
 
     print("     -> swarm_rho (m,M) %.5e %.5e " %(np.min(swarm_rho),np.max(swarm_rho)))
     print("     -> swarm_eta (m,M) %.5e %.5e " %(np.min(swarm_eta),np.max(swarm_eta)))
+
+    if solve_T:
+       print("     -> swarm_hcapa (m,M) %.5e %.5e " %(np.min(swarm_hcapa),np.max(swarm_hcapa)))
+       print("     -> swarm_hcond (m,M) %.5e %.5e " %(np.min(swarm_hcond),np.max(swarm_hcond)))
+       print("     -> swarm_hprod (m,M) %.5e %.5e " %(np.min(swarm_hprod),np.max(swarm_hprod)))
 
     if debug_ascii: np.savetxt('swarm_rho.ascii',np.array([swarm_x,swarm_y,swarm_rho]).T,header='# x,y,rho')
     if debug_ascii: np.savetxt('swarm_eta.ascii',np.array([swarm_x,swarm_y,swarm_eta]).T,header='# x,y,eta')
@@ -983,6 +889,7 @@ for istep in range(0,nstep):
 
     ###########################################################################
     # compute timestep
+    # note that the timestep is not allowed to increase by more than 25% in one go
     ###########################################################################
     start=clock.time()
 
@@ -997,6 +904,10 @@ for istep in range(0,nstep):
        print('     -> dt2= %.3e %s' %(dt2/time_scale,time_unit))
     else:
        dt2=1e50
+
+    dt1=min(dt1,1.25*dt1_mem) # limiter
+    dt2=min(dt2,1.25*dt2_mem) # limiter
+
     dt=np.min([dt1,dt2])
 
     geological_time+=dt
@@ -1006,6 +917,9 @@ for istep in range(0,nstep):
 
     dt_file.write("%e %e %e %e\n" % (geological_time/time_scale,dt1/time_scale,dt2/time_scale,dt/time_scale)) 
     dt_file.flush()
+
+    dt1_mem=dt1
+    dt2_mem=dt2
 
     print("compute time step: %.3f s" % (clock.time()-start)) ; timings[19]+=clock.time()-start
 
@@ -1208,8 +1122,10 @@ for istep in range(0,nstep):
     sigmayy_nodal=-q+2*eta_nodal*eyy_nodal
     sigmaxy_nodal=   2*eta_nodal*exy_nodal
 
-    np.savetxt('dynamic_topography_top.ascii',np.array([x_V[top_nodes],sigmayy_nodal[top_nodes]/gy/rho_nodal[top_nodes]]).T)
-    np.savetxt('dynamic_topography_bottom.ascii',np.array([x_V[bottom_nodes],sigmayy_nodal[bottom_nodes]/gy/rho_nodal[bottom_nodes]]).T)
+    if np.all(rho_nodal[top_nodes])>0 and abs(gy)>0:
+       np.savetxt('dynamic_topography_top.ascii',np.array([x_V[top_nodes],sigmayy_nodal[top_nodes]/gy/rho_nodal[top_nodes]]).T)
+    if np.all(rho_nodal[bottom_nodes])>0 and abs(gy)>0:
+       np.savetxt('dynamic_topography_bottom.ascii',np.array([x_V[bottom_nodes],sigmayy_nodal[bottom_nodes]/gy/rho_nodal[bottom_nodes]]).T)
 
     ###########################################################################
     # compute nodal pressure gradient 
@@ -1332,19 +1248,46 @@ for istep in range(0,nstep):
 
        print("export quad pts to vtu file: %.3f s" % (clock.time()-start)) ; timings[22]+=clock.time()-start
 
+    ########################################################################
+    # compute gravitational field above domain 
+    ########################################################################
+  
+    npts=128    
+    if istep==0:
+       xs=np.zeros(npts,dtype=np.float64)  
+       gxs=np.zeros((npts,nstep),dtype=np.float64)  
+       gys=np.zeros((npts,nstep),dtype=np.float64)  
+       gnorms=np.zeros((npts,nstep),dtype=np.float64)  
+       gnorms_rate=np.zeros((npts,nstep),dtype=np.float64)  
 
+    rho_ref=0
+    ys=Ly+20e3
+    for i in range(0,npts):
+        xs[i]=i*Lx/(npts-1)
+        gxs[i,istep],gys[i,istep],gnorms[i,istep]=\
+        compute_gravity_at_point(xs[i],ys,nel,xc,yc,rho_elemental,hx,hy,rho_ref)
+
+    np.savetxt('gravity_'+str(istep)+'.ascii',np.array([xs,gxs[:,istep],gys[:,istep],gnorms[:,istep]]).T,header='#x,gx,gy,g')
+
+    if istep>0:
+       print(istep)
+       print(gnorms[:,istep])
+       print(gnorms[:,istep-1])
+       print(gnorms[:,istep]-gnorms[:,istep-1])
+       gnorms_rate[:,istep]=(gnorms[:,istep]-gnorms[:,istep-1])#/dt
+       np.savetxt('gravity_rate.ascii',np.array([xs,gnorms_rate[:,istep]]).T,header='#x,g')
 
     ###########################################################################
     # assess steady state
     ###########################################################################
     start=clock.time()
 
-    steady_state_u=np.linalg.norm(u_mem-u,2)/np.linalg.norm(u,2)<tol
-    steady_state_v=np.linalg.norm(v_mem-v,2)/np.linalg.norm(v,2)<tol
-    steady_state_p=np.linalg.norm(p_mem-p,2)/np.linalg.norm(p,2)<tol
+    steady_state_u=np.linalg.norm(u_mem-u,2)/np.linalg.norm(u,2)<tol_ss
+    steady_state_v=np.linalg.norm(v_mem-v,2)/np.linalg.norm(v,2)<tol_ss
+    steady_state_p=np.linalg.norm(p_mem-p,2)/np.linalg.norm(p,2)<tol_ss
 
     if solve_T:
-       steady_state_T=np.linalg.norm(T_mem-T,2)/np.linalg.norm(T,2)<tol 
+       steady_state_T=np.linalg.norm(T_mem-T,2)/np.linalg.norm(T,2)<tol_ss
        print('     -> steady state u,v,p,T',steady_state_u,steady_state_v,\
                                             steady_state_p,steady_state_T)
     else:
@@ -1360,11 +1303,12 @@ for istep in range(0,nstep):
     p_mem=p.copy()
     if solve_T: T_mem=T.copy()
 
+
     print("assess steady state: %.4f s" % (clock.time()-start)) #; timings[22]+=clock.time()-start
 
     ###########################################################################
 
-    if istep%10==0 or istep==nstep-1:
+    if istep%10==0 or istep==nstep-1 or geological_time>end_time:
 
        duration=clock.time()-topstart
 
