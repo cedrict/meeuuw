@@ -87,8 +87,8 @@ hy=Ly/nely # element size in y direction
 nparticle_per_element=nparticle_per_dim**2
 nparticle=nel*nparticle_per_element
 
-timings=np.zeros(22+1)
-timings_mem=np.zeros(22+1)
+timings=np.zeros(23+1)
+timings_mem=np.zeros(23+1)
 
 L_ref=(Lx+Ly)/2
 
@@ -689,52 +689,6 @@ for istep in range(0,nstep):
     swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod=\
     material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm_exy,swarm_T) 
 
-#    swarm_rho=np.zeros(nparticle,dtype=np.float64)
-#    swarm_eta=np.zeros(nparticle,dtype=np.float64)
-#    if solve_T:
-#       swarm_hcond=np.zeros(nparticle,dtype=np.float64)
-#       swarm_hcapa=np.zeros(nparticle,dtype=np.float64)
-#    else:
-#       swarm_hcond=0
-#       swarm_hcapa=0
-#    match(experiment):
-#         case 0 :
-#             swarm_rho[:]=rho0*(1-alphaT*swarm_T[:])
-#             for ip in range(0,nparticle):
-#                 swarm_eta[ip]=viscosity(swarm_x[ip],swarm_y[ip],swarm_T[ip])
-#             swarm_hcond[:]=1
-#             swarm_hcapa[:]=1
-#         case 1 :
-#             mask=(swarm_mat==0) ; swarm_eta[mask]=100 ; swarm_rho[mask]=1010
-#             mask=(swarm_mat==1) ; swarm_eta[mask]=100 ; swarm_rho[mask]=1000
-#         case 2:
-#             mask=(swarm_mat==0) ; swarm_eta[mask]=1e21 ; swarm_rho[mask]=3300
-#             mask=(swarm_mat==1) ; swarm_eta[mask]=1e19 ; swarm_rho[mask]=0
-#             mask=(swarm_mat==2) ; swarm_eta[mask]=1e23 ; swarm_rho[mask]=3200
-#         case 3 :
-#             swarm_rho[:]=rho0*(1-alphaT*swarm_T[:])
-#             for ip in range(0,nparticle):
-#                 swarm_eta[ip]=viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip],\
-#                                         gamma_T,gamma_y,sigma_y,eta_star,case_tosi)
-#             swarm_hcond[:]=1
-#             swarm_hcapa[:]=1
-#         case 4 :
-#             swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-T0))
-#             swarm_eta[:]=eta0
-#             swarm_hcond[:]=hcond0
-#             swarm_hcapa[:]=hcapa0
-#         case 5 :
-#             swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-T0))
-#             for ip in range(0,nparticle):
-#                 swarm_eta[ip]=viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip])
-#             swarm_hcond[:]=hcond0
-#             swarm_hcapa[:]=hcapa0
-#         case 6 :
-#             mask=(swarm_mat==0) ; swarm_eta[mask]=1e19 ; swarm_rho[mask]=0
-#             mask=(swarm_mat==1) ; swarm_eta[mask]=1e23 ; swarm_rho[mask]=3300
-#             mask=(swarm_mat==2) ; swarm_eta[mask]=1e21 ; swarm_rho[mask]=3300
-#             mask=(swarm_mat==3) ; swarm_eta[mask]=1e20 ; swarm_rho[mask]=3200
-
     print("     -> swarm_rho (m,M) %.5e %.5e " %(np.min(swarm_rho),np.max(swarm_rho)))
     print("     -> swarm_eta (m,M) %.5e %.5e " %(np.min(swarm_eta),np.max(swarm_eta)))
 
@@ -1122,10 +1076,13 @@ for istep in range(0,nstep):
     sigmayy_nodal=-q+2*eta_nodal*eyy_nodal
     sigmaxy_nodal=   2*eta_nodal*exy_nodal
 
+    np.savetxt('surface_eyy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],eyy_nodal[top_nodes]]).T)
+    np.savetxt('surface_sigmayy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],sigmayy_nodal[top_nodes]]).T)
+
     if np.all(rho_nodal[top_nodes])>0 and abs(gy)>0:
-       np.savetxt('dynamic_topography_top.ascii',np.array([x_V[top_nodes],sigmayy_nodal[top_nodes]/gy/rho_nodal[top_nodes]]).T)
+       np.savetxt('dynamic_topography_top_'+str(istep)+'.ascii',np.array([x_V[top_nodes],sigmayy_nodal[top_nodes]/gy/(rho_nodal[top_nodes]-rho_air)]).T)
     if np.all(rho_nodal[bottom_nodes])>0 and abs(gy)>0:
-       np.savetxt('dynamic_topography_bottom.ascii',np.array([x_V[bottom_nodes],sigmayy_nodal[bottom_nodes]/gy/rho_nodal[bottom_nodes]]).T)
+       np.savetxt('dynamic_topography_bottom_'+str(istep)+'.ascii',np.array([x_V[bottom_nodes],sigmayy_nodal[bottom_nodes]/gy/(rho_nodal[bottom_nodes]-rho_core)]).T)
 
     ###########################################################################
     # compute nodal pressure gradient 
@@ -1251,8 +1208,12 @@ for istep in range(0,nstep):
     ########################################################################
     # compute gravitational field above domain 
     ########################################################################
+    start=clock.time()
   
-    npts=128    
+    npts=256   
+    rho_ref=0
+    ys=Ly+20e3
+
     if istep==0:
        xs=np.zeros(npts,dtype=np.float64)  
        gxs=np.zeros((npts,nstep),dtype=np.float64)  
@@ -1260,22 +1221,18 @@ for istep in range(0,nstep):
        gnorms=np.zeros((npts,nstep),dtype=np.float64)  
        gnorms_rate=np.zeros((npts,nstep),dtype=np.float64)  
 
-    rho_ref=0
-    ys=Ly+20e3
     for i in range(0,npts):
         xs[i]=i*Lx/(npts-1)
         gxs[i,istep],gys[i,istep],gnorms[i,istep]=\
         compute_gravity_at_point(xs[i],ys,nel,xc,yc,rho_elemental,hx,hy,rho_ref)
 
-    np.savetxt('gravity_'+str(istep)+'.ascii',np.array([xs,gxs[:,istep],gys[:,istep],gnorms[:,istep]]).T,header='#x,gx,gy,g')
+    np.savetxt('gravity_'+str(istep)+'.ascii',np.array([xs,gnorms[:,istep],gxs[:,istep],gys[:,istep]]).T,header='#x,g,gx,gy')
 
     if istep>0:
-       print(istep)
-       print(gnorms[:,istep])
-       print(gnorms[:,istep-1])
-       print(gnorms[:,istep]-gnorms[:,istep-1])
        gnorms_rate[:,istep]=(gnorms[:,istep]-gnorms[:,istep-1])#/dt
-       np.savetxt('gravity_rate.ascii',np.array([xs,gnorms_rate[:,istep]]).T,header='#x,g')
+       np.savetxt('gravity_rate_'+str(istep)+'.ascii',np.array([xs,gnorms_rate[:,istep]/mGal*year]).T,header='#x,g')
+
+    print("compute gravity: %.3f s" % (clock.time()-start)) ; timings[23]+=clock.time()-start
 
     ###########################################################################
     # assess steady state
@@ -1335,6 +1292,7 @@ for istep in range(0,nstep):
        print("export swarm to vtu: %8.3f s    (%.3f s per call) | %5.2f percent" % (timings[20],timings[20]/(istep+1),timings[20]/duration*100))
        print("export qpts to vtu: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[22],timings[22]/(istep+1),timings[22]/duration*100))
        print("project fields on qpts: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[21],timings[21]/(istep+1),timings[21]/duration*100))
+       print("compute gravity: %8.3f s        (%.3f s per call) | %5.2f percent" % (timings[23],timings[23]/(istep+1),timings[23]/duration*100))
        print("----------------------------------------------------------------------")
        print("compute time per timestep: %.2f" %(duration/(istep+1)))
        print("----------------------------------------------------------------------")

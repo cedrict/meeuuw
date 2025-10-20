@@ -1,6 +1,8 @@
 import numpy as np
+import numba
 from constants import *
 
+@numba.njit
 def compute_gravity_at_point(xs,ys,nel,xc,yc,rho,hx,hy,rho_ref):
     # xs,ys: coordinates of the 'satellite' point
     # where gravity is computed

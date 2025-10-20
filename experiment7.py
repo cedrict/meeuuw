@@ -1,18 +1,28 @@
 import numpy as np
 from constants import *
+from prem import * 
+from scipy import interpolate
 
 Lx=1200e3
 Ly=600e3
-nstep=2
+nstep=5
 nelx=100
 nely=50
 
-R_blob=50e3
-y_blob=400e3
+R_blob=80e3
+y_blob=350e3
+eta_blob=1e20
+rho_blob=3200
 
+rho_profile=1
+eta_profile=2
+
+rho_air=0
+rho_core=6000
+
+
+#------do not change these parameters ----
 gy=-10
-
-#do not modify
 eta_ref=1e21
 solve_T=False
 RKorder=2
@@ -25,11 +35,11 @@ TKelvin=0
 every_solution_vtu=1
 every_swarm_vtu=1
 every_quadpoints_vtu=500
-particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
+particle_distribution=1 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 nparticle_per_dim=7
 averaging='geometric'
 formulation='BA'
-debug_ascii=True
+debug_ascii=False
 debug_nan=False
 CFLnb=0.5
 end_time=100e6*year
@@ -79,8 +89,39 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm
     swarm_hcapa=0
     swarm_hprod=0
 
-    mask=(swarm_mat==1) ; swarm_eta[mask]=1e21 ; swarm_rho[mask]=3300 # mantle
-    mask=(swarm_mat==2) ; swarm_eta[mask]=1e20 ; swarm_rho[mask]=3200 # blob
+    #density
+
+    if rho_profile==0:
+       mask=(swarm_mat==1) ; swarm_rho[mask]=3300 
+    elif rho_profile==1:
+       for ip in range(0,nparticle):
+           swarm_rho[ip]=prem_density(6368e3-Ly+swarm_y[ip])
+
+    #viscosity
+
+    if eta_profile==0:
+       mask=(swarm_mat==1) ; swarm_eta[mask]=1e21 
+    elif eta_profile==1:
+       momo=np.loadtxt('DATA/civs12.ascii')
+       depths=momo[:,0] #; print(depths)
+       etaA=momo[:,1]   #; print(etaA)
+       f=interpolate.interp1d(depths,etaA)
+       swarm_eta[:]=f(Ly-swarm_y)
+       swarm_eta[:]=10**swarm_eta[:]
+    elif eta_profile==2:
+       momo=np.loadtxt('DATA/civs12.ascii')
+       depths=momo[:,0] #; print(depths)
+       etaB=momo[:,2]   #; print(etaB)
+       f=interpolate.interp1d(depths,etaB)
+       swarm_eta[:]=f(Ly-swarm_y)
+       swarm_eta[:]=10**swarm_eta[:]
+    elif eta_profile==3:
+       for ip in range(0,nparticle):
+           yip=swarm_y[ip]
+           #insert here your profile
+           swarm_eta[ip]=0  
+
+    mask=(swarm_mat==2) ; swarm_eta[mask]=eta_blob ; swarm_rho[mask]=rho_blob
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
