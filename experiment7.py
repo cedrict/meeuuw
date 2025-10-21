@@ -3,9 +3,11 @@ from constants import *
 from prem import * 
 from scipy import interpolate
 
+#-----------------------------------------
+
 Lx=1200e3
 Ly=600e3
-nstep=5
+nstep=2
 nelx=100
 nely=50
 
@@ -14,14 +16,18 @@ y_blob=350e3
 eta_blob=1e20
 rho_blob=3200
 
-rho_profile=1
-eta_profile=2
+rho_profile=0
+eta_profile=0
+
+rho_mantle=3300 # used if rho_profile=0
+eta_mantle=1e21 # used if eta_profile=0
 
 rho_air=0
 rho_core=6000
 
-
+#-----------------------------------------
 #------do not change these parameters ----
+#-----------------------------------------
 gy=-10
 eta_ref=1e21
 solve_T=False
@@ -92,15 +98,17 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm
     #density
 
     if rho_profile==0:
-       mask=(swarm_mat==1) ; swarm_rho[mask]=3300 
+       mask=(swarm_mat==1) ; swarm_rho[mask]=rho_mantle 
     elif rho_profile==1:
        for ip in range(0,nparticle):
            swarm_rho[ip]=prem_density(6368e3-Ly+swarm_y[ip])
+    else:
+       exit('wrong rho_profile value')
 
     #viscosity
 
     if eta_profile==0:
-       mask=(swarm_mat==1) ; swarm_eta[mask]=1e21 
+       mask=(swarm_mat==1) ; swarm_eta[mask]=eta_mantle 
     elif eta_profile==1:
        momo=np.loadtxt('DATA/civs12.ascii')
        depths=momo[:,0] #; print(depths)
@@ -119,7 +127,12 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm
        for ip in range(0,nparticle):
            yip=swarm_y[ip]
            #insert here your profile
-           swarm_eta[ip]=0  
+           #if yip<100e3:
+           #   swarm_eta[ip]=...
+           #elif ...
+           #etc ...
+    else:
+       exit('wrong eta_profile value')
 
     mask=(swarm_mat==2) ; swarm_eta[mask]=eta_blob ; swarm_rho[mask]=rho_blob
 
