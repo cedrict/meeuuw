@@ -24,7 +24,7 @@ y_blob=350e3
 eta_blob=1e20
 rho_blob=3200
 
-rho_profile=2
+rho_profile=0
 eta_profile=0
 
 rho_mantle=3300 # used if rho_profile=0
