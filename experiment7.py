@@ -4,10 +4,18 @@ from prem import *
 from scipy import interpolate
 
 #-----------------------------------------
+# rho_profile:
+# 0: constant value rho_mantle
+# 1: PREM profile
+# 2: STW105 http://ds.iris.edu/ds/products/emc-stw105/
+# eta_profile:
+# 0: constant value eta_mantle
+# 1: Ciskova et al 2012 (A)
+# 2: Ciskova et al 2012 (B)
 
 Lx=1200e3
 Ly=600e3
-nstep=2
+
 nelx=100
 nely=50
 
@@ -16,18 +24,19 @@ y_blob=350e3
 eta_blob=1e20
 rho_blob=3200
 
-rho_profile=0
+rho_profile=2
 eta_profile=0
 
 rho_mantle=3300 # used if rho_profile=0
 eta_mantle=1e21 # used if eta_profile=0
 
 rho_air=0
-rho_core=6000
+rho_core=10000
 
 #-----------------------------------------
 #------do not change these parameters ----
 #-----------------------------------------
+nstep=2
 gy=-10
 eta_ref=1e21
 solve_T=False
@@ -47,7 +56,7 @@ averaging='geometric'
 formulation='BA'
 debug_ascii=False
 debug_nan=False
-CFLnb=0.5
+CFLnb=0.25
 end_time=100e6*year
 
 ###############################################################################
@@ -102,6 +111,14 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm
     elif rho_profile==1:
        for ip in range(0,nparticle):
            swarm_rho[ip]=prem_density(6368e3-Ly+swarm_y[ip])
+    elif rho_profile==2:
+       momo=np.loadtxt('DATA/rho_stw105.ascii')
+       depths=momo[:,0] #; print(depths)
+       rho105=momo[:,1]   #; print(etaA)
+       f=interpolate.interp1d(depths,rho105)
+       swarm_rho[:]=f(6368e3-Ly+swarm_y)
+
+
     else:
        exit('wrong rho_profile value')
 

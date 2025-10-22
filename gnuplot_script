@@ -8,10 +8,10 @@ set output 'timings.pdf'
 set key outside
 
 plot[][]\
-'timings.ascii' u 1:2 w lp lt 1 pt 6 t 'build FE matrix V',\
-'timings.ascii' u 1:3 w lp lt 1 pt 7 t 'solve system V',\
-'timings.ascii' u 1:5 w lp lt 5 pt 6 t 'build matrix T',\
-'timings.ascii' u 1:6 w lp lt 5 pt 7 t 'solve system T',\
+'timings.ascii' u 1:2  w lp lt 1 pt 6 t 'build FE matrix V',\
+'timings.ascii' u 1:3  w lp lt 1 pt 7 t 'solve system V',\
+'timings.ascii' u 1:5  w lp lt 5 pt 6 t 'build matrix T',\
+'timings.ascii' u 1:6  w lp lt 5 pt 7 t 'solve system T',\
 'timings.ascii' u 1:11 w lp lt 2 pt 5 t 'export solution to vtu',\
 'timings.ascii' u 1:21 w lp lt 2 pt 7 t 'export swarm to vtu',\
 'timings.ascii' u 1:23 w lp lt 2 pt 9 t 'export quad pts to vtu',\
@@ -23,10 +23,12 @@ plot[][]\
 'timings.ascii' u 1:13 w lp lt 3 pt 6 t 'normalise pressure',\
 'timings.ascii' u 1:15 w lp lt 3 pt 7 t 'split solution',\
 'timings.ascii' u 1:22 w lp lt 3 pt 8 t 'project fields on qpts',\
-'timings.ascii' u 1:14 w lp lt 4 pt 1 t'advect particles',\
-'timings.ascii' u 1:16 w lp lt 4 pt 2 t'compute swarm rho,eta',\
-'timings.ascii' u 1:17 w lp lt 4 pt 3 t'locate particles',\
-'timings.ascii' u 1:18 w lp lt 4 pt 4 t'comp eltal rho,eta',\
-'timings.ascii' u 1:19 w lp lt 4 pt 5 t'comp nodal rho,eta',\
+'timings.ascii' u 1:14 w lp lt 4 pt 1 t 'advect particles',\
+'timings.ascii' u 1:16 w lp lt 4 pt 2 t 'compute swarm rho,eta',\
+'timings.ascii' u 1:17 w lp lt 4 pt 3 t 'locate particles',\
+'timings.ascii' u 1:18 w lp lt 4 pt 4 t 'comp eltal rho,eta',\
+'timings.ascii' u 1:19 w lp lt 4 pt 5 t 'comp nodal rho,eta',\
+'timings.ascii' u 1:24 w lp lt 4 pt 6 t 'interp sr on ptcls',\
+'timings.ascii' u 1:25 w lp lt 4 pt 7 t 'interp T on ptcls',\
 
 
