@@ -25,7 +25,6 @@ hcond0=1
 hcapa0=1  
 rho0=1
 Ra_surf=100
-gy=-Ra_surf/alphaT   *2 #visc 
 sigma_y=2
 
 TKelvin=0
@@ -45,6 +44,10 @@ formulation='BA'
 debug_ascii=False
 debug_nan=False
 nparticle_per_dim=5
+rho_DT_top=0
+rho_DT_bot=0
+geometry='box'
+gravity_npts=0
            
 nelx=128
 nely=int(Ly/Lx*nelx)
@@ -66,7 +69,7 @@ def viscosity(T,exx,eyy,exy,y):
 
 ###############################################################################
 
-def initial_temperature(x,y,nn_V):
+def initial_temperature(x,y,rad,theta,nn_V):
 
     T=np.zeros(nn_V,dtype=np.float64)
 
@@ -79,7 +82,7 @@ def initial_temperature(x,y,nn_V):
 ###############################################################################
 # free slip on all sides
 
-def assign_boundary_conditions_V(x_V,y_V,ndof_V,Nfem_V,nn_V):
+def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V):
 
     eps=1e-8
 
@@ -100,7 +103,7 @@ def assign_boundary_conditions_V(x_V,y_V,ndof_V,Nfem_V,nn_V):
 
 ###############################################################################
 
-def assign_boundary_conditions_T(x_V,y_V,Nfem_T,nn_V):
+def assign_boundary_conditions_T(x_V,y_V,rad_V,theta_V,Nfem_T,nn_V):
 
     eps=1e-8
 
@@ -117,7 +120,7 @@ def assign_boundary_conditions_T(x_V,y_V,Nfem_T,nn_V):
 
 ###############################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_y,Lx,Ly):
+def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
@@ -127,7 +130,7 @@ def particle_layout(nparticle,swarm_x,swarm_y,Lx,Ly):
 
 ###############################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm_exy,swarm_T):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -148,3 +151,9 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm
 
 ###############################################################################
 
+def gravity_model(x,y):
+    gx=0
+    gy=-Ra_surf/alphaT   *2 #visc 
+    return gx,gy
+
+###############################################################################

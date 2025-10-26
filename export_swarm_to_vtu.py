@@ -2,14 +2,14 @@ import numpy as np
 
 ###############################################################################
 
-def export_swarm_to_vtu(istep,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
-                        swarm_u,swarm_v,swarm_mat,swarm_rho,swarm_eta,\
-                        swarm_paint,swarm_exx,swarm_eyy,swarm_exy,swarm_T,\
-                        swarm_hcond,swarm_hcapa):
+def export_swarm_to_vtu(istep,geometry,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
+                        swarm_u,swarm_v,swarm_mat,swarm_rho,swarm_eta,swarm_r,swarm_s,\
+                        swarm_paint,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_iel,\
+                        swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta):
 
        debug_swarm=False
 
-       filename='swarm_{:04d}.vtu'.format(istep)
+       filename='OUTPUT/swarm_{:04d}.vtu'.format(istep)
        vtufile=open(filename,"w")
        vtufile.write("<VTKFile type='UnstructuredGrid' version='0.1' byte_order='BigEndian'> \n")
        vtufile.write("<UnstructuredGrid> \n")
@@ -37,6 +37,7 @@ def export_swarm_to_vtu(istep,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
        vtufile.write("<DataArray type='Int32' Name='mat' Format='binary'> \n")
        swarm_mat.tofile(vtufile,sep=' ')
        vtufile.write("</DataArray>\n")
+
        #--
        vtufile.write("<DataArray type='Float32' Name='Density' Format='binary'> \n")
        swarm_rho.tofile(vtufile,sep=' ')
@@ -45,6 +46,15 @@ def export_swarm_to_vtu(istep,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
        vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='binary'> \n")
        swarm_eta.tofile(vtufile,sep=' ')
        vtufile.write("</DataArray>\n")
+       #--
+       if debug_swarm and geometry=='quarter':
+          vtufile.write("<DataArray type='Float32' Name='rad' Format='binary'> \n")
+          swarm_rad.tofile(vtufile,sep=' ')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='theta' Format='binary'> \n")
+          swarm_theta.tofile(vtufile,sep=' ')
+          vtufile.write("</DataArray>\n")
        #--
        if debug_swarm:
           vtufile.write("<DataArray type='Float32' Name='exx' Format='binary'> \n")
@@ -57,6 +67,18 @@ def export_swarm_to_vtu(istep,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
           #--
           vtufile.write("<DataArray type='Float32' Name='exy' Format='binary'> \n")
           swarm_exy.tofile(vtufile,sep=' ')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='r' Format='binary'> \n")
+          swarm_r.tofile(vtufile,sep=' ')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='s' Format='binary'> \n")
+          swarm_s.tofile(vtufile,sep=' ')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Int32' Name='iel' Format='binary'> \n")
+          swarm_iel.tofile(vtufile,sep=' ')
           vtufile.write("</DataArray>\n")
        #--
        if debug_swarm and solve_T:

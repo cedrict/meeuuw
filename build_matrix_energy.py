@@ -7,14 +7,14 @@ import numba
 
 @numba.njit
 def build_matrix_energy(bignb,nel,nqel,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,vq,\
-                        hcondq,hcapaq,exxq,eyyq,exyq,dpdxq,dpdyq,JxWq,N_V,dNdx_V,dNdy_V,\
+                        hcondq,hcapaq,exxq,eyyq,exyq,dpdxq,dpdyq,JxWq,N_V,dNdr_V,dNds_V,\
+                        jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
                         bc_fix_T,bc_val_T,dt,formulation,rho0):
 
     VV_T=np.zeros(bignb,dtype=np.float64)    
-
     Tvect=np.zeros(m_T,dtype=np.float64)   
-    rhs=np.zeros(Nfem_T,dtype=np.float64)    # FE rhs 
-    B=np.zeros((2,m_T),dtype=np.float64)     # gradient matrix B 
+    rhs=np.zeros(Nfem_T,dtype=np.float64)
+    B=np.zeros((2,m_T),dtype=np.float64)
 
     counter=0
     for iel in range(0,nel):
@@ -35,14 +35,17 @@ def build_matrix_energy(bignb,nel,nqel,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,vq,\
             velq[0,0]=uq[iel,iq]
             velq[0,1]=vq[iel,iq]
 
-            B[0,:]=dNdx_V[iq,:]
-            B[1,:]=dNdy_V[iq,:]
-            
-            MM+=np.outer(N,N)*rho0*hcapaq[iel,iq]*JxWq[iq] # mass matrix
+            dNdx=jcbi00q[iel,iq]*dNdr_V[iq,:]+jcbi01q[iel,iq]*dNds_V[iq,:]
+            dNdy=jcbi10q[iel,iq]*dNdr_V[iq,:]+jcbi11q[iel,iq]*dNds_V[iq,:]
 
-            Kd+=B.T.dot(B)*hcondq[iel,iq]*JxWq[iq] # diffusion matrix
+            B[0,:]=dNdx
+            B[1,:]=dNdy
             
-            Ka+=np.outer(N,velq.dot(B))*rho0*hcapaq[iel,iq]*JxWq[iq] # advection matrix
+            MM+=np.outer(N,N)*rho0*hcapaq[iel,iq]*JxWq[iel,iq] # mass matrix
+
+            Kd+=B.T.dot(B)*hcondq[iel,iq]*JxWq[iel,iq] # diffusion matrix
+            
+            Ka+=np.outer(N,velq.dot(B))*rho0*hcapaq[iel,iq]*JxWq[iel,iq] # advection matrix
 
             #if formulation=='EBA':
                #viscous dissipation

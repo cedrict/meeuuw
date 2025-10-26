@@ -3,11 +3,9 @@ import numba
 from constants import *
 
 @numba.njit
-def compute_gravity_at_point(xs,ys,nel,xc,yc,rho,hx,hy,rho_ref):
+def compute_gravity_at_point(xs,ys,nel,xc,yc,rho,vol,rho_ref):
     # xs,ys: coordinates of the 'satellite' point
     # where gravity is computed
-
-    vol=hx*hy
 
     ggx=0.
     ggy=0.
@@ -15,8 +13,8 @@ def compute_gravity_at_point(xs,ys,nel,xc,yc,rho,hx,hy,rho_ref):
         xx=xs-xc[iel]
         yy=ys-yc[iel]
         rr=np.sqrt(xx**2+yy**2)
-        ggx+=Ggrav*(rho[iel]-rho_ref)*vol*xx/rr**3
-        ggy+=Ggrav*(rho[iel]-rho_ref)*vol*yy/rr**3
+        ggx+=Ggrav*(rho[iel]-rho_ref)*vol[iel]*xx/rr**3
+        ggy+=Ggrav*(rho[iel]-rho_ref)*vol[iel]*yy/rr**3
 
     gnorm=np.sqrt(ggx**2+ggy**2)
 

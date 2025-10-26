@@ -37,6 +37,7 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - compute sr or dev sr ?
 - look at stsh04 (similar to trha98b)
 - paint stripes adapt to aspect ratio
+- what stress to use for DT?
 
 ## Nomenclature
 
@@ -79,6 +80,8 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - II_V, JJ_V, VV_V: arrays to store Stokes FEM matrix
 - II_T, JJ_T, VV_T: arrays to store energy FEM matrix
 - r_V, s_V: arrays of size m_V containing red coords of V nodes
+- rad_V, theta_V: polar coordinates of V nodes
+- rad_P, theta_P: polar coordinates of P nodes
 
 ### Gauss quadrature 
 

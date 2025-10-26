@@ -2,9 +2,10 @@ import numpy as np
 
 ###############################################################################
 
-def export_quadpoints_to_vtu(istep,nel,nqel,nq,solve_T,xq,yq,rhoq,etaq,Tq,hcondq,hcapaq,dpdxq,dpdyq):
+def export_quadpoints_to_vtu(istep,nel,nqel,nq,solve_T,xq,yq,rhoq,etaq,Tq,\
+                             hcondq,hcapaq,dpdxq,dpdyq,gxq,gyq):
 
-       filename='quadpoints_{:04d}.vtu'.format(istep)
+       filename='OUTPUT/quadpoints_{:04d}.vtu'.format(istep)
        vtufile=open(filename,"w")
        vtufile.write("<VTKFile type='UnstructuredGrid' version='0.1' byte_order='BigEndian'> \n")
        vtufile.write("<UnstructuredGrid> \n")
@@ -38,6 +39,12 @@ def export_quadpoints_to_vtu(istep,nel,nqel,nq,solve_T,xq,yq,rhoq,etaq,Tq,hcondq
        for iel in range(nel):
            for iq in range(0,nqel):
                vtufile.write("%.3e %.3e %.1e \n" %(dpdxq[iel,iq],dpdyq[iel,iq],0.))
+       vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Gravity vector' Format='binary'> \n")
+       for iel in range(nel):
+           for iq in range(0,nqel):
+               vtufile.write("%.3e %.3e %.1e \n" %(gxq[iel,iq],gyq[iel,iq],0.))
        vtufile.write("</DataArray>\n")
        #--
        if solve_T:

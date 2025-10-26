@@ -5,7 +5,6 @@ year=365.25*3600*24
 
 Lx=1400e3  # half domain!
 Ly=900e3
-gy=-10 
 eta_ref=1e21
 solve_T=False
 p_scale=1e6 ; p_unit="MPa"
@@ -24,6 +23,10 @@ formulation='BA'
 debug_ascii=False
 debug_nan=False
 nparticle_per_dim=5
+rho_DT_top=0
+rho_DT_bot=0
+geometry='box'
+gravity_npts=0
 
 #a: cosine perturbation
 #b: plume
@@ -46,7 +49,7 @@ if case=='b':
 
 ###############################################################################
 
-def assign_boundary_conditions_V(x_V,y_V,ndof_V,Nfem_V,nn_V):
+def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V):
 
     eps=1e-8
 
@@ -68,7 +71,7 @@ def assign_boundary_conditions_V(x_V,y_V,ndof_V,Nfem_V,nn_V):
 
 ###############################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_y,Lx,Ly):
+def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
@@ -93,7 +96,7 @@ def particle_layout(nparticle,swarm_x,swarm_y,Lx,Ly):
 
 ###############################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm_exy,swarm_T):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -107,6 +110,13 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm
     mask=(swarm_mat==3) ; swarm_eta[mask]=1e20 ; swarm_rho[mask]=3200
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
+
+###############################################################################
+
+def gravity_model(x,y):
+    gx=0
+    gy=-10 
+    return gx,gy
 
 ###############################################################################
 

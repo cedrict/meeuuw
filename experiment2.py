@@ -6,7 +6,6 @@ year=365.25*3600*24
 
 Lx=3000e3
 Ly=750e3
-gy=-9.81
 eta_ref=1e21
 solve_T=False
 p_scale=1e6 ; p_unit="MPa"
@@ -26,15 +25,19 @@ formulation='BA'
 debug_ascii=False
 debug_nan=False
 nparticle_per_dim=5
+geometry='box'
+rho_DT_top=0
+rho_DT_bot=0
+gravity_npts=0
 
-nelx=50
-nely=40
+nelx=100
+nely=50
 CFLnb=0.2
 nstep=1
 
 ###############################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_y,Lx,Ly):
+def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
@@ -54,7 +57,7 @@ def particle_layout(nparticle,swarm_x,swarm_y,Lx,Ly):
 ###############################################################################
 # free slip on all sides
 
-def assign_boundary_conditions_V(x_V,y_V,ndof_V,Nfem_V,nn_V):
+def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V):
 
     eps=1e-8
 
@@ -75,7 +78,7 @@ def assign_boundary_conditions_V(x_V,y_V,ndof_V,Nfem_V,nn_V):
 
 ###############################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm_exy,swarm_T):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -83,11 +86,20 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm
     swarm_hcapa=0
     swarm_hprod=0
 
-    mask=(swarm_mat==1) ; swarm_eta[mask]=1e21 ; swarm_rho[mask]=3300
-    mask=(swarm_mat==2) ; swarm_eta[mask]=1e19 ; swarm_rho[mask]=0
-    mask=(swarm_mat==3) ; swarm_eta[mask]=1e23 ; swarm_rho[mask]=3200
+    mask=(swarm_mat==1) ; swarm_eta[mask]=1e19 ; swarm_rho[mask]=0
+    mask=(swarm_mat==2) ; swarm_eta[mask]=1e21 ; swarm_rho[mask]=3200
+    mask=(swarm_mat==3) ; swarm_eta[mask]=1e23 ; swarm_rho[mask]=3300
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
 ###############################################################################
+
+def gravity_model(x,y):
+    gx=0
+    gy=-9.81
+    return gx,gy
+
+###############################################################################
+
+
 

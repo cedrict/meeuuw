@@ -16,23 +16,33 @@ TKelvin=0
 pressure_normalisation='surface'
 every_Nu=1
 end_time=0.25
-every_solution_vtu=1
-every_swarm_vtu=5
-every_quadpoints_vtu=5
-RKorder=4
+every_solution_vtu=10
+every_swarm_vtu=10
+every_quadpoints_vtu=500
+RKorder=2
 particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 averaging='geometric'
 formulation='BA'
 debug_ascii=False
 debug_nan=False
+rho_DT_top=0
+rho_DT_bot=0
 
-nparticle_per_dim=5
-nstep=1000
+nparticle_per_dim=6
+nstep=500
 CFLnb=0.5 
+
+geometry='quarter'
+Rinner=0.55
+Router=1
+
+gravity_npts=256   
+gravity_rho_ref=0
+gravity_height=0.1
 
 ###############################################################################
 
-icase='2b'
+icase='1b'
  
 match(icase):
    case '1a':
@@ -43,8 +53,8 @@ match(icase):
    case '1b':
       Lx=1
       Ra=1e5
-      nelx=32
-      nely=32
+      nelx=100
+      nely=50
    case '1c':
       Lx=1
       Ra=1e6
@@ -61,7 +71,6 @@ match(icase):
       nelx=80
       nely=32
 
-gy=-Ra/alphaT 
 
 ###############################################################################
 
@@ -83,58 +92,88 @@ def viscosity(x,y,T):
 
 ###############################################################################
 
-def initial_temperature(x,y,nn_V):
+def initial_temperature(x,y,rad,theta,nn_V):
 
     T=np.zeros(nn_V,dtype=np.float64)
 
-    for i in range(0,nn_V):
-        T[i]=(Tbottom-Ttop)*(Ly-y[i])/Ly+Ttop\
-             +0.01*np.cos(np.pi*x[i]/Lx)*np.sin(np.pi*y[i]/Ly)
+    if geometry=='box':
+       for i in range(0,nn_V):
+           T[i]=(Tbottom-Ttop)*(Ly-y[i])/Ly+Ttop\
+                +0.01*np.cos(np.pi*x[i]/Lx)*np.sin(np.pi*y[i]/Ly)
+
+    if geometry=='quarter':
+       for i in range(0,nn_V):
+           T[i]=(Tbottom-Ttop)*(Router-rad[i])/(Router-Rinner)+Ttop\
+                +0.1*np.cos(2*theta[i])*np.sin(np.pi*(rad[i]-Rinner)/(Router-Rinner))
 
     return T
 
 ###############################################################################
 # free slip on all sides
 
-def assign_boundary_conditions_V(x_V,y_V,ndof_V,Nfem_V,nn_V):
+def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V):
 
     eps=1e-8
 
     bc_fix_V=np.zeros(Nfem_V,dtype=bool) # boundary condition, yes/no
     bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
 
-    for i in range(0,nn_V):
-        if x_V[i]/Lx<eps:
-           bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if x_V[i]/Lx>(1-eps):
-           bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if y_V[i]/Ly<eps:
-           bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-        if y_V[i]/Ly>(1-eps):
-           bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+    if geometry=='box':
+       for i in range(0,nn_V):
+           if x_V[i]/Lx<eps:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           if x_V[i]/Lx>(1-eps):
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           if y_V[i]/Ly<eps:
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if y_V[i]/Ly>(1-eps):
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+
+    if geometry=='quarter':
+       for i in range(0,nn_V):
+           if abs(rad_V[i]-Rinner)<eps:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if abs(rad_V[i]-Router)<eps:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if x_V[i]<eps:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if y_V[i]/Ly<eps:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
     return bc_fix_V,bc_val_V
 
 ###############################################################################
 
-def assign_boundary_conditions_T(x_V,y_V,Nfem_T,nn_V):
+def assign_boundary_conditions_T(x_V,y_V,rad_V,theta_V,Nfem_T,nn_V):
     
     eps=1e-8
 
     bc_fix_T=np.zeros(Nfem_T,dtype=bool)  
     bc_val_T=np.zeros(Nfem_T,dtype=np.float64) 
 
-    for i in range(0,nn_V):
-        if y_V[i]<eps:
-           bc_fix_T[i]=True ; bc_val_T[i]=Tbottom
-        if y_V[i]>(Ly-eps):
-           bc_fix_T[i]=True ; bc_val_T[i]=Ttop
+    if geometry=='box':
+       for i in range(0,nn_V):
+           if y_V[i]<eps:
+              bc_fix_T[i]=True ; bc_val_T[i]=Tbottom
+           if y_V[i]>(Ly-eps):
+              bc_fix_T[i]=True ; bc_val_T[i]=Ttop
+
+    if geometry=='quarter':
+       for i in range(0,nn_V):
+           if abs(rad_V[i]-Rinner)<eps:
+              bc_fix_T[i]=True ; bc_val_T[i]=Tbottom
+           if abs(rad_V[i]-Router)<eps:
+              bc_fix_T[i]=True ; bc_val_T[i]=Ttop
 
     return bc_fix_T,bc_val_T
 
 ###############################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_y,Lx,Ly):
+def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
@@ -144,7 +183,7 @@ def particle_layout(nparticle,swarm_x,swarm_y,Lx,Ly):
 
 ###############################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm_exy,swarm_T):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -165,3 +204,17 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_exx,swarm_eyy,swarm
 
 ###############################################################################
 
+def gravity_model(x,y):
+
+    if geometry=='box':
+       gx=0
+       gy=-Ra/alphaT 
+
+    if geometry=='quarter':
+       g0=Ra/alphaT 
+       gx=-x/np.sqrt(x*x+y*y)*g0
+       gy=-y/np.sqrt(x*x+y*y)*g0
+
+    return gx,gy
+
+###############################################################################

@@ -1,5 +1,5 @@
 #
-set term pdf enhanced font "Times,8pt"
+set term pdf enhanced font "Times,8pt" lw .5
 set grid
 set pointsize .3
 set log y
@@ -20,9 +20,10 @@ plot[][]\
 'timings.ascii' u 1:8  w lp lt 3 pt 3 t 'comp. nodal heat flux',\
 'timings.ascii' u 1:9  w lp lt 3 pt 4 t 'comp. nodal press grad',\
 'timings.ascii' u 1:12 w lp lt 3 pt 5 t 'comp. nodal sr',\
-'timings.ascii' u 1:13 w lp lt 3 pt 6 t 'normalise pressure',\
-'timings.ascii' u 1:15 w lp lt 3 pt 7 t 'split solution',\
-'timings.ascii' u 1:22 w lp lt 3 pt 8 t 'project fields on qpts',\
+'timings.ascii' u 1:26 w lp lt 3 pt 6 t 'comp. dyn topo',\
+'timings.ascii' u 1:13 w lp lt 3 pt 7 t 'normalise pressure',\
+'timings.ascii' u 1:15 w lp lt 3 pt 8 t 'split solution',\
+'timings.ascii' u 1:22 w lp lt 3 pt 9 t 'project fields on qpts',\
 'timings.ascii' u 1:14 w lp lt 4 pt 1 t 'advect particles',\
 'timings.ascii' u 1:16 w lp lt 4 pt 2 t 'compute swarm rho,eta',\
 'timings.ascii' u 1:17 w lp lt 4 pt 3 t 'locate particles',\

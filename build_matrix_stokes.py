@@ -5,7 +5,8 @@ import numba
 
 @numba.njit
 def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon_V,icon_P,\
-                        rhoq,etaq,JxWq,local_to_globalV,gy,Ly,N_V,N_P,dNdx_V,dNdy_V,\
+                        rhoq,etaq,JxWq,local_to_globalV,gxq,gyq,Ly,N_V,N_P,dNdr_V,dNds_V,\
+                        jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
                         eta_ref,L_ref,bc_fix_V,bc_val_V):
 
     C=np.array([[2,0,0],[0,2,0],[0,0,1]],dtype=np.float64) 
@@ -28,23 +29,27 @@ def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon
 
         for iq in range(0,nqel):
 
-            for i in range(0,m_V):
-                dNdx=dNdx_V[iq,i] 
-                dNdy=dNdy_V[iq,i] 
-                B[0,2*i  ]=dNdx
-                B[1,2*i+1]=dNdy
-                B[2,2*i  ]=dNdy
-                B[2,2*i+1]=dNdx
+            dNdx=jcbi00q[iel,iq]*dNdr_V[iq,:]+jcbi01q[iel,iq]*dNds_V[iq,:]
+            dNdy=jcbi10q[iel,iq]*dNdr_V[iq,:]+jcbi11q[iel,iq]*dNds_V[iq,:]
 
-            K_el+=B.T.dot(C.dot(B))*etaq[iel,iq]*JxWq[iq]
+            #print(jcbi00q[iel,iq],jcbi01q[iel,iq],jcbi10q[iel,iq],jcbi11q[iel,iq])
 
             for i in range(0,m_V):
-                f_el[ndof_V*i+1]+=N_V[iq,i]*JxWq[iq]*rhoq[iel,iq]*gy
+                B[0,2*i  ]=dNdx[i]
+                B[1,2*i+1]=dNdy[i]
+                B[2,2*i  ]=dNdy[i]
+                B[2,2*i+1]=dNdx[i]
+
+            K_el+=B.T.dot(C.dot(B))*etaq[iel,iq]*JxWq[iel,iq]
+
+            for i in range(0,m_V):
+                f_el[ndof_V*i  ]+=N_V[iq,i]*JxWq[iel,iq]*rhoq[iel,iq]*gxq[iel,iq]
+                f_el[ndof_V*i+1]+=N_V[iq,i]*JxWq[iel,iq]*rhoq[iel,iq]*gyq[iel,iq]
 
             N_mat[0,0:m_P]=N_P[iq,0:m_P]
             N_mat[1,0:m_P]=N_P[iq,0:m_P]
 
-            G_el-=B.T.dot(N_mat)*JxWq[iq]
+            G_el-=B.T.dot(N_mat)*JxWq[iel,iq]
 
         # end for iq
 
