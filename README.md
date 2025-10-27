@@ -46,6 +46,7 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - Lx,Ly: dimensions of the domain
 - formulation: can take value 'BA', 'EBA', ...?
 - averaging: 'arithmetic', 'geometric', 'harmonic' 
+- geometry: 'box' or 'quarter'
 
 ### Finite elements
 
@@ -94,7 +95,6 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - exxq, eyyq, exyq: strain rate components on quadrature points
 - dpdxq, dpdyq: pressure gradient on quadrature points
 
-
 ### Particles
 
 - particle_distribution: 
@@ -103,12 +103,61 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - nparticle_per_dim: number of articles per dimension
 - nparticle: number of particles in the domain
 
+---
 
-
-
-
-
-
+- quadrature rule points and weights
+- open output files & write headers
+- build velocity nodes coordinates 
+- connectivity for velocity nodes
+- build pressure grid 
+- build pressure connectivity array 
+- define velocity boundary conditions
+- define temperature boundary conditions
+- initial temperature. T is a vector of float64 of size nn_V
+- compute area of elements / sanity check
+- precompute basis functions values at quadrature points
+- precompute basis functions values at V nodes
+- compute coordinates of quadrature points - xq,yq are size (nel,nqel)
+- compute gravity vector at quadrature points -  gxq,gyq are size (nel,nqel)
+- compute gravity on mesh points
+- compute array for assembly
+- fill II_V,JJ_V arrays for Stokes matrix
+- fill II_T,JJ_T arrays for temperature matrix
+- particle coordinates setup
+- particle paint
+- particle layout
+- --------------------- time stepping loop ----------------------------------
+    - interpolate strain rate on particles
+    - interpolate temperature on particles
+    - evaluate density and viscosity on particles (and hcond, hcapa, hprod)
+    - project particle properties on elements 
+    - project particle properties on V nodes
+    - project nodal values onto quadrature points
+    - split solution into separate u,v,p velocity arrays
+    - compute timestep
+    - normalise pressure: simple approach to have <p> = 0 (volume or surface)
+    - project Q1 pressure onto Q2 (vel,T) mesh
+    - project velocity on quadrature points
+    - build temperature matrix
+    - solve temperature system
+    - compute vrms 
+    - compute nodal heat flux 
+    - compute heat flux and Nusselt at top and bottom
+    - compute temperature profile
+    - compute nodal strainrate
+    - compute stress tensor components
+    - compute dynamic topography at bottom and surface topo 
+    - compute nodal pressure gradient 
+    - advect particles
+    - locate particles and compute reduced coordinates
+    - export min/max coordinates of each material in one single file
+    - generate/write in pvd files
+    - export solution to vtu file
+    - export particles to vtu file
+    - export quadrature points to vtu file
+    - compute gravitational field above domain 
+    - assess steady state
+- --------------------- end time stepping loop ------------------------------
 
 
 

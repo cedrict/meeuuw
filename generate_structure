@@ -1,0 +1,5 @@
+grep -h @@ *.py > structure
+sed 's/#@@/-/g' structure > structure2
+mv structure2 structure
+
+

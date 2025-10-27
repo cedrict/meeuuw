@@ -1083,7 +1083,8 @@ for istep in range(0,nstep):
     print("compute global quantities: %.3f s" % (clock.time()-start)) ; timings[6]+=clock.time()-start
 
     ###########################################################################
-    #@@ compute nodal heat flux - ordering 0-1-2-3 is BL-BR-TR-TL
+    #@@ compute nodal heat flux 
+    # ordering 0-1-2-3 is BL-BR-TR-TL
     ###########################################################################
     start=clock.time()
 
