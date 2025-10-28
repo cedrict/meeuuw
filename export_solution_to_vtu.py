@@ -6,7 +6,7 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
                            eta_nodal,rho_nodal,exx_nodal,eyy_nodal,exy_nodal,e_nodal,qx_nodal,qy_nodal,
                            rho_elemental,sigmaxx_nodal,sigmayy_nodal,sigmaxy_nodal,rad_V,theta_V,
                            eta_elemental,nparticle_elemental,area,icon_V,bc_fix_V,bc_fix_T,geometry,
-                           gx_nodal,gy_nodal):
+                           gx_nodal,gy_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt):
 
        debug_sol=True
 
@@ -29,6 +29,12 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
        for i in range(0,nn_V):
            vtufile.write("%.3e %.3e %.1e \n" %(u[i]/vel_scale,v[i]/vel_scale,0.))
        vtufile.write("</DataArray>\n")
+       #--
+       if geometry=='quarter': 
+          vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Velocity (Polar)' Format='ascii'> \n")
+          for i in range(0,nn_V):
+              vtufile.write("%.3e %.3e %.1e \n" %(vr[i]/vel_scale,vt[i]/vel_scale,0.))
+          vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='Pressure' Format='ascii'> \n")
        q.tofile(vtufile,sep=' ',format='%.4e')
@@ -91,6 +97,19 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
        vtufile.write("<DataArray type='Float32' Name='e' Format='ascii'> \n")
        e_nodal.tofile(vtufile,sep=' ',format='%.4e')
        vtufile.write("</DataArray>\n")
+       #--
+       if geometry=='quarter': 
+          vtufile.write("<DataArray type='Float32' Name='err' Format='ascii'> \n")
+          err_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='ett' Format='ascii'> \n")
+          ett_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='ert' Format='ascii'> \n")
+          ert_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
        #--
        if debug_sol and geometry=='quarter': 
           vtufile.write("<DataArray type='Float32' Name='rad' Format='ascii'> \n")

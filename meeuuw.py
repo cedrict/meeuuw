@@ -22,6 +22,7 @@ from compute_gravity_at_point import *
 from compute_gravity_fromDT_at_point import *
 from project_nodal_field_onto_qpoints import *
 from compute_nodal_pressure_gradient import *
+from convert_nodal_strain_rate_to_polar_coords import *
 from postprocessors import *
 
 print("-----------------------------")
@@ -39,7 +40,7 @@ print("-----------------------------")
 # experiment 7: ESA workshop
 ###############################################################################
 
-experiment=1
+experiment=8
 
 if int(len(sys.argv)==5):
    experiment = int(sys.argv[1])
@@ -53,6 +54,7 @@ match(experiment):
      case 5 : from experiment5 import *
      case 6 : from experiment6 import *
      case 7 : from experiment7 import *
+     case 8 : from experiment8 import *
      case _ : exit('setup - unknown experiment')  
 
 if int(len(sys.argv)==5): # override these parameters
@@ -826,8 +828,8 @@ for istep in range(0,nstep):
     print("     -> rho_nodal (m,M) %.3e %.3e " %(np.min(rho_nodal),np.max(rho_nodal)))
     print("     -> eta_nodal (m,M) %.3e %.3e " %(np.min(eta_nodal),np.max(eta_nodal)))
 
-    if debug_ascii: np.savetxt('DEBUG/rho_nodal.ascii',np.array([x_V,y_V,rho_nodal]).T,header='# x,y,rho')
-    if debug_ascii: np.savetxt('DEBUG/eta_nodal.ascii',np.array([x_V,y_V,eta_nodal]).T,header='# x,y,eta')
+    if debug_ascii: np.savetxt('DEBUG/rho_nodal.ascii',np.array([x_V,y_V,rho_nodal,rad_V,theta_V]).T,header='# x,y,rho')
+    if debug_ascii: np.savetxt('DEBUG/eta_nodal.ascii',np.array([x_V,y_V,eta_nodal,rad_V,theta_V]).T,header='# x,y,eta')
 
     if solve_T:
        hcond_nodal=project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_hcond,icon_V,swarm_iel,'arithmetic')
@@ -936,11 +938,20 @@ for istep in range(0,nstep):
                                                             np.min(v)/vel_scale,np.max(v)/vel_scale))
     vstats_file.flush()
 
-    if debug_ascii: np.savetxt('DEBUG/velocity.ascii',np.array([x_V,y_V,u,v]).T,header='# x,y,u,v')
+    if debug_ascii: np.savetxt('DEBUG/velocity.ascii',np.array([x_V,y_V,u,v,rad_V,theta_V]).T,header='# x,y,u,v')
     if debug_ascii: np.savetxt('DEBUG/pressure.ascii',np.array([x_P,y_P,p]).T,header='# x,y,p')
 
     print("split vel into u,v: %.3f s" % (clock.time()-start)) ; timings[14]+=clock.time()-start
 
+    ###########################################################################
+    #@@ convert velocity to polar coordinates
+    ###########################################################################
+
+    if geometry=='quarter':
+       vr=u*np.cos(theta_V)+v*np.sin(theta_V)
+       vt=-u*np.sin(theta_V)+v*np.cos(theta_V)
+
+       if debug_ascii: np.savetxt('DEBUG/velocity_polar.ascii',np.array([x_V,y_V,vr,vt,rad_V,theta_V]).T)
     
     ###########################################################################
     #@@ compute timestep
@@ -979,7 +990,7 @@ for istep in range(0,nstep):
     print("compute time step: %.3f s" % (clock.time()-start)) ; timings[19]+=clock.time()-start
 
     ###########################################################################
-    #@@ normalise pressure: simple approach to have <p> = 0 (volume or surface)
+    #@@ normalise pressure: simple approach to have avrg p = 0 (volume or surface)
     # note that the surface normalisation is not super clean
     ###########################################################################
     start=clock.time()
@@ -1168,9 +1179,31 @@ for istep in range(0,nstep):
     print("     -> eyy_nodal (m,M) %.3e %.3e " %(np.min(eyy_nodal),np.max(eyy_nodal)))
     print("     -> exy_nodal (m,M) %.3e %.3e " %(np.min(exy_nodal),np.max(exy_nodal)))
 
-    if debug_ascii: np.savetxt('DEBUG/strainrate.ascii',np.array([x_V,y_V,exx_nodal,eyy_nodal,exy_nodal]).T)
+    if debug_ascii: np.savetxt('DEBUG/strainrate.ascii',np.array([x_V,y_V,exx_nodal,eyy_nodal,exy_nodal,\
+                                                                  e_nodal,rad_V,theta_V]).T)
+
+    if geometry=='quarter':    
+
+       err_nodal,ett_nodal,ert_nodal,e_polar=convert_nodal_strain_rate_to_polar_coords(theta_V,exx_nodal,eyy_nodal,exy_nodal)
+       print("     -> err_nodal (m,M) %.3e %.3e " %(np.min(err_nodal),np.max(err_nodal)))
+       print("     -> ett_nodal (m,M) %.3e %.3e " %(np.min(ett_nodal),np.max(ett_nodal)))
+       print("     -> ert_nodal (m,M) %.3e %.3e " %(np.min(ert_nodal),np.max(ert_nodal)))
+
+       if debug_ascii: np.savetxt('DEBUG/strainrate_polar.ascii',np.array([x_V,y_V,err_nodal,ett_nodal,ert_nodal,\
+                                                                           e_polar,rad_V,theta_V]).T)
+
+       np.savetxt('OUTPUT/top_err_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],err_nodal[top_nodes]]).T)
+       np.savetxt('OUTPUT/bot_err_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],err_nodal[bot_nodes]]).T)
+
+    else:
+       err_nodal=0 ; ett_nodal=0 ; ert_nodal=0
+
+       np.savetxt('OUTPUT/top_eyy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],eyy_nodal[top_nodes]]).T)
+       np.savetxt('OUTPUT/bot_eyy_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],eyy_nodal[bot_nodes]]).T)
 
     print("compute nodal sr: %.3f s" % (clock.time()-start)) ; timings[11]+=clock.time()-start
+
+    #print(err_nodal[top_nodes])
 
     ###########################################################################
     #@@ compute stress tensor components
@@ -1185,8 +1218,6 @@ for istep in range(0,nstep):
     sigmayy_nodal=-q+tauyy_nodal
     sigmaxy_nodal=   tauxy_nodal
 
-    np.savetxt('OUTPUT/top_eyy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],eyy_nodal[top_nodes]]).T)
-    np.savetxt('OUTPUT/bot_eyy_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],eyy_nodal[bot_nodes]]).T)
     np.savetxt('OUTPUT/top_tauyy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],tauyy_nodal[top_nodes]]).T)
     np.savetxt('OUTPUT/bot_tauyy_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],tauyy_nodal[bot_nodes]]).T)
     np.savetxt('OUTPUT/top_sigmayy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],sigmayy_nodal[top_nodes]]).T)
@@ -1331,7 +1362,8 @@ for istep in range(0,nstep):
                               exy_nodal,e_nodal,qx_nodal,qy_nodal,rho_elemental,\
                               sigmaxx_nodal,sigmayy_nodal,sigmaxy_nodal,rad_V,theta_V,\
                               eta_elemental,nparticle_elemental,area,icon_V,\
-                              bc_fix_V,bc_fix_T,geometry,gx_nodal,gy_nodal)
+                              bc_fix_V,bc_fix_T,geometry,gx_nodal,gy_nodal,\
+                              err_nodal,ett_nodal,ert_nodal,vr,vt)
 
        print("export solution to vtu file: %.3f s" % (clock.time()-start)) ; timings[10]+=clock.time()-start
 

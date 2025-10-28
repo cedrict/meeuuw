@@ -105,6 +105,8 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 
 ---
 
+## Code structure
+
 - quadrature rule points and weights
 - open output files & write headers
 - build velocity nodes coordinates 
@@ -117,8 +119,8 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - compute area of elements / sanity check
 - precompute basis functions values at quadrature points
 - precompute basis functions values at V nodes
-- compute coordinates of quadrature points - xq,yq are size (nel,nqel)
-- compute gravity vector at quadrature points -  gxq,gyq are size (nel,nqel)
+- compute coordinates of quadrature points 
+- compute gravity vector at quadrature points 
 - compute gravity on mesh points
 - compute array for assembly
 - fill II_V,JJ_V arrays for Stokes matrix
@@ -135,7 +137,7 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
     - project nodal values onto quadrature points
     - split solution into separate u,v,p velocity arrays
     - compute timestep
-    - normalise pressure: simple approach to have <p> = 0 (volume or surface)
+    - normalise pressure: simple approach to have avrg p = 0 (volume or surface)
     - project Q1 pressure onto Q2 (vel,T) mesh
     - project velocity on quadrature points
     - build temperature matrix
@@ -158,7 +160,3 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
     - compute gravitational field above domain 
     - assess steady state
 - --------------------- end time stepping loop ------------------------------
-
-
-
-

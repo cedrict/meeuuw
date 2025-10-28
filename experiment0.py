@@ -23,13 +23,13 @@ RKorder=2
 particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 averaging='geometric'
 formulation='BA'
-debug_ascii=False
+debug_ascii=True
 debug_nan=False
 rho_DT_top=0
 rho_DT_bot=0
 
 nparticle_per_dim=6
-nstep=500
+nstep=1
 CFLnb=0.5 
 
 geometry='quarter'
@@ -42,7 +42,7 @@ gravity_height=0.1
 
 ###############################################################################
 
-icase='1b'
+icase='1c'
  
 match(icase):
    case '1a':
@@ -58,7 +58,7 @@ match(icase):
    case '1c':
       Lx=1
       Ra=1e6
-      nelx=32
+      nelx=64
       nely=32
    case '2a':
       Lx=1
