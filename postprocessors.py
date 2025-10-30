@@ -19,7 +19,7 @@ def global_quantities(nel,nqel,xq,yq,uq,vq,Tq,rhoq,hcapaq,etaq,exxq,eyyq,exyq,vo
         for iq in range(0,nqel):
             TM+=rhoq[iel,iq]                                                        *JxWq[iel,iq]
             EK+=0.5*rhoq[iel,iq]*(uq[iel,iq]**2+vq[iel,iq]**2)                      *JxWq[iel,iq]
-            WAG-=rhoq[iel,iq]*vq[iel,iq]*gyq[iel,iq]                                *JxWq[iel,iq]
+            WAG-=rhoq[iel,iq]*(uq[iel,iq]*gxq[iel,iq]+vq[iel,iq]*gyq[iel,iq])       *JxWq[iel,iq]
             TVD+=2*etaq[iel,iq]*(exxq[iel,iq]**2+eyyq[iel,iq]**2+2*exyq[iel,iq]**2) *JxWq[iel,iq]
             #GPE+=rhoq[iel,iq]*gyq[iel,iq]*(Ly-yq[iel,iq])                           *JxWq[iel,iq]
             ITE+=rhoq[iel,iq]*hcapaq[iel,iq]*Tq[iel,iq]                             *JxWq[iel,iq]

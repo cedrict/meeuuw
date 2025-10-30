@@ -19,7 +19,7 @@ end_time=0.25
 every_solution_vtu=10
 every_swarm_vtu=10
 every_quadpoints_vtu=500
-RKorder=2
+RKorder=-1
 particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 averaging='geometric'
 formulation='BA'
@@ -27,12 +27,13 @@ debug_ascii=True
 debug_nan=False
 rho_DT_top=0
 rho_DT_bot=0
+tol_ss=1e-8
 
 nparticle_per_dim=6
-nstep=1
+nstep=1000
 CFLnb=0.5 
 
-geometry='quarter'
+geometry='box'
 Rinner=0.55
 Router=1
 
@@ -42,7 +43,7 @@ gravity_height=0.1
 
 ###############################################################################
 
-icase='1c'
+icase='1a'
  
 match(icase):
    case '1a':

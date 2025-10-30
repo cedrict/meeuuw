@@ -242,9 +242,6 @@ def advect_particles___box(RKorder,dt,nparticle,swarm_x,swarm_y,swarm_active,u,v
            # end if active
        # end for im
 
-    #else:
-    #   exit('RKorder not available')
-
     for im in range(0,nparticle):
         if not swarm_active[im]:
            swarm_x[im]=0
@@ -328,9 +325,6 @@ def advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_y,
               # end if active
            # end if active
        # end for ip
-
-    #else:
-    #   exit('RKorder not available')
 
     for ip in range(0,nparticle):
         if not swarm_active[ip]:

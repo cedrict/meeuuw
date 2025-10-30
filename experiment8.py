@@ -12,8 +12,6 @@ nelx=128
 nely=64
 
 R_blob=200e3
-x_blob=3500e3
-y_blob=3500e3
 eta_blob=1e21
 rho_blob=3200
 
@@ -24,9 +22,9 @@ Rinner=3480e3
 Router=6370e3
 
 rho_DT_top=0
-rho_DT_bot=0
+rho_DT_bot=10000
 
-nstep=1
+nstep=10
 eta_ref=1e21
 solve_T=False
 RKorder=2
@@ -45,14 +43,19 @@ averaging='geometric'
 formulation='BA'
 debug_ascii=True
 debug_nan=False
-CFLnb=0.25
+CFLnb=0.5
 end_time=100e6*year
+tol_ss=-1e-8
 
 geometry='quarter'
 
-gravity_npts=200
+gravity_npts=250
 gravity_height=200e3
 gravity_rho_ref=0
+
+#blob='ball'
+blob='half_ball'
+#blob='banaan'
 
 ###############################################################################
 
@@ -73,9 +76,9 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V):
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
            if x_V[i]<eps:
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+              #bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
            if y_V[i]/Ly<eps:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              #bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
     return bc_fix_V,bc_val_V
@@ -86,18 +89,31 @@ def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
-    #for ip in range(nparticle):
-    #    if (swarm_x[ip]-x_blob)**2+(swarm_y[ip]-y_blob)**2<R_blob**2:
-    #       swarm_mat[ip]=2
-    #    else:
-    #       swarm_mat[ip]=1
+    if blob=='ball':
+       x_blob=3500e3
+       y_blob=3500e3
+       for ip in range(nparticle):
+           if (swarm_x[ip]-x_blob)**2+(swarm_y[ip]-y_blob)**2<R_blob**2:
+              swarm_mat[ip]=2
+           else:
+              swarm_mat[ip]=1
 
-    for ip in range(nparticle):
-        if abs(swarm_theta[ip]-np.pi/4)<np.pi/32 and \
-           abs(swarm_rad[ip]-(Rinner+Router)/2)<(Router-Rinner)/16:
-           swarm_mat[ip]=2
-        else:
-           swarm_mat[ip]=1
+    if blob=='banaan':
+       for ip in range(nparticle):
+           if abs(swarm_theta[ip]-np.pi/4)<np.pi/32 and \
+              abs(swarm_rad[ip]-(Rinner+Router)/2)<(Router-Rinner)/16:
+              swarm_mat[ip]=2
+           else:
+              swarm_mat[ip]=1
+
+    if blob=='half_ball':
+       x_blob=0
+       y_blob=5000e3
+       for ip in range(nparticle):
+           if (swarm_x[ip]-x_blob)**2+(swarm_y[ip]-y_blob)**2<R_blob**2:
+              swarm_mat[ip]=2
+           else:
+              swarm_mat[ip]=1
 
     return swarm_mat
 

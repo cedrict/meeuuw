@@ -27,6 +27,7 @@ rho_DT_top=0
 rho_DT_bot=0
 geometry='box'
 gravity_npts=0
+tol_ss=-1e-8
 
 #a: cosine perturbation
 #b: plume

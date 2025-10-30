@@ -38,9 +38,10 @@ print("-----------------------------")
 # experiment 5: Trompert & Hansen, Nature 1998 - convection w/ plate-like  
 # experiment 6: Crameri et al, GJI 2012 (cosine perturbation & plume) 
 # experiment 7: ESA workshop
+# experiment 8: quarter - sinker
 ###############################################################################
 
-experiment=8
+experiment=4
 
 if int(len(sys.argv)==5):
    experiment = int(sys.argv[1])
@@ -102,7 +103,6 @@ timings_mem=np.zeros(27+1)
 
 L_ref=(Lx+Ly)/2
 
-tol_ss=1e-4
 
 ###############################################################################
 #@@ quadrature rule points and weights
@@ -119,22 +119,23 @@ nq=nqel*nel
 ###############################################################################
 
 vrms_file=open('OUTPUT/vrms.ascii',"w") ; vrms_file.write("#time,vrms\n")
-pstats_file=open('OUTPUT/pressure_stats.ascii',"w") ; pstats_file.write("#istep,min p, max p\n")
-vstats_file=open('OUTPUT/velocity_stats.ascii',"w") 
+pstats_file=open('OUTPUT/stats_pressure.ascii',"w") 
+pstats_file.write("#istep,min p, max p\n")
+vstats_file=open('OUTPUT/stats_velocity.ascii',"w") 
 vstats_file.write("#istep,min(u),max(u),min(v),max(v)\n")
 vstats_file.write("# "+vel_unit+"\n")
 dt_file=open('OUTPUT/dt.ascii',"w") ; dt_file.write("#time dt1 dt2 dt\n") ; dt_file.write('#'+time_unit+'\n')
-ptcl_stats_file=open('OUTPUT/particle_stats.ascii',"w")
+ptcl_stats_file=open('OUTPUT/stats_particle.ascii',"w")
 timings_file=open('timings.ascii',"w")
 TM_file=open('OUTPUT/total_mass.ascii',"w") 
 EK_file=open('OUTPUT/kinetic_energy.ascii',"w") 
 TVD_file=open('OUTPUT/viscous_dissipation.ascii',"w") 
 pvd_solution_file=open('OUTPUT/solution.pvd',"w")
 pvd_swarm_file=open('OUTPUT/swarm.pvd',"w")
-mats_file=open('OUTPUT/mats.ascii','w')
+mats_file=open('OUTPUT/stats_mats.ascii','w')
 if solve_T:
    corner_q_file=open('OUTPUT/corner_heat_flux.ascii','w')
-   Tstats_file=open('OUTPUT/temperature_stats.ascii',"w") 
+   Tstats_file=open('OUTPUT/stats_temperature.ascii',"w") 
    Nu_file=open('OUTPUT/Nu.ascii',"w") ; Nu_file.write("#time Nu\n")
    avrg_T_bot_file=open('OUTPUT/avrg_T_bot.ascii',"w") 
    avrg_T_top_file=open('OUTPUT/avrg_T_top.ascii',"w") 
@@ -181,6 +182,7 @@ print('rho_DT_bot',rho_DT_bot)
 print('gravity_npts=',gravity_npts)  
 if geometry=='quarter':
    print('Rinner,Router=',Rinner,Router)
+   print('hrad=',hrad)
 
 print('-----------------------------')
 
@@ -504,6 +506,8 @@ gy_nodal=np.zeros(nn_V,dtype=np.float64)
 for i in range(0,nn_V):
     gx_nodal[i],gy_nodal[i]=gravity_model(x_V[i],y_V[i])
 
+gr_nodal=gx_nodal*np.cos(theta_V)+gy_nodal*np.sin(theta_V)
+
 print("compute grav at qpts: %.3f s" % (clock.time()-start))
 
 ###############################################################################
@@ -678,6 +682,8 @@ if geometry=='quarter':
 else:
    swarm_rad=0
    swarm_theta=0
+
+swarm_strain=np.zeros(nparticle,dtype=np.float64)
 
 print("particles setup: %.3f s" % (clock.time()-start))
 
@@ -968,6 +974,9 @@ for istep in range(0,nstep):
        vt=-u*np.sin(theta_V)+v*np.cos(theta_V)
 
        if debug_ascii: np.savetxt('DEBUG/velocity_polar.ascii',np.array([x_V,y_V,vr,vt,rad_V,theta_V]).T)
+
+    else:
+       vr=0 ; vt=0
     
     ###########################################################################
     #@@ compute timestep
@@ -975,14 +984,17 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    dt1=CFLnb*(Lx/nelx)/np.max(np.sqrt(u**2+v**2))
+    if geometry=='box': dt1=CFLnb*min(hx,hy)/np.max(np.sqrt(u**2+v**2))
+    if geometry=='quarter': dt1=CFLnb*hrad/np.max(np.sqrt(u**2+v**2))
+
     print('     -> dt1= %.3e %s' %(dt1/time_scale,time_unit))
     
     if solve_T:
        avrg_hcond=np.average(swarm_hcond)
        avrg_hcapa=np.average(swarm_hcapa)
        avrg_rho=np.average(swarm_rho)
-       dt2=CFLnb*(Lx/nelx)**2/(avrg_hcond/avrg_hcapa/avrg_rho)
+       if geometry=='box': dt2=CFLnb*min(hx,hy)**2/(avrg_hcond/avrg_hcapa/avrg_rho)
+       if geometry=='quarter': dt2=CFLnb*hrad**2/(avrg_hcond/avrg_hcapa/avrg_rho)
        print('     -> dt2= %.3e %s' %(dt2/time_scale,time_unit))
     else:
        dt2=1e50
@@ -1043,6 +1055,14 @@ for istep in range(0,nstep):
     print("     -> q (m,M) %.3e %.3e %s" %(np.min(q),np.max(q),p_unit))
 
     if debug_ascii: np.savetxt('DEBUG/q.ascii',np.array([x_V,y_V,q]).T,header='# x,y,q')
+
+    if geometry=='box':
+       np.savetxt('OUTPUT/top_q_'+str(istep)+'.ascii',np.array([x_V[top_nodes],q[top_nodes]]).T)
+       np.savetxt('OUTPUT/bot_q_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],q[bot_nodes]]).T)
+
+    if geometry=='quarter':
+       np.savetxt('OUTPUT/top_q_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],q[top_nodes]]).T)
+       np.savetxt('OUTPUT/bot_q_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],q[bot_nodes]]).T)
 
     print("compute nodal press: %.3f s" % (clock.time()-start)) ; timings[3]+=clock.time()-start
 
@@ -1117,7 +1137,7 @@ for istep in range(0,nstep):
 
     if solve_T: 
        dTdx_nodal,dTdy_nodal,qx_nodal,qy_nodal=\
-       compute_nodal_heat_flux(icon_V,T,hcond_nodal,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n)
+       compute_nodal_heat_flux(icon_V,T,hcond_nodal,nn_V,m_V,nel,dNdr_V_n,dNds_V_n,jcbi00n,jcbi01n,jcbi10n,jcbi11n)
 
        print("     -> dTdx_nodal (m,M) %.3e %.3e " %(np.min(dTdx_nodal),np.max(dTdx_nodal)))
        print("     -> dTdy_nodal (m,M) %.3e %.3e " %(np.min(dTdy_nodal),np.max(dTdy_nodal)))
@@ -1249,7 +1269,7 @@ for istep in range(0,nstep):
        np.savetxt('OUTPUT/top_sigmayy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],sigmayy_nodal[top_nodes]]).T)
        np.savetxt('OUTPUT/bot_sigmayy_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],sigmayy_nodal[bot_nodes]]).T)
 
-    if geometry=='geometry':
+    if geometry=='quarter':
        np.savetxt('OUTPUT/top_taurr_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],taurr_nodal[top_nodes]]).T)
        np.savetxt('OUTPUT/bot_taurr_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],taurr_nodal[bot_nodes]]).T)
        np.savetxt('OUTPUT/top_sigmarr_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],sigmarr_nodal[top_nodes]]).T)
@@ -1263,20 +1283,24 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if geometry=='box':
-
-       if np.all(rho_nodal[top_nodes])>0 and np.all(gy_nodal[top_nodes])>0 : 
+       if np.all(rho_nodal[top_nodes])>0 and np.all(gy_nodal[top_nodes])>0: 
           avrg_sigmayy=np.average(sigmayy_nodal[top_nodes])
           dyn_topo_top=(sigmayy_nodal[top_nodes]-avrg_sigmayy)/gy_nodal[top_nodes]/(rho_nodal[top_nodes]-rho_DT_top)
-          np.savetxt('OUTPUT/dynamic_topography_top_'+str(istep)+'.ascii',np.array([x_V[top_nodes],dyn_topo_top]).T)
-
-       if np.all(rho_nodal[bot_nodes])>0 and np.all(gy_nodal[bot_nodes])>0 : 
+          np.savetxt('OUTPUT/top_dynamic_topography_'+str(istep)+'.ascii',np.array([x_V[top_nodes],dyn_topo_top]).T)
+       if np.all(rho_nodal[bot_nodes])>0 and np.all(gy_nodal[bot_nodes])>0: 
           avrg_sigmayy=np.average(sigmayy_nodal[bot_nodes])
           dyn_topo_bot=(sigmayy_nodal[bot_nodes]-avrg_sigmayy)/gy_nodal[bot_nodes]/(rho_nodal[bot_nodes]-rho_DT_bot)
-          np.savetxt('OUTPUT/dynamic_topography_bot_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],dyn_topo_bot]).T)
+          np.savetxt('OUTPUT/bot_dynamic_topography_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],dyn_topo_bot]).T)
 
     if geometry=='quarter':
-
-       print('no dyn topo for this geometry yet')
+       if np.all(rho_nodal[top_nodes])>0 and np.all(gr_nodal[top_nodes])>0: 
+          avrg_sigmarr=np.average(sigmarr_nodal[top_nodes])
+          dyn_topo_top=(sigmarr_nodal[top_nodes]-avrg_sigmarr)/gr_nodal[top_nodes]/(rho_nodal[top_nodes]-rho_DT_top)
+          np.savetxt('OUTPUT/top_dynamic_topography_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],dyn_topo_top]).T)
+       if np.all(rho_nodal[bot_nodes])>0 and np.all(gr_nodal[bot_nodes])>0: 
+          avrg_sigmarr=np.average(sigmarr_nodal[bot_nodes])
+          dyn_topo_bot=(sigmarr_nodal[bot_nodes]-avrg_sigmarr)/gr_nodal[bot_nodes]/(rho_nodal[bot_nodes]-rho_DT_bot)
+          np.savetxt('OUTPUT/bot_dynamic_topography_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],dyn_topo_bot]).T)
 
     print("compute dynamic topo: %.3f s" % (clock.time()-start)) ; timings[26]+=clock.time()-start
 
@@ -1340,6 +1364,14 @@ for istep in range(0,nstep):
     print("     -> swarm_iel (m,M) %d %d " %(np.min(swarm_iel),np.max(swarm_iel)))
 
     print("locate particles: %.3fs" % (clock.time()-start)) ; timings[16]+=clock.time()-start
+
+    ###########################################################################
+    #@@ compute strain on particles
+    ###########################################################################
+
+    swarm_strain+=np.sqrt(0.5*(swarm_exx**2+swarm_eyy**2)+swarm_exy**2)*dt
+
+    print("     -> swarm_strain (m,M) %e %e " %(np.min(swarm_strain),np.max(swarm_strain)))
 
     ###########################################################################
     #@@ export min/max coordinates of each material in one single file
@@ -1411,7 +1443,7 @@ for istep in range(0,nstep):
        export_swarm_to_vtu(istep,geometry,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
                            swarm_u,swarm_v,swarm_mat,swarm_rho,swarm_eta,swarm_r,swarm_s,\
                            swarm_paint,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_iel,\
-                           swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta) 
+                           swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain) 
 
        print("export particles to vtu file: %.3f s" % (clock.time()-start)) ; timings[20]+=clock.time()-start
 
@@ -1441,6 +1473,8 @@ for istep in range(0,nstep):
           ys=np.zeros(gravity_npts,dtype=np.float64)  
           gxI=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gyI=np.zeros((gravity_npts,nstep),dtype=np.float64)  
+          grI=np.zeros((gravity_npts,nstep),dtype=np.float64)  
+          gtI=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gnormI=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gnormI_rate=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gxDTt=np.zeros((gravity_npts,nstep),dtype=np.float64)  
@@ -1453,44 +1487,56 @@ for istep in range(0,nstep):
           gnormDTb_rate=np.zeros((gravity_npts,nstep),dtype=np.float64)  
 
        match(geometry):
-           case 'box' :
-               for i in range(0,gravity_npts):
-                   xs[i]=i*Lx/(gravity_npts-1)
-                   ys[i]=Ly+gravity_height
-                   gxI[i,istep],gyI[i,istep],gnormI[i,istep]=\
-                   compute_gravity_at_point(xs[i],ys[i],nel,xc,yc,rho_elemental,area,gravity_rho_ref)
+        case 'box' :
+         for i in range(0,gravity_npts):
+             xs[i]=i*Lx/(gravity_npts-1)
+             ys[i]=Ly+gravity_height
+             gxI[i,istep],gyI[i,istep],gnormI[i,istep]=\
+             compute_gravity_at_point(xs[i],ys[i],nel,xc,yc,rho_elemental,area,gravity_rho_ref)
 
-                   gxDTt[i,istep],gyDTt[i,istep],gnormDTt[i,istep]=\
-                   compute_gravity_fromDT_at_point(xs[i],ys[i],Ly,nelx,x_V[top_nodes],rho_nodal[top_nodes],dyn_topo_top,rho_DT_top)
+             gxDTt[i,istep],gyDTt[i,istep],gnormDTt[i,istep]=\
+             compute_gravity_fromDT_at_point(xs[i],ys[i],Ly,nelx,x_V[top_nodes],\
+                                             rho_nodal[top_nodes],dyn_topo_top,rho_DT_top)
 
-                   gxDTb[i,istep],gyDTb[i,istep],gnormDTb[i,istep]=\
-                   compute_gravity_fromDT_at_point(xs[i],ys[i],0,nelx,x_V[bot_nodes],rho_nodal[bot_nodes],dyn_topo_bot,rho_DT_bot)
+             gxDTb[i,istep],gyDTb[i,istep],gnormDTb[i,istep]=\
+             compute_gravity_fromDT_at_point(xs[i],ys[i],0,nelx,x_V[bot_nodes],\
+                                                rho_nodal[bot_nodes],dyn_topo_bot,rho_DT_bot)
 
-           case 'quarter' :
+         np.savetxt('OUTPUT/gravityI_'+str(istep)+'.ascii',\
+                    np.array([xs,ys,gnormI[:,istep],gxI[:,istep],gyI[:,istep]]).T,header='#x,y,g,gx,gy')
+         np.savetxt('OUTPUT/gravityDTt_'+str(istep)+'.ascii',\
+                    np.array([xs,ys,gnormDTt[:,istep],gxDTt[:,istep],gyDTt[:,istep]]).T,header='#x,y,g,gx,gy')
+         np.savetxt('OUTPUT/gravityDTb_'+str(istep)+'.ascii',\
+                    np.array([xs,ys,gnormDTb[:,istep],gxDTb[:,istep],gyDTb[:,istep]]).T,header='#x,y,g,gx,gy')
 
-               for i in range(0,gravity_npts):
-                   xs[i]=(Router+gravity_height)*np.cos(i/(gravity_npts-1)*np.pi/2)
-                   ys[i]=(Router+gravity_height)*np.sin(i/(gravity_npts-1)*np.pi/2)
-                   gxI[i,istep],gyI[i,istep],gnormI[i,istep]=\
-                   compute_gravity_at_point(xs[i],ys[i],nel,xc,yc,rho_elemental,area,gravity_rho_ref)
+        case 'quarter' :
+         for i in range(0,gravity_npts):
+             xs[i]=(Router+gravity_height)*np.cos(i/(gravity_npts-1)*np.pi/2)
+             ys[i]=(Router+gravity_height)*np.sin(i/(gravity_npts-1)*np.pi/2)
+             gxI[i,istep],gyI[i,istep],gnormI[i,istep]=\
+             compute_gravity_at_point(xs[i],ys[i],nel,xc,yc,rho_elemental,area,gravity_rho_ref)
 
-           case _ :
-               
-               print('gravity calculations not available for this geometry')   
+         rads=np.sqrt(xs**2+ys**2)
+         thetas=np.pi/2-np.arctan2(xs,ys)
+         grI[:,istep]=gxI[:,istep]*np.cos(thetas)+gyI[:,istep]*np.sin(thetas)
+         gtI[:,istep]=-gxI[:,istep]*np.sin(thetas)+gyI[:,istep]*np.cos(thetas)
 
+         np.savetxt('OUTPUT/gravityI_'+str(istep)+'.ascii',\
+                    np.array([rads,thetas,gnormI[:,istep],grI[:,istep],gtI[:,istep]]).T,header='#x,y,g,gx,gy')
 
-
-       np.savetxt('OUTPUT/gravityI_'+str(istep)+'.ascii',np.array([xs,ys,gnormI[:,istep],gxI[:,istep],gyI[:,istep]]).T,header='#x,y,g,gx,gy')
-       np.savetxt('OUTPUT/gravityDTt_'+str(istep)+'.ascii',np.array([xs,ys,gnormDTt[:,istep],gxDTt[:,istep],gyDTt[:,istep]]).T,header='#x,y,g,gx,gy')
-       np.savetxt('OUTPUT/gravityDTb_'+str(istep)+'.ascii',np.array([xs,ys,gnormDTb[:,istep],gxDTb[:,istep],gyDTb[:,istep]]).T,header='#x,y,g,gx,gy')
+        case _ :
+         print('gravity calculations not available for this geometry')   
 
        if istep>0:
           gnormI_rate[:,istep]=(gnormI[:,istep]-gnormI[:,istep-1])/dt
           gnormDTt_rate[:,istep]=(gnormDTt[:,istep]-gnormDTt[:,istep-1])/dt
           gnormDTb_rate[:,istep]=(gnormDTb[:,istep]-gnormDTb[:,istep-1])/dt
-          np.savetxt('OUTPUT/gravityI_rate_'+str(istep)+'.ascii',np.array([xs,gnormI_rate[:,istep]/mGal*year]).T,header='#x,g')
-          np.savetxt('OUTPUT/gravityDTt_rate_'+str(istep)+'.ascii',np.array([xs,gnormDTt_rate[:,istep]/mGal*year]).T,header='#x,g')
-          np.savetxt('OUTPUT/gravityDTb_rate_'+str(istep)+'.ascii',np.array([xs,gnormDTb_rate[:,istep]/mGal*year]).T,header='#x,g')
+          if geometry=='box':
+             np.savetxt('OUTPUT/gravityI_rate_'+str(istep)+'.ascii',np.array([xs,gnormI_rate[:,istep]/mGal*year]).T,header='#x,g')
+             np.savetxt('OUTPUT/gravityDTt_rate_'+str(istep)+'.ascii',np.array([xs,gnormDTt_rate[:,istep]/mGal*year]).T,header='#x,g')
+             np.savetxt('OUTPUT/gravityDTb_rate_'+str(istep)+'.ascii',np.array([xs,gnormDTb_rate[:,istep]/mGal*year]).T,header='#x,g')
+          if geometry=='quarter' :
+             np.savetxt('OUTPUT/gravityI_rate_'+str(istep)+'.ascii',np.array([thetas,gnormI_rate[:,istep]/mGal*year]).T,header='#theta,g')
 
     print("compute gravity: %.3f s" % (clock.time()-start)) ; timings[23]+=clock.time()-start
 
@@ -1519,7 +1565,6 @@ for istep in range(0,nstep):
     v_mem=v.copy()
     p_mem=p.copy()
     if solve_T: T_mem=T.copy()
-
 
     print("assess steady state: %.4f s" % (clock.time()-start)) #; timings[22]+=clock.time()-start
 

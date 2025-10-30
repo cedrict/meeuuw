@@ -63,6 +63,7 @@ geometry='box'
 gravity_npts=200
 gravity_height=200e3
 gravity_rho_ref=0
+tol_ss=-1e-8
 
 ###############################################################################
 

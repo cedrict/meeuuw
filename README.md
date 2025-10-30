@@ -5,11 +5,11 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - FEM
 - Q_2xQ_1 finite element pair for velocity-pressure
 - Q_2 finite element for temperature
-- 2d Cartesian geometry
+- 2d Cartesian and 2d annulus geometry
 - flexible nonlinear viscous rheology 
 - particle-in-cell technique
 - Runge-Kutta in space: 1st, 2nd, 4th order
-- export to vtu file (nodes, swarm, and quadrature points)
+- export to vtu file (nodes, particle swarm, and quadrature points)
 - direct solver for both linear systems
 - Crank-Nicolson time scheme for T equation
 
@@ -32,13 +32,13 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - solid phase transition
 - melt generation and transport
 - C matrix for compressible case
-- implement blbc89 non isoviscous
 - compute sr or dev sr ?
 - look at stsh04 (similar to trha98b)
 - paint stripes adapt to aspect ratio
 - what stress to use for DT?
 - free slip bc for annulus 
 - higher order mapping?
+- record strain on particles
 
 ## Nomenclature
 

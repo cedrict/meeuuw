@@ -29,11 +29,12 @@ geometry='box'
 rho_DT_top=0
 rho_DT_bot=0
 gravity_npts=0
+tol_ss=-1e-8
 
-nelx=100
-nely=50
-CFLnb=0.2
-nstep=1
+nelx=128
+nely=64
+CFLnb=0.25
+nstep=10
 
 ###############################################################################
 
