@@ -28,7 +28,6 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - more accurate whole domain velocity gradient method
 - SUPG and/or Lenardic & Kaula filter
 - nonlinear iterations
-- cvi for Q2 ? 
 - implement EBA, ALA, TALA, ICA? 
 - solid phase transition
 - melt generation and transport
@@ -38,6 +37,8 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - look at stsh04 (similar to trha98b)
 - paint stripes adapt to aspect ratio
 - what stress to use for DT?
+- free slip bc for annulus 
+- higher order mapping?
 
 ## Nomenclature
 

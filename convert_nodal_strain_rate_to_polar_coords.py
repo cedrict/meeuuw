@@ -2,24 +2,22 @@ import numpy as np
 import numba
 
 ###############################################################################
+#def convert_nodal_strain_rate_to_polar_coords(theta,Txx,Tyy,Txy):
 
 @numba.njit
-def convert_nodal_strain_rate_to_polar_coords(theta,exx,eyy,exy):
+def convert_tensor_to_polar_coords(theta,Txx,Tyy,Txy):
 
-    #print(np.cos(theta))
-    #print(np.sin(theta))
+    Trr=Txx*(np.cos(theta))**2\
+       +2*Txy*np.sin(theta)*np.cos(theta)\
+       +Tyy*(np.sin(theta))**2
+    Ttt=Txx*(np.sin(theta))**2\
+       -2*Txy*np.sin(theta)*np.cos(theta)\
+       +Tyy*(np.cos(theta))**2
+    Trt=(Tyy-Txx)*np.sin(theta)*np.cos(theta)\
+       +Txy*((np.cos(theta))**2-(np.sin(theta))**2)
 
-    err=exx*(np.cos(theta))**2\
-       +2*exy*np.sin(theta)*np.cos(theta)\
-       +eyy*(np.sin(theta))**2
-    ett=exx*(np.sin(theta))**2\
-       -2*exy*np.sin(theta)*np.cos(theta)\
-       +eyy*(np.cos(theta))**2
-    ert=(eyy-exx)*np.sin(theta)*np.cos(theta)\
-       +exy*((np.cos(theta))**2-(np.sin(theta))**2)
+    e=np.sqrt(0.5*(Trr**2+Ttt**2)+Trt**2)
 
-    e=np.sqrt(0.5*(err**2+ett**2)+ert**2)
-
-    return err,ett,ert,e
+    return Trr,Ttt,Trt,e
 
 ###############################################################################

@@ -97,8 +97,8 @@ if geometry=='quarter':
 nparticle_per_element=nparticle_per_dim**2
 nparticle=nel*nparticle_per_element
 
-timings=np.zeros(26+1)
-timings_mem=np.zeros(26+1)
+timings=np.zeros(27+1)
+timings_mem=np.zeros(27+1)
 
 L_ref=(Lx+Ly)/2
 
@@ -123,22 +123,23 @@ pstats_file=open('OUTPUT/pressure_stats.ascii',"w") ; pstats_file.write("#istep,
 vstats_file=open('OUTPUT/velocity_stats.ascii',"w") 
 vstats_file.write("#istep,min(u),max(u),min(v),max(v)\n")
 vstats_file.write("# "+vel_unit+"\n")
-Tstats_file=open('OUTPUT/temperature_stats.ascii',"w") 
 dt_file=open('OUTPUT/dt.ascii',"w") ; dt_file.write("#time dt1 dt2 dt\n") ; dt_file.write('#'+time_unit+'\n')
 ptcl_stats_file=open('OUTPUT/particle_stats.ascii',"w")
-Nu_file=open('OUTPUT/Nu.ascii',"w") ; Nu_file.write("#time Nu\n")
-avrg_T_bot_file=open('OUTPUT/avrg_T_bot.ascii',"w") 
-avrg_T_top_file=open('OUTPUT/avrg_T_top.ascii',"w") 
-avrg_dTdy_bot_file=open('OUTPUT/avrg_dTdy_bot.ascii',"w") 
-avrg_dTdy_top_file=open('OUTPUT/avrg_dTdy_top.ascii',"w") 
 timings_file=open('timings.ascii',"w")
 TM_file=open('OUTPUT/total_mass.ascii',"w") 
 EK_file=open('OUTPUT/kinetic_energy.ascii',"w") 
 TVD_file=open('OUTPUT/viscous_dissipation.ascii',"w") 
 pvd_solution_file=open('OUTPUT/solution.pvd',"w")
 pvd_swarm_file=open('OUTPUT/swarm.pvd',"w")
-corner_q_file=open('OUTPUT/corner_heat_flux.ascii','w')
 mats_file=open('OUTPUT/mats.ascii','w')
+if solve_T:
+   corner_q_file=open('OUTPUT/corner_heat_flux.ascii','w')
+   Tstats_file=open('OUTPUT/temperature_stats.ascii',"w") 
+   Nu_file=open('OUTPUT/Nu.ascii',"w") ; Nu_file.write("#time Nu\n")
+   avrg_T_bot_file=open('OUTPUT/avrg_T_bot.ascii',"w") 
+   avrg_T_top_file=open('OUTPUT/avrg_T_top.ascii',"w") 
+   avrg_dTdy_bot_file=open('OUTPUT/avrg_dTdy_bot.ascii',"w") 
+   avrg_dTdy_top_file=open('OUTPUT/avrg_dTdy_top.ascii',"w") 
 
 ###############################################################################
 
@@ -433,13 +434,28 @@ print("comp elts areas, N, grad(N) at q pts: %.3f s" % (clock.time()-start))
 start=clock.time()
 
 N_P_n=np.zeros((m_V,m_P),dtype=np.float64) 
-dNdx_V_n=np.zeros((m_V,m_V),dtype=np.float64) 
-dNdy_V_n=np.zeros((m_V,m_V),dtype=np.float64) 
-   
-for i in range(0,m_V):
-    N_P_n[i,0:m_P]=basis_functions_P(r_V[i],s_V[i])
-    dNdx_V_n[i,0:m_V]=jcbi[0,0]*basis_functions_V_dr(r_V[i],s_V[i])+jcbi[0,1]*basis_functions_V_ds(r_V[i],s_V[i])
-    dNdy_V_n[i,0:m_V]=jcbi[1,0]*basis_functions_V_dr(r_V[i],s_V[i])+jcbi[1,1]*basis_functions_V_ds(r_V[i],s_V[i])
+dNdr_V_n=np.zeros((m_V,m_V),dtype=np.float64) 
+dNds_V_n=np.zeros((m_V,m_V),dtype=np.float64) 
+jcbi00n=np.zeros((nel,m_V),dtype=np.float64) 
+jcbi01n=np.zeros((nel,m_V),dtype=np.float64) 
+jcbi10n=np.zeros((nel,m_V),dtype=np.float64) 
+jcbi11n=np.zeros((nel,m_V),dtype=np.float64) 
+
+for iel in range(0,nel):
+    for i in range(0,m_V):
+        if iel==0:
+           N_P_n[i,0:m_P]=basis_functions_P(r_V[i],s_V[i])
+           dNdr_V_n[i,0:m_V]=basis_functions_V_dr(r_V[i],s_V[i])
+           dNds_V_n[i,0:m_V]=basis_functions_V_ds(r_V[i],s_V[i])
+        jcb[0,0]=np.dot(dNdr_V_n[i,:],x_V[icon_V[:,iel]])
+        jcb[0,1]=np.dot(dNdr_V_n[i,:],y_V[icon_V[:,iel]])
+        jcb[1,0]=np.dot(dNds_V_n[i,:],x_V[icon_V[:,iel]])
+        jcb[1,1]=np.dot(dNds_V_n[i,:],y_V[icon_V[:,iel]])
+        jcbi=np.linalg.inv(jcb)
+        jcbi00n[iel,i]=jcbi[0,0]
+        jcbi01n[iel,i]=jcbi[0,1]
+        jcbi10n[iel,i]=jcbi[1,0]
+        jcbi11n[iel,i]=jcbi[1,1]
 
 print("compute N & grad(N) at V nodes: %.3f s" % (clock.time()-start))
 
@@ -907,9 +923,9 @@ for istep in range(0,nstep):
     print("build FE matrix: %.3fs" % (clock.time()-start)) ; timings[1]+=clock.time()-start
 
 
-    ###########################################################################
+    ###############################################################################################
     #@ solve stokes system
-    ###########################################################################
+    ###############################################################################################
     start=clock.time()
 
     sparse_matrix=sparse.coo_matrix((VV_V,(II_V,JJ_V)),shape=(Nfem,Nfem)).tocsr()
@@ -918,9 +934,9 @@ for istep in range(0,nstep):
 
     print("solve time: %.3f s" % (clock.time()-start)) ; timings[2]+=clock.time()-start
 
-    ###########################################################################
+    ###############################################################################################
     #@@ split solution into separate u,v,p velocity arrays
-    ###########################################################################
+    ###############################################################################################
     start=clock.time()
 
     u,v=np.reshape(sol[0:Nfem_V],(nn_V,2)).T
@@ -939,13 +955,13 @@ for istep in range(0,nstep):
     vstats_file.flush()
 
     if debug_ascii: np.savetxt('DEBUG/velocity.ascii',np.array([x_V,y_V,u,v,rad_V,theta_V]).T,header='# x,y,u,v')
-    if debug_ascii: np.savetxt('DEBUG/pressure.ascii',np.array([x_P,y_P,p]).T,header='# x,y,p')
+    if debug_ascii: np.savetxt('DEBUG/pressure.ascii',np.array([x_P,y_P,p,rad_P,theta_P]).T,header='# x,y,p')
 
     print("split vel into u,v: %.3f s" % (clock.time()-start)) ; timings[14]+=clock.time()-start
 
-    ###########################################################################
+    ###############################################################################################
     #@@ convert velocity to polar coordinates
-    ###########################################################################
+    ###############################################################################################
 
     if geometry=='quarter':
        vr=u*np.cos(theta_V)+v*np.sin(theta_V)
@@ -989,10 +1005,10 @@ for istep in range(0,nstep):
 
     print("compute time step: %.3f s" % (clock.time()-start)) ; timings[19]+=clock.time()-start
 
-    ###########################################################################
+    ###############################################################################################
     #@@ normalise pressure: simple approach to have avrg p = 0 (volume or surface)
     # note that the surface normalisation is not super clean
-    ###########################################################################
+    ###############################################################################################
     start=clock.time()
 
     match(pressure_normalisation): 
@@ -1013,13 +1029,13 @@ for istep in range(0,nstep):
     pstats_file.write("%d %.3e %.3e\n" % (istep,np.min(p),np.max(p)))
     pstats_file.flush()
 
-    if debug_ascii: np.savetxt('DEBUG/p.ascii',np.array([x_P,y_P,p]).T,header='# x,y,p')
+    if debug_ascii: np.savetxt('DEBUG/pressure_normalised.ascii',np.array([x_P,y_P,p,rad_P,theta_P]).T,header='# x,y,p')
 
     print("normalise pressure: %.3f s" % (clock.time()-start)) ; timings[12]+=clock.time()-start
 
-    ###########################################################################
+    ###############################################################################################
     #@@ project Q1 pressure onto Q2 (vel,T) mesh
-    ###########################################################################
+    ###############################################################################################
     start=clock.time()
 
     q=compute_nodal_pressure(m_V,nn_V,icon_V,icon_P,p,N_P_n)
@@ -1030,9 +1046,9 @@ for istep in range(0,nstep):
 
     print("compute nodal press: %.3f s" % (clock.time()-start)) ; timings[3]+=clock.time()-start
 
-    ###########################################################################
+    ###############################################################################################
     #@@ project velocity on quadrature points
-    ###########################################################################
+    ###############################################################################################
     start=clock.time()
 
     uq=Q2_project_nodal_field_onto_qpoints(u,nqel,nel,N_V,icon_V)
@@ -1040,9 +1056,9 @@ for istep in range(0,nstep):
 
     print("project vel on quad points: %.3f s" % (clock.time()-start)) ; timings[21]+=clock.time()-start
 
-    ###########################################################################
+    ###############################################################################################
     #@@ build temperature matrix
-    ###########################################################################
+    ###############################################################################################
     start=clock.time()
 
     if solve_T: 
@@ -1053,9 +1069,9 @@ for istep in range(0,nstep):
 
        print("build FE matrix : %.3f s" % (clock.time()-start)) ; timings[4]+=clock.time()-start
 
-    ###########################################################################
+    ###############################################################################################
     #@@ solve temperature system
-    ###########################################################################
+    ###############################################################################################
     start=clock.time()
 
     if solve_T: 
@@ -1076,9 +1092,9 @@ for istep in range(0,nstep):
 
     #end if solve_T
 
-    ###########################################################################
+    ###############################################################################################
     #@@ compute vrms 
-    ###########################################################################
+    ###############################################################################################
     start=clock.time()
 
     vrms,EK,WAG,TVD,GPE,ITE,TM=\
@@ -1093,10 +1109,10 @@ for istep in range(0,nstep):
 
     print("compute global quantities: %.3f s" % (clock.time()-start)) ; timings[6]+=clock.time()-start
 
-    ###########################################################################
+    ###############################################################################################
     #@@ compute nodal heat flux 
     # ordering 0-1-2-3 is BL-BR-TR-TL
-    ###########################################################################
+    ###############################################################################################
     start=clock.time()
 
     if solve_T: 
@@ -1173,7 +1189,8 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    exx_nodal,eyy_nodal,exy_nodal,e_nodal=compute_nodal_strain_rate(icon_V,u,v,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n)
+    exx_nodal,eyy_nodal,exy_nodal,e_nodal=\
+    compute_nodal_strain_rate(icon_V,u,v,nn_V,m_V,nel,dNdr_V_n,dNds_V_n,jcbi00n,jcbi01n,jcbi10n,jcbi11n)
 
     print("     -> exx_nodal (m,M) %.3e %.3e " %(np.min(exx_nodal),np.max(exx_nodal)))
     print("     -> eyy_nodal (m,M) %.3e %.3e " %(np.min(eyy_nodal),np.max(eyy_nodal)))
@@ -1184,7 +1201,8 @@ for istep in range(0,nstep):
 
     if geometry=='quarter':    
 
-       err_nodal,ett_nodal,ert_nodal,e_polar=convert_nodal_strain_rate_to_polar_coords(theta_V,exx_nodal,eyy_nodal,exy_nodal)
+       err_nodal,ett_nodal,ert_nodal,e_polar=convert_tensor_to_polar_coords(theta_V,exx_nodal,eyy_nodal,exy_nodal)
+
        print("     -> err_nodal (m,M) %.3e %.3e " %(np.min(err_nodal),np.max(err_nodal)))
        print("     -> ett_nodal (m,M) %.3e %.3e " %(np.min(ett_nodal),np.max(ett_nodal)))
        print("     -> ert_nodal (m,M) %.3e %.3e " %(np.min(ert_nodal),np.max(ert_nodal)))
@@ -1203,25 +1221,41 @@ for istep in range(0,nstep):
 
     print("compute nodal sr: %.3f s" % (clock.time()-start)) ; timings[11]+=clock.time()-start
 
-    #print(err_nodal[top_nodes])
-
     ###########################################################################
     #@@ compute stress tensor components
-    ###########################################################################
     ## dev strain rate ?!
+    ###########################################################################
+    start=clock.time()
 
     tauxx_nodal=2*eta_nodal*exx_nodal
     tauyy_nodal=2*eta_nodal*eyy_nodal
     tauxy_nodal=2*eta_nodal*exy_nodal
 
+    if geometry=='quarter':
+       taurr_nodal,tautt_nodal,taurt_nodal,tau_polar=\
+       convert_tensor_to_polar_coords(theta_V,tauxx_nodal,tauyy_nodal,tauxy_nodal)
+
     sigmaxx_nodal=-q+tauxx_nodal
     sigmayy_nodal=-q+tauyy_nodal
     sigmaxy_nodal=   tauxy_nodal
 
-    np.savetxt('OUTPUT/top_tauyy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],tauyy_nodal[top_nodes]]).T)
-    np.savetxt('OUTPUT/bot_tauyy_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],tauyy_nodal[bot_nodes]]).T)
-    np.savetxt('OUTPUT/top_sigmayy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],sigmayy_nodal[top_nodes]]).T)
-    np.savetxt('OUTPUT/bot_sigmayy_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],sigmayy_nodal[bot_nodes]]).T)
+    if geometry=='quarter':
+       sigmarr_nodal,sigmatt_nodal,sigmart_nodal,sigma_polar=\
+       convert_tensor_to_polar_coords(theta_V,sigmaxx_nodal,sigmayy_nodal,sigmaxy_nodal)
+
+    if geometry=='box':
+       np.savetxt('OUTPUT/top_tauyy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],tauyy_nodal[top_nodes]]).T)
+       np.savetxt('OUTPUT/bot_tauyy_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],tauyy_nodal[bot_nodes]]).T)
+       np.savetxt('OUTPUT/top_sigmayy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],sigmayy_nodal[top_nodes]]).T)
+       np.savetxt('OUTPUT/bot_sigmayy_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],sigmayy_nodal[bot_nodes]]).T)
+
+    if geometry=='geometry':
+       np.savetxt('OUTPUT/top_taurr_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],taurr_nodal[top_nodes]]).T)
+       np.savetxt('OUTPUT/bot_taurr_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],taurr_nodal[bot_nodes]]).T)
+       np.savetxt('OUTPUT/top_sigmarr_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],sigmarr_nodal[top_nodes]]).T)
+       np.savetxt('OUTPUT/bot_sigmarr_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],sigmarr_nodal[bot_nodes]]).T)
+
+    print("compute nodal stress: %.3f s" % (clock.time()-start)) ; timings[27]+=clock.time()-start
 
     ###########################################################################
     #@@ compute dynamic topography at bottom and surface topo 
@@ -1251,7 +1285,8 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    dpdx_nodal,dpdy_nodal=compute_nodal_pressure_gradient(icon_V,q,nn_V,m_V,nel,dNdx_V_n,dNdy_V_n)
+    dpdx_nodal,dpdy_nodal=\
+    compute_nodal_pressure_gradient(icon_V,q,nn_V,m_V,nel,dNdr_V_n,dNds_V_n,jcbi00n,jcbi01n,jcbi10n,jcbi11n)
 
     print("     -> dpdx_nodal (m,M) %.3e %.3e " %(np.min(dpdx_nodal),np.max(dpdx_nodal)))
     print("     -> dpdy_nodal (m,M) %.3e %.3e " %(np.min(dpdy_nodal),np.max(dpdy_nodal)))
@@ -1502,9 +1537,10 @@ for istep in range(0,nstep):
        print("comp. glob quantities: %8.3f s  (%.3f s per call) | %5.2f percent" % (timings[6],timings[6]/(istep+1),timings[6]/duration*100))
        print("comp. nodal p: %8.3f s          (%.3f s per call) | %5.2f percent" % (timings[3],timings[3]/(istep+1),timings[3]/duration*100))
        print("comp. nodal sr: %8.3f s         (%.3f s per call) | %5.2f percent" % (timings[11],timings[11]/(istep+1),timings[11]/duration*100))
+       print("comp. nodal stress: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[27],timings[27]/(istep+1),timings[27]/duration*100))
        print("comp. nodal heat flux: %8.3f s  (%.3f s per call) | %5.2f percent" % (timings[7],timings[7]/(istep+1),timings[7]/duration*100))
-       print("comp. T profile: %8.3f s        (%.3f s per call) | %5.2f percent" % (timings[9],timings[9]/(istep+1),timings[9]/duration*100)) 
        print("comp. nodal press grad: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[8],timings[8]/(istep+1),timings[8]/duration*100))
+       print("comp. T profile: %8.3f s        (%.3f s per call) | %5.2f percent" % (timings[9],timings[9]/(istep+1),timings[9]/duration*100)) 
        print("normalise pressure: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[12],timings[12]/(istep+1),timings[12]/duration*100))
        print("advect particles: %8.3f s       (%.3f s per call) | %5.2f percent" % (timings[13],timings[13]/(istep+1),timings[13]/duration*100))
        print("split solution: %8.3f s         (%.3f s per call) | %5.2f percent" % (timings[14],timings[14]/(istep+1),timings[14]/duration*100))
@@ -1572,11 +1608,17 @@ vstats_file.close()
 pstats_file.close()
 vrms_file.close()
 dt_file.close()
-Nu_file.close()
 TM_file.close()
 EK_file.close()
 TVD_file.close()
-corner_q_file.close()
+if solve_T:
+   Nu_file.close()
+   corner_q_file.close()
+   Tstats_file.close()
+   avrg_T_bot_file.close()
+   avrg_T_top_file.close()
+   avrg_dTdy_bot_file.close()
+   avrg_dTdy_top_file.close()
 
 ###############################################################################
 

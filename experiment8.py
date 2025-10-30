@@ -8,8 +8,8 @@ from scipy import interpolate
 Lx=1
 Ly=1
 
-nelx=100
-nely=50
+nelx=128
+nely=64
 
 R_blob=200e3
 x_blob=3500e3
@@ -86,8 +86,15 @@ def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
+    #for ip in range(nparticle):
+    #    if (swarm_x[ip]-x_blob)**2+(swarm_y[ip]-y_blob)**2<R_blob**2:
+    #       swarm_mat[ip]=2
+    #    else:
+    #       swarm_mat[ip]=1
+
     for ip in range(nparticle):
-        if (swarm_x[ip]-x_blob)**2+(swarm_y[ip]-y_blob)**2<R_blob**2:
+        if abs(swarm_theta[ip]-np.pi/4)<np.pi/32 and \
+           abs(swarm_rad[ip]-(Rinner+Router)/2)<(Router-Rinner)/16:
            swarm_mat[ip]=2
         else:
            swarm_mat[ip]=1
@@ -104,7 +111,6 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swa
     swarm_hcapa=0
     swarm_hprod=0
 
-
     mask=(swarm_mat==1) ; swarm_eta[mask]=eta_mantle ; swarm_rho[mask]=rho_mantle
     mask=(swarm_mat==2) ; swarm_eta[mask]=eta_blob ; swarm_rho[mask]=rho_blob
 
@@ -112,11 +118,10 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swa
 
 ###############################################################################
 
-
 def gravity_model(x,y):
     g0=10
-    gx=-x/np.sqrt(x*x+y*y)*g0
-    gy=-y/np.sqrt(x*x+y*y)*g0
+    gx=-x/np.sqrt(x**2+y**2)*g0
+    gy=-y/np.sqrt(x**2+y**2)*g0
     return gx,gy
 
 ###############################################################################
