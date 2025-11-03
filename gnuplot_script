@@ -12,6 +12,7 @@ plot[][]\
 'timings.ascii' u 1:3  w lp lt 1 pt 7 t 'solve system V',\
 'timings.ascii' u 1:5  w lp lt 5 pt 6 t 'build matrix T',\
 'timings.ascii' u 1:6  w lp lt 5 pt 7 t 'solve system T',\
+'timings.ascii' u 1:27 w lp lt 6 pt 6 t 'comp. plith',\
 'timings.ascii' u 1:11 w lp lt 2 pt 5 t 'export solution to vtu',\
 'timings.ascii' u 1:21 w lp lt 2 pt 7 t 'export swarm to vtu',\
 'timings.ascii' u 1:23 w lp lt 2 pt 9 t 'export quad pts to vtu',\

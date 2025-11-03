@@ -1,7 +1,5 @@
 import numpy as np
-
-cm=0.01
-year=365.25*3600*24
+from constants import *
 
 
 Rinner=3480e3
@@ -42,17 +40,26 @@ hcond0=5
 hcapa0=1250
 eta0=2e22
 
+cohesion=4e6
+phi=20*np.pi/180
+cosphi=np.cos(phi)
+sinphi=np.sin(phi)
+eta_min=1e20
+eta_max=6e24
+
+top_free_slip=True
+bot_free_slip=True
+
 print('kappa=',hcond0/hcapa0/rho0 )
 print('Ra=', (Tbottom-Ttop)*rho0*9.81*alphaT*Ly**3 / eta0 / (hcond0/hcapa0/rho0))
 
-nely=50
+nely=40
 
 if geometry=='box': nelx=nely
 if geometry=='quarter': nelx=int(np.pi/4*nely*(Rinner+Router)/(Router-Rinner))
 
-
 nstep=1000
-CFLnb=0.5         
+CFLnb=0.2         
 
 
 ###############################################################################
@@ -73,7 +80,8 @@ def initial_temperature(x,y,rad,theta,nn_V):
 ###############################################################################
 # free slip on all sides
 
-def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V):
+def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
+                                 hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
 
     eps=1e-8
 
@@ -93,15 +101,29 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V):
 
     if geometry=='quarter': # free slip not available on top/bottom
        for i in range(0,nn_V):
-           if abs(rad_V[i]-Rinner)/Rinner<eps:
+           #if abs(rad_V[i]-Rinner)/Rinner<eps:
+           #   bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           #   bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           #if abs(rad_V[i]-Router)/Router<eps:
+           #   bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           #   bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if x_V[i]/Rinner<eps:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           if y_V[i]/Rinner<eps:
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+
+           #no slip on all 4 corners
+           if bot_nodes[i] and left_nodes[i]:
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-           if abs(rad_V[i]-Router)/Router<eps:
+           if bot_nodes[i] and right_nodes[i]:
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-           if x_V[i]<eps:
+           if top_nodes[i] and left_nodes[i]:
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-           if y_V[i]/Ly<eps:
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if top_nodes[i] and right_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
     return bc_fix_V,bc_val_V
@@ -143,7 +165,14 @@ def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
 
 ###################################################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T):
+def eta_diffusion_creep(p,T):
+    A=1e-18
+    Q=150e3
+    V=1.234e-6
+    eta_df=0.5/A*np.exp((Q+p*V)/(Rgas*T))
+    return eta_df
+
+def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -152,9 +181,20 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swa
     swarm_hprod=np.zeros(nparticle,dtype=np.float64)
 
     swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-T0))
-    swarm_eta[:]=eta0
     swarm_hcond[:]=hcond0
     swarm_hcapa[:]=hcapa0
+
+    for ip in range(0,nparticle):
+        eta_df=eta_diffusion_creep(swarm_p[ip],swarm_T[ip])
+        eta_ds=1e50
+        eta_v=(1./eta_df+1./eta_ds)**-1
+        e=np.sqrt(0.5*(swarm_exx[ip]**2+swarm_eyy[ip]**2)+swarm_exy[ip]**2)+1e-20
+        eta_pl=0.5*(swarm_p[ip]*sinphi+cohesion*cosphi)/e
+        eta_eff=min(eta_v,eta_pl)
+        eta_eff=max(eta_eff,eta_min)
+        eta_eff=min(eta_eff,eta_max)
+        swarm_eta[ip]=eta_eff
+        swarm_eta[ip]=1e22
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 

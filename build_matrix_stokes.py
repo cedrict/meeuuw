@@ -2,12 +2,17 @@ import numpy as np
 import numba
 
 ###############################################################################
+# local numbering of nodes
+# 3--6--2
+# 7  8  5
+# 0--4--1
+###############################################################################
 
 @numba.njit
 def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon_V,icon_P,\
                         rhoq,etaq,JxWq,local_to_globalV,gxq,gyq,Ly,N_V,N_P,dNdr_V,dNds_V,\
-                        jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
-                        eta_ref,L_ref,bc_fix_V,bc_val_V):
+                        jcbi00q,jcbi01q,jcbi10q,jcbi11q,eta_ref,L_ref,bc_fix_V,bc_val_V,\
+                        bot_element,top_element,bot_free_slip,top_free_slip,geometry,theta_V):
 
     C=np.array([[2,0,0],[0,2,0],[0,0,1]],dtype=np.float64) 
 
@@ -15,9 +20,9 @@ def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon
 
     VV_V=np.zeros(bignb,dtype=np.float64)    
 
-    B=np.zeros((3,ndof_V*m_V),dtype=np.float64) # gradient matrix B 
-    N_mat=np.zeros((3,m_P),dtype=np.float64) # matrix  
-    rhs=np.zeros(Nfem,dtype=np.float64)     # right hand side of Ax=b
+    B=np.zeros((3,ndof_V*m_V),dtype=np.float64)
+    N_mat=np.zeros((3,m_P),dtype=np.float64) 
+    rhs=np.zeros(Nfem,dtype=np.float64) 
 
     counter=0
     for iel in range(0,nel):
@@ -31,8 +36,6 @@ def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon
 
             dNdx=jcbi00q[iel,iq]*dNdr_V[iq,:]+jcbi01q[iel,iq]*dNds_V[iq,:]
             dNdy=jcbi10q[iel,iq]*dNdr_V[iq,:]+jcbi11q[iel,iq]*dNds_V[iq,:]
-
-            #print(jcbi00q[iel,iq],jcbi01q[iel,iq],jcbi10q[iel,iq],jcbi11q[iel,iq])
 
             for i in range(0,m_V):
                 B[0,2*i  ]=dNdx[i]
@@ -54,6 +57,45 @@ def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon
         # end for iq
 
         G_el*=eta_ref/L_ref
+
+        if geometry=='quarter':
+           if top_element[iel] and top_free_slip: # free slip on top boundary
+              for i in [2,3,6]:
+                  inode=icon_V[i,iel] 
+                  if (not bc_fix_V[2*inode]) and (not bc_fix_V[2*inode+1]): # no bc applied on node
+                     RR=np.eye(ndof_V_el,dtype=np.float64)
+                     idofn=2*i
+                     idoft=2*i+1
+                     RR[idofn,idofn]= np.cos(theta_V[inode]) ; RR[idofn,idoft]=np.sin(theta_V[inode])
+                     RR[idoft,idofn]=-np.sin(theta_V[inode]) ; RR[idoft,idoft]=np.cos(theta_V[inode])
+                     K_el=RR.dot(K_el.dot(RR.T))
+                     G_el=RR.dot(G_el)
+                     f_el=RR.dot(f_el)
+                     K_ref=K_el[idofn,idofn]
+                     K_el[idofn,:]=0
+                     K_el[:,idofn]=0
+                     K_el[idofn,idofn]=K_ref
+                     G_el[idofn,:]=0
+                     f_el[idofn]=0
+
+           if bot_element[iel] and bot_free_slip: # free slip on bottom boundary
+              for i in [0,1,4]:
+                  inode=icon_V[i,iel] 
+                  if (not bc_fix_V[2*inode]) and (not bc_fix_V[2*inode+1]): # no bc applied on node
+                     RR=np.eye(ndof_V_el,dtype=np.float64)
+                     idofn=2*i
+                     idoft=2*i+1
+                     RR[idofn,idofn]= np.cos(theta_V[inode]) ; RR[idofn,idoft]=np.sin(theta_V[inode])
+                     RR[idoft,idofn]=-np.sin(theta_V[inode]) ; RR[idoft,idoft]=np.cos(theta_V[inode])
+                     K_el=RR.dot(K_el.dot(RR.T))
+                     G_el=RR.dot(G_el)
+                     f_el=RR.dot(f_el)
+                     K_ref=K_el[idofn,idofn]
+                     K_el[idofn,:]=0
+                     K_el[:,idofn]=0
+                     K_el[idofn,idofn]=K_ref
+                     G_el[idofn,:]=0
+                     f_el[idofn]=0
 
         # impose b.c. 
         for ikk in range(0,ndof_V_el):

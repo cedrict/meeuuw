@@ -10,8 +10,10 @@ from PoissonDisc import *
 from compute_vrms import *
 from pic_functions import *
 from basis_functions import *
+from build_matrix_plith import *
 from build_matrix_stokes import *
 from build_matrix_energy import *
+from compute_normals import *
 from compute_nodal_strain_rate import *
 from compute_nodal_heat_flux import *
 from compute_nodal_pressure import *
@@ -98,11 +100,11 @@ if geometry=='quarter':
 nparticle_per_element=nparticle_per_dim**2
 nparticle=nel*nparticle_per_element
 
-timings=np.zeros(27+1)
-timings_mem=np.zeros(27+1)
+timings=np.zeros(28+1)
+timings_mem=np.zeros(28+1)
 
-L_ref=(Lx+Ly)/2
-
+if geometry=='box': L_ref=(Lx+Ly)/2
+if geometry=='quarter': L_ref=(Rinner+Router)/2
 
 ###############################################################################
 #@@ quadrature rule points and weights
@@ -203,6 +205,7 @@ left_nodes=np.zeros(nn_V,dtype=bool)
 right_nodes=np.zeros(nn_V,dtype=bool)
 middleH_nodes=np.zeros(nn_V,dtype=bool)
 middleV_nodes=np.zeros(nn_V,dtype=bool)
+hull_nodes=np.zeros(nn_V,dtype=bool)
 
 nnx=2*nelx+1 
 nny=2*nely+1 
@@ -216,6 +219,8 @@ for j in range(0,2*nely+1):
         if (i==2*nelx): right_nodes[counter]=True
         if (j==0): bot_nodes[counter]=True
         if (j==2*nely): top_nodes[counter]=True
+        if top_nodes[counter] or bot_nodes[counter] or\
+           right_nodes[counter] or left_nodes[counter]: hull_nodes[counter]=True
         if abs(x_V[counter]/Lx-0.5)<eps: middleV_nodes[counter]=True
         if abs(y_V[counter]/Ly-0.5)<eps: middleH_nodes[counter]=True
         if i==0 and j==0: cornerBL=counter
@@ -320,6 +325,7 @@ for j in range(0,nely):
 
 print("build icon_P: %.3f s" % (clock.time()-start))
 
+
 ###############################################################################
 #@@ define velocity boundary conditions
 # bc_fix_V is a vector of booleans of size Nfem_V
@@ -327,7 +333,9 @@ print("build icon_P: %.3f s" % (clock.time()-start))
 ###############################################################################
 start=clock.time()
 
-bc_fix_V,bc_val_V=assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V)
+bc_fix_V,bc_val_V=\
+assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,
+hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes)
 
 print("velocity b.c.: %.3f s" % (clock.time()-start))
 
@@ -509,6 +517,18 @@ for i in range(0,nn_V):
 gr_nodal=gx_nodal*np.cos(theta_V)+gy_nodal*np.sin(theta_V)
 
 print("compute grav at qpts: %.3f s" % (clock.time()-start))
+
+###############################################################################
+#@@ compute normal vector of domain
+###############################################################################
+start=clock.time()
+
+nx,ny=compute_normals(geometry,nel,nn_V,nqel,m_V,icon_V,dNdr_V,dNds_V,\
+                      JxWq,hull_nodes,jcbi00q,jcbi01q,jcbi10q,jcbi11q)
+
+if debug_ascii: np.savetxt('DEBUG/normal_vector.ascii',np.array([x_V[hull_nodes],y_V[hull_nodes],nx[hull_nodes],ny[hull_nodes]]).T)
+
+print("compute normal vector: %.3f s" % (clock.time()-start))
 
 ###############################################################################
 #@@ compute array for assembly
@@ -757,6 +777,7 @@ dpdy_nodal=np.zeros(nn_V,dtype=np.float64)
 u_mem=np.zeros(nn_V,dtype=np.float64)  
 v_mem=np.zeros(nn_V,dtype=np.float64)  
 p_mem=np.zeros(nn_P,dtype=np.float64)  
+q=np.zeros(nn_V,dtype=np.float64)  
 
 topstart=clock.time()
 
@@ -774,7 +795,9 @@ for istep in range(0,nstep):
     swarm_eyy=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,eyy_nodal,icon_V)
     swarm_exy=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,exy_nodal,icon_V)
 
-    print("interp strain rate on particles: %.3fs" % (clock.time()-start)) ; timings[24]+=clock.time()-start
+    swarm_p=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,q,icon_V)
+
+    print("interp strain rate & q on particles: %.3fs" % (clock.time()-start)) ; timings[24]+=clock.time()-start
 
     ###########################################################################
     #@@ interpolate temperature on particles
@@ -796,7 +819,7 @@ for istep in range(0,nstep):
     start=clock.time()
 
     swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod=\
-    material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T) 
+    material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_p) 
 
     print("     -> swarm_rho (m,M) %.5e %.5e " %(np.min(swarm_rho),np.max(swarm_rho)))
     print("     -> swarm_eta (m,M) %.5e %.5e " %(np.min(swarm_eta),np.max(swarm_eta)))
@@ -912,6 +935,20 @@ for istep in range(0,nstep):
     print("project nodal fields onto qpts: %.3fs" % (clock.time()-start)) ; timings[21]+=clock.time()-start
 
     ###########################################################################
+    # compute lithostatic pressure a la Jourdon & May, Solid Earth, 2022
+    ###########################################################################
+    start=clock.time()
+
+    VV_T,rhs=build_matrix_plith(bignb_T,nel,nqel,m_T,Nfem_T,icon_V,rhoq,gxq,gyq,\
+                                JxWq,N_V,dNdr_V,dNds_V,jcbi00q,jcbi01q,jcbi10q,jcbi11q,top_nodes)
+    sparse_matrix=sparse.coo_matrix((VV_T,(II_T,JJ_T)),shape=(Nfem_T,Nfem_T)).tocsr()
+    plith=sps.linalg.spsolve(sparse_matrix,rhs)
+
+    print("     -> plith (m,M) %.3e %.3e " %(np.min(plith),np.max(plith)))
+
+    print("compute lithostatic pressure: %.3fs" % (clock.time()-start)) ; timings[28]+=clock.time()-start
+
+    ###########################################################################
     #@ build FE matrix
     # [ K G ][u]=[f]
     # [GT 0 ][p] [h]
@@ -922,12 +959,13 @@ for istep in range(0,nstep):
                                  ndof_V_el,icon_V,icon_P,rhoq,etaq,JxWq,\
                                  local_to_globalV,gxq,gyq,Ly,N_V,N_P,dNdr_V,dNds_V,\
                                  jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
-                                 eta_ref,L_ref,bc_fix_V,bc_val_V)
+                                 eta_ref,L_ref,bc_fix_V,bc_val_V,\
+                                 bot_element,top_element,bot_free_slip,top_free_slip,\
+                                 geometry,theta_V)
 
     if debug_nan and np.isnan(np.sum(VV_V)): exit('nan found in VV_V')
 
-    print("build FE matrix: %.3fs" % (clock.time()-start)) ; timings[1]+=clock.time()-start
-
+    print("build FE matrix stokes: %.3fs" % (clock.time()-start)) ; timings[1]+=clock.time()-start
 
     ###############################################################################################
     #@ solve stokes system
@@ -951,6 +989,22 @@ for istep in range(0,nstep):
     if debug_nan and np.isnan(np.sum(u)): exit('nan found in u')
     if debug_nan and np.isnan(np.sum(v)): exit('nan found in v')
     if debug_nan and np.isnan(np.sum(p)): exit('nan found in p')
+
+    if geometry=='quarter' and top_free_slip:
+       for i in range(0,nn_V):
+           if top_nodes[i] and (not bc_fix_V[2*i]) and (not bc_fix_V[2*i+1]):
+              ui=np.cos(theta_V[i])*u[i]-np.sin(theta_V[i])*v[i]
+              vi=np.sin(theta_V[i])*u[i]+np.cos(theta_V[i])*v[i] 
+              u[i]=ui
+              v[i]=vi
+                 
+    if geometry=='quarter' and bot_free_slip:
+       for i in range(0,nn_V):
+           if bot_nodes[i] and (not bc_fix_V[2*i]) and (not bc_fix_V[2*i+1]):
+              ui=np.cos(theta_V[i])*u[i]-np.sin(theta_V[i])*v[i]
+              vi=np.sin(theta_V[i])*u[i]+np.cos(theta_V[i])*v[i] 
+              u[i]=ui
+              v[i]=vi
 
     print("     -> u (m,M) %.3e %.3e %s" %(np.min(u)/vel_scale,np.max(u)/vel_scale,vel_unit))
     print("     -> v (m,M) %.3e %.3e %s" %(np.min(v)/vel_scale,np.max(v)/vel_scale,vel_unit))
@@ -1430,7 +1484,7 @@ for istep in range(0,nstep):
                               sigmaxx_nodal,sigmayy_nodal,sigmaxy_nodal,rad_V,theta_V,\
                               eta_elemental,nparticle_elemental,area,icon_V,\
                               bc_fix_V,bc_fix_T,geometry,gx_nodal,gy_nodal,\
-                              err_nodal,ett_nodal,ert_nodal,vr,vt)
+                              err_nodal,ett_nodal,ert_nodal,vr,vt,plith,nx,ny)
 
        print("export solution to vtu file: %.3f s" % (clock.time()-start)) ; timings[10]+=clock.time()-start
 
@@ -1579,6 +1633,7 @@ for istep in range(0,nstep):
        print("solve system V: %8.3f s         (%.3f s per call) | %5.2f percent" % (timings[2],timings[2]/(istep+1),timings[2]/duration*100))
        print("build matrix T: %8.3f s         (%.3f s per call) | %5.2f percent" % (timings[4],timings[4]/(istep+1),timings[4]/duration*100))
        print("solve system T: %8.3f s         (%.3f s per call) | %5.2f percent" % (timings[5],timings[5]/(istep+1),timings[5]/duration*100))
+       print("compute plith: %8.3f s          (%.3f s per call) | %5.2f percent" % (timings[28],timings[28]/(istep+1),timings[28]/duration*100))
        print("comp. glob quantities: %8.3f s  (%.3f s per call) | %5.2f percent" % (timings[6],timings[6]/(istep+1),timings[6]/duration*100))
        print("comp. nodal p: %8.3f s          (%.3f s per call) | %5.2f percent" % (timings[3],timings[3]/(istep+1),timings[3]/duration*100))
        print("comp. nodal sr: %8.3f s         (%.3f s per call) | %5.2f percent" % (timings[11],timings[11]/(istep+1),timings[11]/duration*100))
@@ -1600,7 +1655,7 @@ for istep in range(0,nstep):
        print("export qpts to vtu: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[22],timings[22]/(istep+1),timings[22]/duration*100))
        print("project fields on qpts: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[21],timings[21]/(istep+1),timings[21]/duration*100))
        print("compute gravity: %8.3f s        (%.3f s per call) | %5.2f percent" % (timings[23],timings[23]/(istep+1),timings[23]/duration*100))
-       print("interp sr on ptcls: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[24],timings[24]/(istep+1),timings[24]/duration*100))
+       print("interp sr & p on ptcls: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[24],timings[24]/(istep+1),timings[24]/duration*100))
        print("interp T on ptcls: %8.3f s      (%.3f s per call) | %5.2f percent" % (timings[25],timings[25]/(istep+1),timings[25]/duration*100))
        print("----------------------------------------------------------------------")
        print("compute time per timestep: %.2f" %(duration/(istep+1)))

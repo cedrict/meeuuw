@@ -6,7 +6,7 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
                            eta_nodal,rho_nodal,exx_nodal,eyy_nodal,exy_nodal,e_nodal,qx_nodal,qy_nodal,
                            rho_elemental,sigmaxx_nodal,sigmayy_nodal,sigmaxy_nodal,rad_V,theta_V,
                            eta_elemental,nparticle_elemental,area,icon_V,bc_fix_V,bc_fix_T,geometry,
-                           gx_nodal,gy_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt):
+                           gx_nodal,gy_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt,plith,nx,ny):
 
        debug_sol=False
 
@@ -30,6 +30,11 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
            vtufile.write("%.3e %.3e %.1e \n" %(u[i]/vel_scale,v[i]/vel_scale,0.))
        vtufile.write("</DataArray>\n")
        #--
+       vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Normal vector' Format='ascii'> \n")
+       for i in range(0,nn_V):
+           vtufile.write("%.3e %.3e %.1e \n" %(nx[i],ny[i],0.))
+       vtufile.write("</DataArray>\n")
+       #--
        if geometry=='quarter': 
           vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Velocity (Polar)' Format='ascii'> \n")
           for i in range(0,nn_V):
@@ -39,6 +44,16 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
        vtufile.write("<DataArray type='Float32' Name='Pressure' Format='ascii'> \n")
        q.tofile(vtufile,sep=' ',format='%.4e')
        vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("<DataArray type='Float32' Name='Pressure (lith)' Format='ascii'> \n")
+       plith.tofile(vtufile,sep=' ',format='%.4e')
+       vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("<DataArray type='Float32' Name='Pressure (dyn)' Format='ascii'> \n")
+       (q-plith).tofile(vtufile,sep=' ',format='%.4e')
+       vtufile.write("</DataArray>\n")
+
+
        #--
        if solve_T:
           vtufile.write("<DataArray type='Float32' Name='Temperature' Format='ascii'> \n")

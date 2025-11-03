@@ -36,9 +36,8 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - look at stsh04 (similar to trha98b)
 - paint stripes adapt to aspect ratio
 - what stress to use for DT?
-- free slip bc for annulus 
 - higher order mapping?
-- record strain on particles
+- heat production term
 
 ## Nomenclature
 
