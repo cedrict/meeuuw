@@ -7,7 +7,7 @@ def export_swarm_to_vtu(istep,geometry,nparticle,solve_T,vel_scale,swarm_x,swarm
                         swarm_paint,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_iel,\
                         swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain):
 
-       debug_swarm=False
+       debug_swarm=True
 
        filename='OUTPUT/swarm_{:04d}.vtu'.format(istep)
        vtufile=open(filename,"w")

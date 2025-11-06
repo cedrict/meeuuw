@@ -25,7 +25,6 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 
 ## to do:
 - more accurate heat flux calculations (CBF?)
-- more accurate whole domain velocity gradient method
 - SUPG and/or Lenardic & Kaula filter
 - nonlinear iterations
 - implement EBA, ALA, TALA, ICA? 

@@ -335,6 +335,90 @@ def advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_y,
 
 ###############################################################################
 
+@numba.njit
+def advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_y,
+                            swarm_rad,swarm_theta,swarm_active,u,v,
+                            Rinner,Router,hrad,htheta,nelx,icon,rad_V,theta_V):
+    """
+    Args:
+       RKorder: Runge-Kutta algorithm order (1,2,4)
+       dt: time step value
+       nparticle: number of particles
+       swarm_x,swarm_y: cartesian coordinates of particles
+       swarm_rad,swarm_theta: polar coordinates of particles
+       swarm_active: boolean array (True if particle still in domain)
+       u,v: velocity arrays on FE mesh
+       Rinner,Router: inner and outer radius of annulus
+       hrad,htheta: element size if polar coordinates
+       nelx: nb of elements in x direction
+       icon: connectivity array of V nodes
+       rad_V,theta_V: polar coordinates of V nodes
+    Returns:
+       swarm_x,swarm_y: cartesian coordinates of particles
+       swarm_rad,swarm_theta: polar coordinates of particles
+       swarm_u,swarm_v: velocity of particles
+       swarm_active: boolean array (True if particle still in domain)
+    """
+
+    swarm_u=np.zeros(nparticle,dtype=np.float64)
+    swarm_v=np.zeros(nparticle,dtype=np.float64)
+
+    if RKorder==1:
+
+       for ip in range(0,nparticle):
+           if swarm_active[ip]:
+              swarm_u[ip],swarm_v[ip],iel=\
+              interpolate_vel_on_pt___quarter(swarm_x[ip],swarm_y[ip],u,v,\
+                                              hrad,htheta,nelx,icon,rad_V,theta_V,Rinner)
+              swarm_x[ip]+=swarm_u[ip]*dt
+              swarm_y[ip]+=swarm_v[ip]*dt
+              swarm_rad[ip]=np.sqrt(swarm_x[ip]**2+swarm_y[ip]**2)
+              swarm_theta[ip]=np.pi/2-np.arctan2(swarm_x[ip],swarm_y[ip])
+              if swarm_x[ip]<0 or swarm_rad[ip]<Rinner or swarm_rad[ip]>Router:
+                 swarm_active[ip]=False
+           # end if active
+       # end for ip
+
+    elif RKorder==2:
+
+       for ip in range(0,nparticle):
+           if swarm_active[ip]:
+              xA=swarm_x[ip]
+              yA=swarm_y[ip]
+              uA,vA,iel=\
+              interpolate_vel_on_pt___quarter(xA,yA,u,v,\
+                                              hrad,htheta,nelx,icon,rad_V,theta_V,Rinner)
+
+              xB=xA+uA*dt/2.
+              yB=yA+vA*dt/2.
+              rB=np.sqrt(xA**2+yA**2)
+              if xB<0 or rB<Rinner or rB>Router:
+                 swarm_active[ip]=False
+              else:
+                 uB,vB,iel=\
+                 interpolate_vel_on_pt___quarter(xB,yB,u,v,\
+                                                 hrad,htheta,nelx,icon,rad_V,theta_V,Rinner)
+                 swarm_x[ip]=xA+uB*dt
+                 swarm_y[ip]=yA+vB*dt
+                 swarm_u[ip]=uB
+                 swarm_v[ip]=vB
+                 swarm_rad[ip]=np.sqrt(swarm_x[ip]**2+swarm_y[ip]**2)
+                 swarm_theta[ip]=np.pi/2-np.arctan2(swarm_x[ip],swarm_y[ip])
+                 if swarm_x[ip]<0 or swarm_rad[ip]<Rinner or swarm_rad[ip]>Router:
+                    swarm_active[ip]=False
+              # end if active
+           # end if active
+       # end for ip
+
+    for ip in range(0,nparticle):
+        if not swarm_active[ip]:
+           swarm_x[ip]=0
+           swarm_y[ip]=0
+
+    return swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_u,swarm_v,swarm_active
+
+###############################################################################
+
 # iel inside or out ?
 
 @numba.njit

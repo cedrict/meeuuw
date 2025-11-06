@@ -50,7 +50,8 @@ if case=='b':
 
 ###############################################################################
 
-def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V):
+def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
+                                 hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
 
     eps=1e-8
 

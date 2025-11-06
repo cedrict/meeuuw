@@ -25,6 +25,7 @@ from compute_gravity_fromDT_at_point import *
 from project_nodal_field_onto_qpoints import *
 from compute_nodal_pressure_gradient import *
 from convert_nodal_strain_rate_to_polar_coords import *
+from compute_elemental_strain_rate import * 
 from postprocessors import *
 
 print("-----------------------------")
@@ -43,7 +44,7 @@ print("-----------------------------")
 # experiment 8: quarter - sinker
 ###############################################################################
 
-experiment=4
+experiment=9
 
 if int(len(sys.argv)==5):
    experiment = int(sys.argv[1])
@@ -58,6 +59,7 @@ match(experiment):
      case 6 : from experiment6 import *
      case 7 : from experiment7 import *
      case 8 : from experiment8 import *
+     case 9 : from experiment9 import *
      case _ : exit('setup - unknown experiment')  
 
 if int(len(sys.argv)==5): # override these parameters
@@ -67,7 +69,7 @@ if int(len(sys.argv)==5): # override these parameters
 
 ###############################################################################
 
-if geometry=='quarter':
+if geometry=='quarter' or 'half':
    Lx=1 ; Ly=1 
 
 ndim=2                     # number of dimensions
@@ -93,9 +95,16 @@ Nfem=Nfem_V+Nfem_P # total nb of dofs
 hx=Lx/nelx # element size in x direction
 hy=Ly/nely # element size in y direction
 
-if geometry=='quarter':
+if geometry=='quarter': 
+   opening_angle=np.pi/2
+   theta_min=0
+if geometry=='half': 
+   opening_angle=np.pi
+   theta_min=-np.pi/2
+
+if geometry=='quarter' or geometry=='half':
    hrad=(Router-Rinner)/nely
-   htheta=np.pi/2/nelx
+   htheta=opening_angle/nelx
 
 nparticle_per_element=nparticle_per_dim**2
 nparticle=nel*nparticle_per_element
@@ -105,6 +114,11 @@ timings_mem=np.zeros(28+1)
 
 if geometry=='box': L_ref=(Lx+Ly)/2
 if geometry=='quarter': L_ref=(Rinner+Router)/2
+if geometry=='half': L_ref=(Rinner+Router)/2
+
+method_nodal_strain_rate=2
+
+axisymmetric=True
 
 ###############################################################################
 #@@ quadrature rule points and weights
@@ -148,9 +162,9 @@ if solve_T:
 
 if nstep==1: CFLnb=0
 
-volume=Lx*Ly
-if geometry=='quarter':
-   volume=np.pi*(Router**2-Rinner**2)/4
+if geometry=='box': volume=Lx*Ly
+if geometry=='quarter': volume=np.pi*(Router**2-Rinner**2)/4
+if geometry=='half': volume=np.pi*(Router**2-Rinner**2)/2
 
 print('experiment=',experiment)
 print('geometry=',geometry)
@@ -182,16 +196,15 @@ print('every_quadpoints_vtu',every_quadpoints_vtu)
 print('rho_DT_top',rho_DT_top)
 print('rho_DT_bot',rho_DT_bot)
 print('gravity_npts=',gravity_npts)  
-if geometry=='quarter':
+if geometry=='quarter' or geometry=='half':
    print('Rinner,Router=',Rinner,Router)
    print('hrad=',hrad)
-
 print('-----------------------------')
 
 ###############################################################################
 #@@ build velocity nodes coordinates 
 # BL: bottom left, BR: bottom right, TL: top left, TR: top right
-# if geometry is 'quarter' we still need to set Lx=Ly=1
+# if geometry is 'quarter' or 'half' we still need to set Lx=Ly=1
 ###############################################################################
 start=clock.time()
 
@@ -231,12 +244,19 @@ for j in range(0,2*nely+1):
     #end for
 #end for
 
-if geometry=='quarter':
+if geometry=='quarter' or geometry=='half':
    for i in range(0,nn_V):
        rad_V[i]=Rinner+y_V[i]*(Router-Rinner)
-       theta_V[i]=np.pi/2-x_V[i]*np.pi/2
+       theta_V[i]=np.pi/2-x_V[i]*opening_angle
        x_V[i]=rad_V[i]*np.cos(theta_V[i])
        y_V[i]=rad_V[i]*np.sin(theta_V[i])
+
+#if geometry=='half':
+#   for i in range(0,nn_V):
+#       rad_V[i]=Rinner+y_V[i]*(Router-Rinner)
+#       theta_V[i]=np.pi/2-x_V[i]*np.pi
+#       x_V[i]=rad_V[i]*np.cos(theta_V[i])
+#       y_V[i]=rad_V[i]*np.sin(theta_V[i])
 
 if debug_ascii: np.savetxt('DEBUG/gridV.ascii',np.array([x_V,y_V]).T,header='# x,y')
 
@@ -294,12 +314,19 @@ for j in range(0,nely+1):
     #end for
  #end for
 
-if geometry=='quarter':
+if geometry=='quarter' or geometry=='half':
    for i in range(0,nn_P):
        rad_P[i]=Rinner+y_P[i]*(Router-Rinner)
-       theta_P[i]=np.pi/2-x_P[i]*np.pi/2
+       theta_P[i]=np.pi/2-x_P[i]*opening_angle
        x_P[i]=rad_P[i]*np.cos(theta_P[i])
        y_P[i]=rad_P[i]*np.sin(theta_P[i])
+
+#if geometry=='half':
+#   for i in range(0,nn_P):
+#       rad_P[i]=Rinner+y_P[i]*(Router-Rinner)
+#       theta_P[i]=np.pi/2-x_P[i]*np.pi
+#       x_P[i]=rad_P[i]*np.cos(theta_P[i])
+#       y_P[i]=rad_P[i]*np.sin(theta_P[i])
 
 if debug_ascii: np.savetxt('DEBUG/gridP.ascii',np.array([x_P,y_P]).T,header='# x,y')
 
@@ -334,8 +361,8 @@ print("build icon_P: %.3f s" % (clock.time()-start))
 start=clock.time()
 
 bc_fix_V,bc_val_V=\
-assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,
-hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes)
+assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
+                             hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes)
 
 print("velocity b.c.: %.3f s" % (clock.time()-start))
 
@@ -394,6 +421,7 @@ dNds_V=np.zeros((nqel,m_V),dtype=np.float64)
 area=np.zeros(nel,dtype=np.float64) 
 xc=np.zeros(nel,dtype=np.float64) 
 yc=np.zeros(nel,dtype=np.float64) 
+theta_c=np.zeros(nel,dtype=np.float64) 
 
 JxWq=np.zeros((nel,nqel),dtype=np.float64) 
 jcbi00q=np.zeros((nel,nqel),dtype=np.float64) 
@@ -431,6 +459,8 @@ for iel in range(0,nel):
     #end for
     xc[iel]=x_V[icon_V[8,iel]]
     yc[iel]=y_V[icon_V[8,iel]]
+    if geometry=='quarter' or geometry=='half':
+       theta_c[iel]=np.pi/2-np.arctan2(xc[iel],yc[iel])
 #end for
 
 print("     -> area (m,M) %.4e %.4e " %(np.min(area),np.max(area)))
@@ -577,28 +607,26 @@ for iel in range(0,nel):
 print("fill II_V,JJ_V arrays: %.3f s" % (clock.time()-start))
 
 ###############################################################################
-#@@ fill II_T,JJ_T arrays for temperature matrix
+#@@ fill II_T,JJ_T arrays for temperature matrix & plith matrix
 ###############################################################################
 start=clock.time()
 
-if solve_T:
+bignb_T=nel*m_T**2 
 
-   bignb_T=nel*m_T**2 
+II_T=np.zeros(bignb_T,dtype=np.int32)    
+JJ_T=np.zeros(bignb_T,dtype=np.int32)    
 
-   II_T=np.zeros(bignb_T,dtype=np.int32)    
-   JJ_T=np.zeros(bignb_T,dtype=np.int32)    
+counter=0
+for iel in range(0,nel):
+    for ikk in range(m_T):
+        m1=icon_V[ikk,iel]
+        for jkk in range(m_T):
+            m2=icon_V[jkk,iel]
+            II_T[counter]=m1
+            JJ_T[counter]=m2
+            counter+=1
 
-   counter=0
-   for iel in range(0,nel):
-       for ikk in range(m_T):
-           m1=icon_V[ikk,iel]
-           for jkk in range(m_T):
-               m2=icon_V[jkk,iel]
-               II_T[counter]=m1
-               JJ_T[counter]=m2
-               counter+=1
-
-   print("fill II_T,JJ_T arrays: %.3f s" % (clock.time()-start))
+print("fill II_T,JJ_T arrays: %.3f s" % (clock.time()-start))
 
 ###############################################################################
 #@@ particle coordinates setup
@@ -694,7 +722,7 @@ print("     -> nparticle %d " % nparticle)
 print("     -> swarm_x (m,M) %.3e %.3e " %(np.min(swarm_x),np.max(swarm_x)))
 print("     -> swarm_y (m,M) %.3e %.3e " %(np.min(swarm_y),np.max(swarm_y)))
 
-if geometry=='quarter':
+if geometry=='quarter' or geometry=='half':
    swarm_rad=np.sqrt(swarm_x**2+swarm_y**2)
    swarm_theta=np.pi/2-np.arctan2(swarm_x,swarm_y)
    print("     -> swarm_rad (m,M) %.3e %.3e " %(np.min(swarm_rad),np.max(swarm_rad)))
@@ -715,31 +743,29 @@ start=clock.time()
 swarm_paint=np.zeros(nparticle,dtype=np.int32)
 
 match(geometry):
-    case 'box' :
+ case 'box' :
+  for i in [0,2,4,6,8,10,12,14]:
+      dx=Lx/16
+      for ip in range (0,nparticle):
+          if swarm_x[ip]>i*dx and swarm_x[ip]<(i+1)*dx:
+             swarm_paint[ip]+=1
+  for i in [0,2,4,6,8,10,12,14]:
+      dy=Ly/16
+      for ip in range (0,nparticle):
+          if swarm_y[ip]>i*dy and swarm_y[ip]<(i+1)*dy:
+             swarm_paint[ip]+=1
 
-        for i in [0,2,4,6,8,10,12,14]:
-            dx=Lx/16
-            for ip in range (0,nparticle):
-                if swarm_x[ip]>i*dx and swarm_x[ip]<(i+1)*dx:
-                   swarm_paint[ip]+=1
-        for i in [0,2,4,6,8,10,12,14]:
-            dy=Ly/16
-            for ip in range (0,nparticle):
-                if swarm_y[ip]>i*dy and swarm_y[ip]<(i+1)*dy:
-                   swarm_paint[ip]+=1
-
-    case 'quarter':
-
-        for i in [0,2,4,6,8,10,12,14]:
-            drad=(Router-Rinner)/16
-            for ip in range (0,nparticle):
-                if swarm_rad[ip]>Rinner+i*drad and swarm_rad[ip]<Rinner+(i+1)*drad:
-                   swarm_paint[ip]+=1
-        for i in [0,2,4,6,8,10,12,14]:
-            dtheta=(np.pi/2)/16
-            for ip in range (0,nparticle):
-                if swarm_theta[ip]>i*dtheta and swarm_theta[ip]<(i+1)*dtheta:
-                   swarm_paint[ip]+=1
+ case 'quarter' | 'half':
+  for i in [0,2,4,6,8,10,12,14]:
+      drad=(Router-Rinner)/16
+      for ip in range (0,nparticle):
+          if swarm_rad[ip]>Rinner+i*drad and swarm_rad[ip]<Rinner+(i+1)*drad:
+             swarm_paint[ip]+=1
+  for i in [0,2,4,6,8,10,12,14]:
+      dtheta=opening_angle/16
+      for ip in range (0,nparticle):
+          if swarm_theta[ip]>theta_min+i*dtheta and swarm_theta[ip]<theta_min+(i+1)*dtheta:
+             swarm_paint[ip]+=1
 
 print("particles paint: %.3f s" % (clock.time()-start))
 
@@ -961,7 +987,7 @@ for istep in range(0,nstep):
                                  jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
                                  eta_ref,L_ref,bc_fix_V,bc_val_V,\
                                  bot_element,top_element,bot_free_slip,top_free_slip,\
-                                 geometry,theta_V)
+                                 geometry,theta_V,axisymmetric,xq)
 
     if debug_nan and np.isnan(np.sum(VV_V)): exit('nan found in VV_V')
 
@@ -990,7 +1016,7 @@ for istep in range(0,nstep):
     if debug_nan and np.isnan(np.sum(v)): exit('nan found in v')
     if debug_nan and np.isnan(np.sum(p)): exit('nan found in p')
 
-    if geometry=='quarter' and top_free_slip:
+    if (geometry=='quarter' or geometry=='half') and top_free_slip:
        for i in range(0,nn_V):
            if top_nodes[i] and (not bc_fix_V[2*i]) and (not bc_fix_V[2*i+1]):
               ui=np.cos(theta_V[i])*u[i]-np.sin(theta_V[i])*v[i]
@@ -998,7 +1024,7 @@ for istep in range(0,nstep):
               u[i]=ui
               v[i]=vi
                  
-    if geometry=='quarter' and bot_free_slip:
+    if (geometry=='quarter' or geometry=='half') and bot_free_slip:
        for i in range(0,nn_V):
            if bot_nodes[i] and (not bc_fix_V[2*i]) and (not bc_fix_V[2*i+1]):
               ui=np.cos(theta_V[i])*u[i]-np.sin(theta_V[i])*v[i]
@@ -1023,7 +1049,7 @@ for istep in range(0,nstep):
     #@@ convert velocity to polar coordinates
     ###############################################################################################
 
-    if geometry=='quarter':
+    if geometry=='quarter' or geometry=='half':
        vr=u*np.cos(theta_V)+v*np.sin(theta_V)
        vt=-u*np.sin(theta_V)+v*np.cos(theta_V)
 
@@ -1040,6 +1066,7 @@ for istep in range(0,nstep):
 
     if geometry=='box': dt1=CFLnb*min(hx,hy)/np.max(np.sqrt(u**2+v**2))
     if geometry=='quarter': dt1=CFLnb*hrad/np.max(np.sqrt(u**2+v**2))
+    if geometry=='half': dt1=CFLnb*hrad/np.max(np.sqrt(u**2+v**2))
 
     print('     -> dt1= %.3e %s' %(dt1/time_scale,time_unit))
     
@@ -1049,6 +1076,7 @@ for istep in range(0,nstep):
        avrg_rho=np.average(swarm_rho)
        if geometry=='box': dt2=CFLnb*min(hx,hy)**2/(avrg_hcond/avrg_hcapa/avrg_rho)
        if geometry=='quarter': dt2=CFLnb*hrad**2/(avrg_hcond/avrg_hcapa/avrg_rho)
+       if geometry=='half': dt2=CFLnb*hrad**2/(avrg_hcond/avrg_hcapa/avrg_rho)
        print('     -> dt2= %.3e %s' %(dt2/time_scale,time_unit))
     else:
        dt2=1e50
@@ -1114,7 +1142,7 @@ for istep in range(0,nstep):
        np.savetxt('OUTPUT/top_q_'+str(istep)+'.ascii',np.array([x_V[top_nodes],q[top_nodes]]).T)
        np.savetxt('OUTPUT/bot_q_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],q[bot_nodes]]).T)
 
-    if geometry=='quarter':
+    if geometry=='quarter' or geometry=='half':
        np.savetxt('OUTPUT/top_q_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],q[top_nodes]]).T)
        np.savetxt('OUTPUT/bot_q_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],q[bot_nodes]]).T)
 
@@ -1259,12 +1287,39 @@ for istep in range(0,nstep):
        print("compute T profile: %.3f s" % (clock.time()-start)) ; timings[9]+=clock.time()-start
 
     ###########################################################################
+    # compute elemental strain rate
+    ###########################################################################
+    start=clock.time()
+
+    exx_el,eyy_el,exy_el,e_el=compute_elemental_strain_rate(icon_V,u,v,nn_V,nel,x_V,y_V)
+
+    err_el,ett_el,ert_el,e_polar=convert_tensor_to_polar_coords(theta_c,exx_el,eyy_el,exy_el)
+
+    print("     -> exx_el (m,M) %.3e %.3e " %(np.min(exx_el),np.max(exx_el)))
+    print("     -> eyy_el (m,M) %.3e %.3e " %(np.min(eyy_el),np.max(eyy_el)))
+    print("     -> exy_el (m,M) %.3e %.3e " %(np.min(exy_el),np.max(exy_el)))
+
+    if debug_ascii: 
+       np.savetxt('DEBUG/strainrate_el.ascii',np.array([xc,yc,exx_el,eyy_el,exy_el,e_el]).T)
+
+    np.savetxt('OUTPUT/top_err_el_'+str(istep)+'.ascii',np.array([theta_c[top_element],err_el[top_element]]).T)
+
+    print("compute elemental sr: %.3f s" % (clock.time()-start)) #; timings[11]+=clock.time()-start
+
+    ###########################################################################
     #@@ compute nodal strainrate
     ###########################################################################
     start=clock.time()
 
-    exx_nodal,eyy_nodal,exy_nodal,e_nodal=\
-    compute_nodal_strain_rate(icon_V,u,v,nn_V,m_V,nel,dNdr_V_n,dNds_V_n,jcbi00n,jcbi01n,jcbi10n,jcbi11n)
+    if method_nodal_strain_rate==1:
+       exx_nodal,eyy_nodal,exy_nodal,e_nodal=\
+       compute_nodal_strain_rate(icon_V,u,v,nn_V,m_V,nel,dNdr_V_n,dNds_V_n,\
+                                 jcbi00n,jcbi01n,jcbi10n,jcbi11n)
+
+    if method_nodal_strain_rate==2: #probably bit more accurate, but more expensive
+       exx_nodal,eyy_nodal,exy_nodal,e_nodal=\
+       compute_nodal_strain_rate2(bignb_T,II_T,JJ_T,m_T,nqel,icon_V,u,v,nn_V,nel,JxWq,\
+                                  N_V,dNdr_V,dNds_V,jcbi00q,jcbi01q,jcbi10q,jcbi11q)
 
     print("     -> exx_nodal (m,M) %.3e %.3e " %(np.min(exx_nodal),np.max(exx_nodal)))
     print("     -> eyy_nodal (m,M) %.3e %.3e " %(np.min(eyy_nodal),np.max(eyy_nodal)))
@@ -1273,7 +1328,7 @@ for istep in range(0,nstep):
     if debug_ascii: np.savetxt('DEBUG/strainrate.ascii',np.array([x_V,y_V,exx_nodal,eyy_nodal,exy_nodal,\
                                                                   e_nodal,rad_V,theta_V]).T)
 
-    if geometry=='quarter':    
+    if geometry=='quarter' or geometry=='half':    
 
        err_nodal,ett_nodal,ert_nodal,e_polar=convert_tensor_to_polar_coords(theta_V,exx_nodal,eyy_nodal,exy_nodal)
 
@@ -1305,7 +1360,7 @@ for istep in range(0,nstep):
     tauyy_nodal=2*eta_nodal*eyy_nodal
     tauxy_nodal=2*eta_nodal*exy_nodal
 
-    if geometry=='quarter':
+    if geometry=='quarter' or geometry=='half':
        taurr_nodal,tautt_nodal,taurt_nodal,tau_polar=\
        convert_tensor_to_polar_coords(theta_V,tauxx_nodal,tauyy_nodal,tauxy_nodal)
 
@@ -1313,7 +1368,7 @@ for istep in range(0,nstep):
     sigmayy_nodal=-q+tauyy_nodal
     sigmaxy_nodal=   tauxy_nodal
 
-    if geometry=='quarter':
+    if geometry=='quarter' or geometry=='half':
        sigmarr_nodal,sigmatt_nodal,sigmart_nodal,sigma_polar=\
        convert_tensor_to_polar_coords(theta_V,sigmaxx_nodal,sigmayy_nodal,sigmaxy_nodal)
 
@@ -1323,7 +1378,7 @@ for istep in range(0,nstep):
        np.savetxt('OUTPUT/top_sigmayy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],sigmayy_nodal[top_nodes]]).T)
        np.savetxt('OUTPUT/bot_sigmayy_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],sigmayy_nodal[bot_nodes]]).T)
 
-    if geometry=='quarter':
+    if geometry=='quarter' or geometry=='half':
        np.savetxt('OUTPUT/top_taurr_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],taurr_nodal[top_nodes]]).T)
        np.savetxt('OUTPUT/bot_taurr_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],taurr_nodal[bot_nodes]]).T)
        np.savetxt('OUTPUT/top_sigmarr_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],sigmarr_nodal[top_nodes]]).T)
@@ -1346,7 +1401,7 @@ for istep in range(0,nstep):
           dyn_topo_bot=(sigmayy_nodal[bot_nodes]-avrg_sigmayy)/gy_nodal[bot_nodes]/(rho_nodal[bot_nodes]-rho_DT_bot)
           np.savetxt('OUTPUT/bot_dynamic_topography_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],dyn_topo_bot]).T)
 
-    if geometry=='quarter':
+    if geometry=='quarter' or geometry=='half':
        if np.all(rho_nodal[top_nodes])>0 and np.all(gr_nodal[top_nodes])>0: 
           avrg_sigmarr=np.average(sigmarr_nodal[top_nodes])
           dyn_topo_top=(sigmarr_nodal[top_nodes]-avrg_sigmarr)/gr_nodal[top_nodes]/(rho_nodal[top_nodes]-rho_DT_top)
@@ -1388,9 +1443,13 @@ for istep in range(0,nstep):
       advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_y,
                                  swarm_rad,swarm_theta,swarm_active,u,v,
                                  Rinner,Router,hrad,htheta,nelx,icon_V,rad_V,theta_V)
+     case 'half' :
+      swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_u,swarm_v,swarm_active=\
+      advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_y,
+                              swarm_rad,swarm_theta,swarm_active,u,v,
+                              Rinner,Router,hrad,htheta,nelx,icon_V,rad_V,theta_V)
      case _ :
       exit('advect_particles not implemented for this geometry')
-
 
     print("     -> nb inactive particles:",nparticle-np.sum(swarm_active))
     print("     -> swarm_x (m,M) %.3e %.3e " %(np.min(swarm_x),np.max(swarm_x)))
@@ -1409,6 +1468,8 @@ for istep in range(0,nstep):
      case 'box' :
       swarm_r,swarm_s,swarm_iel=locate_particles___box(nparticle,swarm_x,swarm_y,hx,hy,x_V,y_V,icon_V,nelx)
      case 'quarter' :
+      swarm_r,swarm_s,swarm_iel=locate_particles___quarter(nparticle,swarm_rad,swarm_theta,hrad,htheta,rad_V,theta_V,icon_V,nelx,Rinner)
+     case 'half' :
       swarm_r,swarm_s,swarm_iel=locate_particles___quarter(nparticle,swarm_rad,swarm_theta,hrad,htheta,rad_V,theta_V,icon_V,nelx,Rinner)
      case _ :
       exit('locate particles not implemented for ths geometry')
@@ -1484,7 +1545,8 @@ for istep in range(0,nstep):
                               sigmaxx_nodal,sigmayy_nodal,sigmaxy_nodal,rad_V,theta_V,\
                               eta_elemental,nparticle_elemental,area,icon_V,\
                               bc_fix_V,bc_fix_T,geometry,gx_nodal,gy_nodal,\
-                              err_nodal,ett_nodal,ert_nodal,vr,vt,plith,nx,ny)
+                              err_nodal,ett_nodal,ert_nodal,vr,vt,plith,nx,ny,\
+                              exx_el,eyy_el,exy_el)
 
        print("export solution to vtu file: %.3f s" % (clock.time()-start)) ; timings[10]+=clock.time()-start
 
@@ -1563,10 +1625,10 @@ for istep in range(0,nstep):
          np.savetxt('OUTPUT/gravityDTb_'+str(istep)+'.ascii',\
                     np.array([xs,ys,gnormDTb[:,istep],gxDTb[:,istep],gyDTb[:,istep]]).T,header='#x,y,g,gx,gy')
 
-        case 'quarter' :
+        case 'quarter' | 'half':
          for i in range(0,gravity_npts):
-             xs[i]=(Router+gravity_height)*np.cos(i/(gravity_npts-1)*np.pi/2)
-             ys[i]=(Router+gravity_height)*np.sin(i/(gravity_npts-1)*np.pi/2)
+             xs[i]=(Router+gravity_height)*np.cos(i/(gravity_npts-1)*opening_angle+theta_min)
+             ys[i]=(Router+gravity_height)*np.sin(i/(gravity_npts-1)*opening_angle+theta_min)
              gxI[i,istep],gyI[i,istep],gnormI[i,istep]=\
              compute_gravity_at_point(xs[i],ys[i],nel,xc,yc,rho_elemental,area,gravity_rho_ref)
 
@@ -1589,7 +1651,7 @@ for istep in range(0,nstep):
              np.savetxt('OUTPUT/gravityI_rate_'+str(istep)+'.ascii',np.array([xs,gnormI_rate[:,istep]/mGal*year]).T,header='#x,g')
              np.savetxt('OUTPUT/gravityDTt_rate_'+str(istep)+'.ascii',np.array([xs,gnormDTt_rate[:,istep]/mGal*year]).T,header='#x,g')
              np.savetxt('OUTPUT/gravityDTb_rate_'+str(istep)+'.ascii',np.array([xs,gnormDTb_rate[:,istep]/mGal*year]).T,header='#x,g')
-          if geometry=='quarter' :
+          if geometry=='quarter' or geometry=='half':
              np.savetxt('OUTPUT/gravityI_rate_'+str(istep)+'.ascii',np.array([thetas,gnormI_rate[:,istep]/mGal*year]).T,header='#theta,g')
 
     print("compute gravity: %.3f s" % (clock.time()-start)) ; timings[23]+=clock.time()-start

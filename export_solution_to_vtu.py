@@ -6,9 +6,10 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
                            eta_nodal,rho_nodal,exx_nodal,eyy_nodal,exy_nodal,e_nodal,qx_nodal,qy_nodal,
                            rho_elemental,sigmaxx_nodal,sigmayy_nodal,sigmaxy_nodal,rad_V,theta_V,
                            eta_elemental,nparticle_elemental,area,icon_V,bc_fix_V,bc_fix_T,geometry,
-                           gx_nodal,gy_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt,plith,nx,ny):
+                           gx_nodal,gy_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt,plith,nx,ny,
+                           exx_el,eyy_el,exy_el):
 
-       debug_sol=False
+       debug_sol=True
 
        filename = 'OUTPUT/solution_{:04d}.vtu'.format(istep)
        vtufile=open(filename,"w")
@@ -30,12 +31,13 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
            vtufile.write("%.3e %.3e %.1e \n" %(u[i]/vel_scale,v[i]/vel_scale,0.))
        vtufile.write("</DataArray>\n")
        #--
-       vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Normal vector' Format='ascii'> \n")
-       for i in range(0,nn_V):
-           vtufile.write("%.3e %.3e %.1e \n" %(nx[i],ny[i],0.))
-       vtufile.write("</DataArray>\n")
+       if debug_sol:
+          vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Normal vector' Format='ascii'> \n")
+          for i in range(0,nn_V):
+              vtufile.write("%.3e %.3e %.1e \n" %(nx[i],ny[i],0.))
+          vtufile.write("</DataArray>\n")
        #--
-       if geometry=='quarter': 
+       if geometry=='quarter' or geometry=='half': 
           vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Velocity (Polar)' Format='ascii'> \n")
           for i in range(0,nn_V):
               vtufile.write("%.3e %.3e %.1e \n" %(vr[i]/vel_scale,vt[i]/vel_scale,0.))
@@ -113,7 +115,7 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
        e_nodal.tofile(vtufile,sep=' ',format='%.4e')
        vtufile.write("</DataArray>\n")
        #--
-       if geometry=='quarter': 
+       if geometry=='quarter' or geometry=='half': 
           vtufile.write("<DataArray type='Float32' Name='err' Format='ascii'> \n")
           err_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
@@ -126,7 +128,7 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
           ert_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
        #--
-       if debug_sol and geometry=='quarter': 
+       if debug_sol and (geometry=='quarter' or geometry=='half'):  
           vtufile.write("<DataArray type='Float32' Name='rad' Format='ascii'> \n")
           rad_V.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
@@ -180,6 +182,23 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
        for iel in range (0,nel):
            vtufile.write("%d \n" % (nparticle_elemental[iel]))
        vtufile.write("</DataArray>\n")
+       #--
+       if debug_sol:
+          vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
+          for iel in range (0,nel):
+              vtufile.write("%e \n" % (exx_el[iel]))
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='eyy' Format='ascii'> \n")
+          for iel in range (0,nel):
+              vtufile.write("%e \n" % (eyy_el[iel]))
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='exy' Format='ascii'> \n")
+          for iel in range (0,nel):
+              vtufile.write("%e \n" % (exy_el[iel]))
+          vtufile.write("</DataArray>\n")
+
        #--
        if debug_sol:
           vtufile.write("<DataArray type='Float32' Name='area' Format='ascii'> \n")
