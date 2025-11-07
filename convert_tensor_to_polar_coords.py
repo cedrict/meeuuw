@@ -2,7 +2,6 @@ import numpy as np
 import numba
 
 ###############################################################################
-#def convert_nodal_strain_rate_to_polar_coords(theta,Txx,Tyy,Txy):
 
 @numba.njit
 def convert_tensor_to_polar_coords(theta,Txx,Tyy,Txy):

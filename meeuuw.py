@@ -24,7 +24,7 @@ from compute_gravity_at_point import *
 from compute_gravity_fromDT_at_point import *
 from project_nodal_field_onto_qpoints import *
 from compute_nodal_pressure_gradient import *
-from convert_nodal_strain_rate_to_polar_coords import *
+from convert_tensor_to_polar_coords import *
 from compute_elemental_strain_rate import * 
 from postprocessors import *
 
@@ -109,8 +109,8 @@ if geometry=='quarter' or geometry=='half':
 nparticle_per_element=nparticle_per_dim**2
 nparticle=nel*nparticle_per_element
 
-timings=np.zeros(28+1)
-timings_mem=np.zeros(28+1)
+timings=np.zeros(29+1)
+timings_mem=np.zeros(29+1)
 
 if geometry=='box': L_ref=(Lx+Ly)/2
 if geometry=='quarter': L_ref=(Rinner+Router)/2
@@ -213,7 +213,9 @@ y_V=np.zeros(nn_V,dtype=np.float64)
 rad_V=np.zeros(nn_V,dtype=np.float64) 
 theta_V=np.zeros(nn_V,dtype=np.float64)
 top_nodes=np.zeros(nn_V,dtype=bool)
+toop_nodes=np.zeros(nn_V,dtype=bool)
 bot_nodes=np.zeros(nn_V,dtype=bool)
+boot_nodes=np.zeros(nn_V,dtype=bool)
 left_nodes=np.zeros(nn_V,dtype=bool)
 right_nodes=np.zeros(nn_V,dtype=bool)
 middleH_nodes=np.zeros(nn_V,dtype=bool)
@@ -234,6 +236,8 @@ for j in range(0,2*nely+1):
         if (j==2*nely): top_nodes[counter]=True
         if top_nodes[counter] or bot_nodes[counter] or\
            right_nodes[counter] or left_nodes[counter]: hull_nodes[counter]=True
+        if top_nodes[counter] and i%2==0: toop_nodes[counter]=True
+        if bot_nodes[counter] and i%2==0: boot_nodes[counter]=True
         if abs(x_V[counter]/Lx-0.5)<eps: middleV_nodes[counter]=True
         if abs(y_V[counter]/Ly-0.5)<eps: middleH_nodes[counter]=True
         if i==0 and j==0: cornerBL=counter
@@ -250,13 +254,6 @@ if geometry=='quarter' or geometry=='half':
        theta_V[i]=np.pi/2-x_V[i]*opening_angle
        x_V[i]=rad_V[i]*np.cos(theta_V[i])
        y_V[i]=rad_V[i]*np.sin(theta_V[i])
-
-#if geometry=='half':
-#   for i in range(0,nn_V):
-#       rad_V[i]=Rinner+y_V[i]*(Router-Rinner)
-#       theta_V[i]=np.pi/2-x_V[i]*np.pi
-#       x_V[i]=rad_V[i]*np.cos(theta_V[i])
-#       y_V[i]=rad_V[i]*np.sin(theta_V[i])
 
 if debug_ascii: np.savetxt('DEBUG/gridV.ascii',np.array([x_V,y_V]).T,header='# x,y')
 
@@ -296,6 +293,26 @@ for j in range(0,nely):
 print("build icon_V: %.3f s" % (clock.time()-start))
 
 ###############################################################################
+# FIX MESH 
+# 3 6 2
+# 7 8 5
+# 0-4-1
+###############################################################################
+
+if geometry=='quarter' or geometry=='half':
+   for iel in range(0,nel):
+       x_V[icon_V[4,iel]]=0.5*(x_V[icon_V[0,iel]]+x_V[icon_V[1,iel]])
+       y_V[icon_V[4,iel]]=0.5*(y_V[icon_V[0,iel]]+y_V[icon_V[1,iel]])
+       x_V[icon_V[5,iel]]=0.5*(x_V[icon_V[1,iel]]+x_V[icon_V[2,iel]])
+       y_V[icon_V[5,iel]]=0.5*(y_V[icon_V[1,iel]]+y_V[icon_V[2,iel]])
+       x_V[icon_V[6,iel]]=0.5*(x_V[icon_V[2,iel]]+x_V[icon_V[3,iel]])
+       y_V[icon_V[6,iel]]=0.5*(y_V[icon_V[2,iel]]+y_V[icon_V[3,iel]])
+       x_V[icon_V[7,iel]]=0.5*(x_V[icon_V[3,iel]]+x_V[icon_V[0,iel]])
+       y_V[icon_V[7,iel]]=0.5*(y_V[icon_V[3,iel]]+y_V[icon_V[0,iel]])
+       x_V[icon_V[8,iel]]=0.5*(x_V[icon_V[4,iel]]+x_V[icon_V[6,iel]])
+       y_V[icon_V[8,iel]]=0.5*(y_V[icon_V[4,iel]]+y_V[icon_V[6,iel]])
+
+###############################################################################
 #@@ build pressure grid 
 ###############################################################################
 start=clock.time()
@@ -321,13 +338,6 @@ if geometry=='quarter' or geometry=='half':
        x_P[i]=rad_P[i]*np.cos(theta_P[i])
        y_P[i]=rad_P[i]*np.sin(theta_P[i])
 
-#if geometry=='half':
-#   for i in range(0,nn_P):
-#       rad_P[i]=Rinner+y_P[i]*(Router-Rinner)
-#       theta_P[i]=np.pi/2-x_P[i]*np.pi
-#       x_P[i]=rad_P[i]*np.cos(theta_P[i])
-#       y_P[i]=rad_P[i]*np.sin(theta_P[i])
-
 if debug_ascii: np.savetxt('DEBUG/gridP.ascii',np.array([x_P,y_P]).T,header='# x,y')
 
 print("build P grid: %.3f s" % (clock.time() - start))
@@ -351,6 +361,18 @@ for j in range(0,nely):
 #end for
 
 print("build icon_P: %.3f s" % (clock.time()-start))
+
+###############################################################################
+# FIX MESH ?
+###############################################################################
+#if geometry=='quarter' and axisymmetric:
+#   for iel in range(0,nel):
+#       if left_element[iel]:
+#          y_V[icon_V[1,iel]]=y_V[icon_V[0,iel]] ; y_V[icon_V[4,iel]]=y_V[icon_V[0,iel]]
+#          y_V[icon_V[5,iel]]=y_V[icon_V[7,iel]] ; y_V[icon_V[8,iel]]=y_V[icon_V[7,iel]]
+#          y_V[icon_V[2,iel]]=y_V[icon_V[3,iel]] ; y_V[icon_V[6,iel]]=y_V[icon_V[3,iel]]
+#          y_P[icon_P[1,iel]]=y_P[icon_P[0,iel]] 
+#          y_P[icon_P[2,iel]]=y_P[icon_P[3,iel]] 
 
 
 ###############################################################################
@@ -1141,10 +1163,14 @@ for istep in range(0,nstep):
     if geometry=='box':
        np.savetxt('OUTPUT/top_q_'+str(istep)+'.ascii',np.array([x_V[top_nodes],q[top_nodes]]).T)
        np.savetxt('OUTPUT/bot_q_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],q[bot_nodes]]).T)
+       np.savetxt('OUTPUT/toop_q_'+str(istep)+'.ascii',np.array([x_V[toop_nodes],q[toop_nodes]]).T)
+       np.savetxt('OUTPUT/boot_q_'+str(istep)+'.ascii',np.array([x_V[boot_nodes],q[boot_nodes]]).T)
 
     if geometry=='quarter' or geometry=='half':
        np.savetxt('OUTPUT/top_q_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],q[top_nodes]]).T)
        np.savetxt('OUTPUT/bot_q_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],q[bot_nodes]]).T)
+       np.savetxt('OUTPUT/toop_q_'+str(istep)+'.ascii',np.array([theta_V[toop_nodes],q[toop_nodes]]).T)
+       np.savetxt('OUTPUT/boot_q_'+str(istep)+'.ascii',np.array([theta_V[boot_nodes],q[boot_nodes]]).T)
 
     print("compute nodal press: %.3f s" % (clock.time()-start)) ; timings[3]+=clock.time()-start
 
@@ -1291,20 +1317,33 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    exx_el,eyy_el,exy_el,e_el=compute_elemental_strain_rate(icon_V,u,v,nn_V,nel,x_V,y_V)
+    exx_elemental,eyy_elemental,exy_elemental,e_elemental=\
+    compute_elemental_strain_rate(icon_V,u,v,nn_V,nel,x_V,y_V)
 
-    err_el,ett_el,ert_el,e_polar=convert_tensor_to_polar_coords(theta_c,exx_el,eyy_el,exy_el)
-
-    print("     -> exx_el (m,M) %.3e %.3e " %(np.min(exx_el),np.max(exx_el)))
-    print("     -> eyy_el (m,M) %.3e %.3e " %(np.min(eyy_el),np.max(eyy_el)))
-    print("     -> exy_el (m,M) %.3e %.3e " %(np.min(exy_el),np.max(exy_el)))
+    print("     -> exx_elemental (m,M) %.3e %.3e " %(np.min(exx_elemental),np.max(exx_elemental)))
+    print("     -> eyy_elemental (m,M) %.3e %.3e " %(np.min(eyy_elemental),np.max(eyy_elemental)))
+    print("     -> exy_elemental (m,M) %.3e %.3e " %(np.min(exy_elemental),np.max(exy_elemental)))
 
     if debug_ascii: 
-       np.savetxt('DEBUG/strainrate_el.ascii',np.array([xc,yc,exx_el,eyy_el,exy_el,e_el]).T)
+       np.savetxt('DEBUG/strainrate_cartesian_elemental.ascii',\
+                  np.array([xc,yc,exx_elemental,eyy_elemental,exy_elemental]).T)
 
-    np.savetxt('OUTPUT/top_err_el_'+str(istep)+'.ascii',np.array([theta_c[top_element],err_el[top_element]]).T)
+    if geometry=='quarter' or geometry=='half':    
 
-    print("compute elemental sr: %.3f s" % (clock.time()-start)) #; timings[11]+=clock.time()-start
+       err_elemental,ett_elemental,ert_elemental,dummy=\
+       convert_tensor_to_polar_coords(theta_c,exx_elemental,eyy_elemental,exy_elemental)
+
+       print("     -> err_elemental (m,M) %.3e %.3e " %(np.min(err_elemental),np.max(err_elemental)))
+       print("     -> ett_elemental (m,M) %.3e %.3e " %(np.min(ett_elemental),np.max(ett_elemental)))
+       print("     -> ert_elemental (m,M) %.3e %.3e " %(np.min(ert_elemental),np.max(ert_elemental)))
+
+       if debug_ascii: np.savetxt('DEBUG/strainrate_polar_elemental.ascii',\
+                                  np.array([xc,yc,err_elemental,ett_elemental,ert_elemental]).T)
+
+       np.savetxt('OUTPUT/top_err_elemental_'+str(istep)+'.ascii',\
+                  np.array([theta_c[top_element],err_elemental[top_element]]).T)
+
+    print("compute elemental sr: %.3f s" % (clock.time()-start)) ; timings[29]+=clock.time()-start
 
     ###########################################################################
     #@@ compute nodal strainrate
@@ -1325,8 +1364,8 @@ for istep in range(0,nstep):
     print("     -> eyy_nodal (m,M) %.3e %.3e " %(np.min(eyy_nodal),np.max(eyy_nodal)))
     print("     -> exy_nodal (m,M) %.3e %.3e " %(np.min(exy_nodal),np.max(exy_nodal)))
 
-    if debug_ascii: np.savetxt('DEBUG/strainrate.ascii',np.array([x_V,y_V,exx_nodal,eyy_nodal,exy_nodal,\
-                                                                  e_nodal,rad_V,theta_V]).T)
+    if debug_ascii: np.savetxt('DEBUG/strainrate_cartesian_nodal.ascii',\
+                               np.array([x_V,y_V,exx_nodal,eyy_nodal,exy_nodal,e_nodal,rad_V,theta_V]).T)
 
     if geometry=='quarter' or geometry=='half':    
 
@@ -1341,6 +1380,8 @@ for istep in range(0,nstep):
 
        np.savetxt('OUTPUT/top_err_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],err_nodal[top_nodes]]).T)
        np.savetxt('OUTPUT/bot_err_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],err_nodal[bot_nodes]]).T)
+       np.savetxt('OUTPUT/toop_err_'+str(istep)+'.ascii',np.array([theta_V[toop_nodes],err_nodal[toop_nodes]]).T)
+       np.savetxt('OUTPUT/boot_err_'+str(istep)+'.ascii',np.array([theta_V[boot_nodes],err_nodal[boot_nodes]]).T)
 
     else:
        err_nodal=0 ; ett_nodal=0 ; ert_nodal=0
@@ -1383,6 +1424,10 @@ for istep in range(0,nstep):
        np.savetxt('OUTPUT/bot_taurr_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],taurr_nodal[bot_nodes]]).T)
        np.savetxt('OUTPUT/top_sigmarr_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],sigmarr_nodal[top_nodes]]).T)
        np.savetxt('OUTPUT/bot_sigmarr_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],sigmarr_nodal[bot_nodes]]).T)
+       np.savetxt('OUTPUT/toop_taurr_'+str(istep)+'.ascii',np.array([theta_V[toop_nodes],taurr_nodal[toop_nodes]]).T)
+       np.savetxt('OUTPUT/boot_taurr_'+str(istep)+'.ascii',np.array([theta_V[boot_nodes],taurr_nodal[boot_nodes]]).T)
+       np.savetxt('OUTPUT/toop_sigmarr_'+str(istep)+'.ascii',np.array([theta_V[toop_nodes],sigmarr_nodal[toop_nodes]]).T)
+       np.savetxt('OUTPUT/boot_sigmarr_'+str(istep)+'.ascii',np.array([theta_V[boot_nodes],sigmarr_nodal[boot_nodes]]).T)
 
     print("compute nodal stress: %.3f s" % (clock.time()-start)) ; timings[27]+=clock.time()-start
 
@@ -1546,7 +1591,7 @@ for istep in range(0,nstep):
                               eta_elemental,nparticle_elemental,area,icon_V,\
                               bc_fix_V,bc_fix_T,geometry,gx_nodal,gy_nodal,\
                               err_nodal,ett_nodal,ert_nodal,vr,vt,plith,nx,ny,\
-                              exx_el,eyy_el,exy_el)
+                              exx_elemental,eyy_elemental,exy_elemental)
 
        print("export solution to vtu file: %.3f s" % (clock.time()-start)) ; timings[10]+=clock.time()-start
 
@@ -1702,6 +1747,7 @@ for istep in range(0,nstep):
        print("comp. nodal stress: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[27],timings[27]/(istep+1),timings[27]/duration*100))
        print("comp. nodal heat flux: %8.3f s  (%.3f s per call) | %5.2f percent" % (timings[7],timings[7]/(istep+1),timings[7]/duration*100))
        print("comp. nodal press grad: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[8],timings[8]/(istep+1),timings[8]/duration*100))
+       print("comp. eltal sr: %8.3f s         (%.3f s per call) | %5.2f percent" % (timings[29],timings[29]/(istep+1),timings[29]/duration*100))
        print("comp. T profile: %8.3f s        (%.3f s per call) | %5.2f percent" % (timings[9],timings[9]/(istep+1),timings[9]/duration*100)) 
        print("normalise pressure: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[12],timings[12]/(istep+1),timings[12]/duration*100))
        print("advect particles: %8.3f s       (%.3f s per call) | %5.2f percent" % (timings[13],timings[13]/(istep+1),timings[13]/duration*100))

@@ -217,4 +217,6 @@ opla*
 timings.pdf
 structure
 
+*.pvd
+
 GARBAGE/

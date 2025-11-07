@@ -4,13 +4,13 @@ from prem import *
 from scipy import interpolate
 
 #-----------------------------------------
-#geometry='quarter'
-geometry='half'
+geometry='quarter'
+#geometry='half'
 
 Lx=1
 Ly=1
 
-nely=64
+nely=32
 
 if geometry=='quarter': nelx=int(3*nely)
 if geometry=='half': nelx=int(5*nely)
@@ -41,7 +41,7 @@ rho_lowermantle=3600
 rho_DT_top=0
 rho_DT_bot=10000
 
-nstep=2
+nstep=1
 eta_ref=1e21
 solve_T=False
 RKorder=2
@@ -87,18 +87,19 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
            if y_V[i]/Rinner<eps:
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-           if bot_nodes[i] and left_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
            if bot_nodes[i] and right_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-           if top_nodes[i] and left_nodes[i]:
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
            if top_nodes[i] and right_nodes[i]:
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if bot_nodes[i] and left_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if top_nodes[i] and left_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+
 
     if geometry=='half':
        for i in range(0,nn_V):
@@ -151,11 +152,11 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swa
     swarm_hcapa=0
     swarm_hprod=0
 
-    mask=(swarm_mat==1) ; swarm_eta[mask]=eta_crust       ; swarm_rho[mask]=rho_crust
-    mask=(swarm_mat==2) ; swarm_eta[mask]=eta_lithosphere ; swarm_rho[mask]=rho_lithosphere
-    mask=(swarm_mat==3) ; swarm_eta[mask]=eta_uppermantle ; swarm_rho[mask]=rho_uppermantle
-    mask=(swarm_mat==4) ; swarm_eta[mask]=eta_lowermantle ; swarm_rho[mask]=rho_lowermantle 
-    mask=(swarm_mat==5) ; swarm_eta[mask]=eta_blob        ; swarm_rho[mask]=rho_blob
+    mask=(swarm_mat==1) ; swarm_eta[mask]=eta_crust       ; swarm_rho[mask]=rho_crust#-3050
+    mask=(swarm_mat==2) ; swarm_eta[mask]=eta_lithosphere ; swarm_rho[mask]=rho_lithosphere#-3050
+    mask=(swarm_mat==3) ; swarm_eta[mask]=eta_uppermantle ; swarm_rho[mask]=rho_uppermantle#-3050
+    mask=(swarm_mat==4) ; swarm_eta[mask]=eta_lowermantle ; swarm_rho[mask]=rho_lowermantle# -3050
+    mask=(swarm_mat==5) ; swarm_eta[mask]=eta_blob        ; swarm_rho[mask]=rho_blob#-3050
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
