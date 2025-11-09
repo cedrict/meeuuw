@@ -1,0 +1,41 @@
+#
+set term pdf
+set pointsize 0.01
+set key outside
+set grid
+set xlabel '{/Symbol q}'
+set title 'Q_2 mapping + rho profile subtracted'
+
+tmin=-1.6
+tmax=1.6
+
+set ylabel 'e_{rr}'
+set output 'top_err.pdf'
+plot[tmin:tmax][]\
+'res16/top_err_0.ascii' u 1:2 w lp t '16',\
+'res32/top_err_0.ascii' u 1:2 w lp t '32',\
+'res48/top_err_0.ascii' u 1:2 w lp t '48',\
+'res64/top_err_0.ascii' u 1:2 w lp t '64',\
+'res80/top_err_0.ascii' u 1:2 w lp t '80',\
+'res96/top_err_0.ascii' u 1:2 w lp t '96',\
+
+set ylabel 'dynamic topography (m)'
+set output 'top_dyn_topo.pdf'
+plot[tmin:tmax][]\
+'res16/top_dynamic_topography_0.ascii' u 1:2 w lp t '16',\
+'res32/top_dynamic_topography_0.ascii' u 1:2 w lp t '32',\
+'res48/top_dynamic_topography_0.ascii' u 1:2 w lp t '48',\
+'res64/top_dynamic_topography_0.ascii' u 1:2 w lp t '64',\
+'res80/top_dynamic_topography_0.ascii' u 1:2 w lp t '80',\
+'res96/top_dynamic_topography_0.ascii' u 1:2 w lp t '96',\
+
+set ylabel 'pressure (Pa)'
+set output 'top_q.pdf'
+plot[tmin:tmax][]\
+'res16/top_q_0.ascii' u 1:2 w lp t '16',\
+'res32/top_q_0.ascii' u 1:2 w lp t '32',\
+'res48/top_q_0.ascii' u 1:2 w lp t '48',\
+'res64/top_q_0.ascii' u 1:2 w lp t '64',\
+'res80/top_q_0.ascii' u 1:2 w lp t '80',\
+'res96/top_q_0.ascii' u 1:2 w lp t '96',\
+
