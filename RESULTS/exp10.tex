@@ -1,0 +1,83 @@
+\section{Experiment 10: Axisymmetric Stokes sphere in isoviscous mantle}
+
+Reported resolutions are the value of $nely$ (the number of elements in the radial 
+direction). The value of $nelx$ is then set so that $nelx\simeq 6.7 nely$.
+In what follows $Q_1$ stands for elements with straight edges.
+
+The average density profile is computed and removed as follows:
+\begin{lstlisting}
+    rho_profile=np.zeros(nny,dtype=np.float64)
+    counter=0    
+    for j in range(0,nny):
+        for i in range(0,nnx):
+            rho_profile[j]+=rho_nodal[counter]
+            counter+=1
+    rho_profile/=nnx
+
+    counter=0    
+    for j in range(0,nny):
+        for i in range(0,nnx):
+            rho_nodal[counter]-=rho_profile[j]
+            counter+=1
+\end{lstlisting}
+
+%------------------------------------
+\subsection{Plane strain formulation}
+
+\begin{center}
+\includegraphics[width=5.5cm]{exp10/ps/top_err}
+\includegraphics[width=5.5cm]{exp10/ps_fix/top_err}\\
+\includegraphics[width=5.5cm]{exp10/ps_rhoprofile/top_err}
+\includegraphics[width=5.5cm]{exp10/ps_fix_rhoprofile/top_err}\\
+\includegraphics[width=10cm]{exp10/ps_top_err}
+\end{center}
+
+\begin{center}
+\includegraphics[width=5.5cm]{exp10/ps/top_q}
+\includegraphics[width=5.5cm]{exp10/ps_fix/top_q} \\
+\includegraphics[width=5.5cm]{exp10/ps_rhoprofile/top_q}
+\includegraphics[width=5.5cm]{exp10/ps_fix_rhoprofile/top_q}\\
+\includegraphics[width=10cm]{exp10/ps_top_q}
+\end{center}
+
+\begin{center}
+\includegraphics[width=10cm]{exp10/ps_top_dynamic_topography.pdf}
+\end{center}
+
+
+
+
+
+Conclusion: $Q_1$ mapping deteriorates the solution and 
+removing the computed average density profile does not 
+do anything.
+
+%------------------------------------
+\subsection{Axisymmetric formulation}
+
+\begin{center}
+\includegraphics[width=5.5cm]{exp10/axi/top_err}
+\includegraphics[width=5.5cm]{exp10/axi_fix/top_err}\\
+\includegraphics[width=5.5cm]{exp10/axi_rhoprofile/top_err}
+\includegraphics[width=5.5cm]{exp10/axi_fix_rhoprofile/top_err}
+\includegraphics[width=10cm]{exp10/axi_top_err}
+\end{center}
+
+
+\begin{center}
+\includegraphics[width=5.5cm]{exp10/axi/top_q}
+\includegraphics[width=5.5cm]{exp10/axi_fix/top_q}\\
+\includegraphics[width=5.5cm]{exp10/axi_rhoprofile/top_q}
+\includegraphics[width=5.5cm]{exp10/axi_fix_rhoprofile/top_q}
+\includegraphics[width=10cm]{exp10/axi_top_q}
+\end{center}
+
+\begin{center}
+\includegraphics[width=10cm]{exp10/axi_top_dynamic_topography.pdf}
+\end{center}
+
+Conclusion:
+$Q_2$ mapping is the worst. $Q_1$ mapping improves results greatly and so does 
+removing the computed average density profile.
+In the end the best results are obtained when both are combined.
+
