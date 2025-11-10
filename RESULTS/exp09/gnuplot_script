@@ -1,0 +1,89 @@
+#
+set term pdf enhanced font "Times,12pt"
+set grid
+set pointsize .2
+set key left
+
+set title 'res 428x64'
+
+# plane strain
+
+#set ylabel 'e_{rr}'
+#set output 'ps_top_err.pdf' 
+#plot[1.52:1.58][]\
+#'ps/res64/top_err_0.ascii' w lp t 'Q_2 mapping',\
+#'ps_fix/res64/top_err_0.ascii' w lp t 'Q_1 mapping',\
+#'ps_rhoprofile/res64/top_err_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
+#'ps_fix_rhoprofile/res64/top_err_0.ascii' w l t 'Q_1 mapping + rho substracted',\
+
+#set ylabel 'pressure q'
+#set output 'ps_top_q.pdf' 
+#plot[1.52:1.58][]\
+#'ps/res64/top_q_0.ascii' w lp t 'Q_2 mapping',\
+#'ps_fix/res64/top_q_0.ascii' w lp t 'Q_1 mapping',\
+#'ps_rhoprofile/res64/top_q_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
+#'ps_fix_rhoprofile/res64/top_q_0.ascii' w l t 'Q_1 mapping + rho substracted',\
+
+#set ylabel 'dynamic topography (m)'
+#set output 'ps_top_dynamic_topography.pdf' 
+#plot[-pi/2:pi/2][]\
+#'ps/res64/top_dynamic_topography_0.ascii' w lp t 'Q_2 mapping',\
+#'ps_fix/res64/top_dynamic_topography_0.ascii' w lp t 'Q_1 mapping',\
+#'ps_rhoprofile/res64/top_dynamic_topography_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
+#'ps_fix_rhoprofile/res64/top_dynamic_topography_0.ascii' w l t 'Q_1 mapping + rho substracted',\
+
+
+# axisymmetric
+
+set ylabel 'e_{rr}'
+set output 'axi_top_err.pdf' 
+plot[1.52:1.58][]\
+'axi/res64/top_err_0.ascii' w lp t 'Q_2 mapping',\
+'axi_fix/res64/top_err_0.ascii' w lp t 'Q_1 mapping',\
+'axi_rhoprofile/res64/top_err_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
+'axi_fix_rhoprofile/res64/top_err_0.ascii' w l t 'Q_1 mapping + rho substracted',\
+
+set output 'axi_bot_err.pdf' 
+plot[1.52:1.58][]\
+'axi/res64/bot_err_0.ascii' w lp t 'Q_2 mapping',\
+'axi_fix/res64/bot_err_0.ascii' w lp t 'Q_1 mapping',\
+'axi_rhoprofile/res64/bot_err_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
+'axi_fix_rhoprofile/res64/bot_err_0.ascii' w l t 'Q_1 mapping + rho substracted',\
+
+#####################################################
+
+set ylabel 'pressure q'
+set output 'axi_top_q.pdf' 
+plot[1.52:1.58][]\
+'axi/res64/top_q_0.ascii' w lp t 'Q_2 mapping',\
+'axi_fix/res64/top_q_0.ascii' w lp t 'Q_1 mapping',\
+'axi_rhoprofile/res64/top_q_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
+'axi_fix_rhoprofile/res64/top_q_0.ascii' w l t 'Q_1 mapping + rho substracted',\
+
+set output 'axi_bot_q.pdf' 
+plot[1.52:1.58][]\
+'axi/res64/bot_q_0.ascii' w lp t 'Q_2 mapping',\
+'axi_fix/res64/bot_q_0.ascii' w lp t 'Q_1 mapping',\
+'axi_rhoprofile/res64/bot_q_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
+'axi_fix_rhoprofile/res64/bot_q_0.ascii' w l t 'Q_1 mapping + rho substracted',\
+
+
+#####################################################
+
+set ylabel 'dynamic topography (m)'
+set output 'axi_top_dynamic_topography.pdf' 
+plot[1.52:1.58][]\
+'axi/res64/top_dynamic_topography_0.ascii' w lp t 'Q_2 mapping',\
+'axi_fix/res64/top_dynamic_topography_0.ascii' w lp t 'Q_1 mapping',\
+'axi_rhoprofile/res64/top_dynamic_topography_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
+'axi_fix_rhoprofile/res64/top_dynamic_topography_0.ascii' w l t 'Q_1 mapping + rho substracted',\
+
+set output 'axi_bot_dynamic_topography.pdf' 
+plot[1.52:1.58][]\
+'axi/res64/bot_dynamic_topography_0.ascii' w lp t 'Q_2 mapping',\
+'axi_fix/res64/bot_dynamic_topography_0.ascii' w lp t 'Q_1 mapping',\
+'axi_rhoprofile/res64/bot_dynamic_topography_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
+'axi_fix_rhoprofile/res64/bot_dynamic_topography_0.ascii' w l t 'Q_1 mapping + rho substracted',\
+
+
+
