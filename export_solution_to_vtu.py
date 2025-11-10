@@ -9,7 +9,7 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
                            gx_nodal,gy_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt,plith,nx,ny,
                            exx_el,eyy_el,exy_el):
 
-       debug_sol=True
+       debug_sol=False
 
        filename = 'OUTPUT/solution_{:04d}.vtu'.format(istep)
        vtufile=open(filename,"w")

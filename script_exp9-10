@@ -1,0 +1,46 @@
+#! /bin/bash
+
+e=10
+
+echo ---------------------------------- 
+python3 meeuuw.py $e 107 16 1 > opla
+mv opla opla_16
+mkdir res16
+mv OUTPUT/top*.ascii res16/
+mv OUTPUT/bot*.ascii res16/
+
+echo ---------------------------------- 
+python3 meeuuw.py $e 214 32 1 > opla
+mv opla opla_32
+mkdir res32
+mv OUTPUT/top*.ascii res32/
+mv OUTPUT/bot*.ascii res32/
+
+echo ---------------------------------- 
+python3 meeuuw.py $e 321 48 1 > opla
+mv opla opla_48
+mkdir res48
+mv OUTPUT/top*.ascii res48/
+mv OUTPUT/bot*.ascii res48/
+
+echo ---------------------------------- 
+python3 meeuuw.py $e 428 64 1 > opla
+mv opla opla_64
+mkdir res64
+mv OUTPUT/top*.ascii res64/
+mv OUTPUT/bot*.ascii res64/
+
+echo ---------------------------------- 
+python3 meeuuw.py $e 536 80 1 > opla
+mv opla opla_80
+mkdir res80
+mv OUTPUT/top*.ascii res80/
+mv OUTPUT/bot*.ascii res80/
+
+echo ---------------------------------- 
+python3 meeuuw.py $e 643 96 1 > opla
+mv opla opla_96
+mkdir res96
+mv OUTPUT/top*.ascii res96/
+mv OUTPUT/bot*.ascii res96/
+

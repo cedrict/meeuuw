@@ -219,4 +219,7 @@ structure
 
 *.pvd
 
+RESULTS/*.toc
+RESULTS/*.pdf
+
 GARBAGE/

@@ -34,14 +34,16 @@ print("-----------------------------")
 
 ###############################################################################
 # experiment 0: Blankenbach et al, 1993    - isoviscous convection
-# experiment 1: van Keken et al, JGR, 1997 - Rayleigh-Taylor experiment
-# experiment 2: Schmeling et al, PEPI 2008 - Newtonian subduction
-# experiment 3: Tosi et al, 2015           - visco-plastic convection
-# experiment 4: not sure. mantle size convection
-# experiment 5: Trompert & Hansen, Nature 1998 - convection w/ plate-like  
-# experiment 6: Crameri et al, GJI 2012 (cosine perturbation & plume) 
-# experiment 7: ESA workshop
-# experiment 8: quarter - sinker
+# experiment  1: van Keken et al, JGR, 1997 - Rayleigh-Taylor experiment
+# experiment  2: Schmeling et al, PEPI 2008 - Newtonian subduction
+# experiment  3: Tosi et al, 2015           - visco-plastic convection
+# experiment  4: not sure. mantle size convection
+# experiment  5: Trompert & Hansen, Nature 1998 - convection w/ plate-like  
+# experiment  6: Crameri et al, GJI 2012 (cosine perturbation & plume) 
+# experiment  7: ESA workshop
+# experiment  8: quarter - sinker
+# experiment  9: axisymmetric Mars setup
+# experiment 10: axisymmetric aspect benchmark of Stokes sphere
 ###############################################################################
 
 experiment=9
@@ -60,6 +62,7 @@ match(experiment):
      case 7 : from experiment7 import *
      case 8 : from experiment8 import *
      case 9 : from experiment9 import *
+     case 10: from experiment10 import *
      case _ : exit('setup - unknown experiment')  
 
 if int(len(sys.argv)==5): # override these parameters
@@ -116,9 +119,10 @@ if geometry=='box': L_ref=(Lx+Ly)/2
 if geometry=='quarter': L_ref=(Rinner+Router)/2
 if geometry=='half': L_ref=(Rinner+Router)/2
 
-method_nodal_strain_rate=2
+method_nodal_strain_rate=1
 
 axisymmetric=True
+remove_rho_profile=False
 
 ###############################################################################
 #@@ quadrature rule points and weights
@@ -299,7 +303,9 @@ print("build icon_V: %.3f s" % (clock.time()-start))
 # 0-4-1
 ###############################################################################
 
-if geometry=='quarter' or geometry=='half':
+#if False: 
+#if True: 
+if axisymmetric and (geometry=='quarter' or geometry=='half'):
    for iel in range(0,nel):
        x_V[icon_V[4,iel]]=0.5*(x_V[icon_V[0,iel]]+x_V[icon_V[1,iel]])
        y_V[icon_V[4,iel]]=0.5*(y_V[icon_V[0,iel]]+y_V[icon_V[1,iel]])
@@ -361,19 +367,6 @@ for j in range(0,nely):
 #end for
 
 print("build icon_P: %.3f s" % (clock.time()-start))
-
-###############################################################################
-# FIX MESH ?
-###############################################################################
-#if geometry=='quarter' and axisymmetric:
-#   for iel in range(0,nel):
-#       if left_element[iel]:
-#          y_V[icon_V[1,iel]]=y_V[icon_V[0,iel]] ; y_V[icon_V[4,iel]]=y_V[icon_V[0,iel]]
-#          y_V[icon_V[5,iel]]=y_V[icon_V[7,iel]] ; y_V[icon_V[8,iel]]=y_V[icon_V[7,iel]]
-#          y_V[icon_V[2,iel]]=y_V[icon_V[3,iel]] ; y_V[icon_V[6,iel]]=y_V[icon_V[3,iel]]
-#          y_P[icon_P[1,iel]]=y_P[icon_P[0,iel]] 
-#          y_P[icon_P[2,iel]]=y_P[icon_P[3,iel]] 
-
 
 ###############################################################################
 #@@ define velocity boundary conditions
@@ -940,6 +933,42 @@ for istep in range(0,nstep):
     print("project particle fields on nodes: %.3fs" % (clock.time()-start)) ; timings[18]+=clock.time()-start
 
     ###########################################################################
+    # compute (nodal) rho profile
+    ###########################################################################
+    start=clock.time()
+
+    rho_profile=np.zeros(nny,dtype=np.float64)
+
+    counter=0    
+    for j in range(0,nny):
+        for i in range(0,nnx):
+            rho_profile[j]+=rho_nodal[counter]
+            counter+=1
+    rho_profile/=nnx
+
+    np.savetxt('OUTPUT/rho_profile.ascii',np.array([rad_V[left_nodes],rho_profile]).T,header='# rad,rho')
+
+    print("     -> rho_profile (m,M) %.3e %.3e " %(np.min(rho_profile),np.max(rho_profile)))
+
+    print("compute rho_profile: %.3fs" % (clock.time()-start)) #; timings[18]+=clock.time()-start
+
+    ###########################################################################
+    #@@ remove nodal rho profile
+    ###########################################################################
+    start=clock.time()
+
+    if remove_rho_profile:
+       rho_DT_top-=rho_profile[nny-1]
+       rho_DT_bot-=rho_profile[0]
+       counter=0    
+       for j in range(0,nny):
+           for i in range(0,nnx):
+               rho_nodal[counter]-=rho_profile[j]
+               counter+=1
+
+    print("remove rho_profile: %.3fs" % (clock.time()-start)) #; timings[18]+=clock.time()-start
+
+    ###########################################################################
     #@@ project nodal values onto quadrature points
     # rhoq, etaq, exxq, eyyq, exyq have size (nel,nqel)
     ###########################################################################
@@ -1129,7 +1158,7 @@ for istep in range(0,nstep):
 
     match(pressure_normalisation): 
          case('surface'):
-             pressure_avrg=np.sum(p[nn_P-1-(nelx+1):nn_P-1])/(nelx+1)
+             pressure_avrg=np.average(p[nn_P-(nelx+1):nn_P])
              p-=pressure_avrg
          case('volume'):
              pressure_avrg=0
@@ -1437,24 +1466,27 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if geometry=='box':
-       if np.all(rho_nodal[top_nodes])>0 and np.all(gy_nodal[top_nodes])>0: 
-          avrg_sigmayy=np.average(sigmayy_nodal[top_nodes])
-          dyn_topo_top=(sigmayy_nodal[top_nodes]-avrg_sigmayy)/gy_nodal[top_nodes]/(rho_nodal[top_nodes]-rho_DT_top)
-          np.savetxt('OUTPUT/top_dynamic_topography_'+str(istep)+'.ascii',np.array([x_V[top_nodes],dyn_topo_top]).T)
-       if np.all(rho_nodal[bot_nodes])>0 and np.all(gy_nodal[bot_nodes])>0: 
-          avrg_sigmayy=np.average(sigmayy_nodal[bot_nodes])
-          dyn_topo_bot=(sigmayy_nodal[bot_nodes]-avrg_sigmayy)/gy_nodal[bot_nodes]/(rho_nodal[bot_nodes]-rho_DT_bot)
-          np.savetxt('OUTPUT/bot_dynamic_topography_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],dyn_topo_bot]).T)
+       avrg_sigmayy=np.average(sigmayy_nodal[top_nodes])
+       dyn_topo_top=(sigmayy_nodal[top_nodes]-avrg_sigmayy)/gy_nodal[top_nodes]/(rho_nodal[top_nodes]-rho_DT_top)
+       np.savetxt('OUTPUT/top_dynamic_topography_'+str(istep)+'.ascii',np.array([x_V[top_nodes],dyn_topo_top]).T)
+       avrg_sigmayy=np.average(sigmayy_nodal[bot_nodes])
+       dyn_topo_bot=(sigmayy_nodal[bot_nodes]-avrg_sigmayy)/gy_nodal[bot_nodes]/(rho_nodal[bot_nodes]-rho_DT_bot)
+       np.savetxt('OUTPUT/bot_dynamic_topography_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],dyn_topo_bot]).T)
 
     if geometry=='quarter' or geometry=='half':
-       if np.all(rho_nodal[top_nodes])>0 and np.all(gr_nodal[top_nodes])>0: 
-          avrg_sigmarr=np.average(sigmarr_nodal[top_nodes])
-          dyn_topo_top=(sigmarr_nodal[top_nodes]-avrg_sigmarr)/gr_nodal[top_nodes]/(rho_nodal[top_nodes]-rho_DT_top)
-          np.savetxt('OUTPUT/top_dynamic_topography_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],dyn_topo_top]).T)
-       if np.all(rho_nodal[bot_nodes])>0 and np.all(gr_nodal[bot_nodes])>0: 
-          avrg_sigmarr=np.average(sigmarr_nodal[bot_nodes])
-          dyn_topo_bot=(sigmarr_nodal[bot_nodes]-avrg_sigmarr)/gr_nodal[bot_nodes]/(rho_nodal[bot_nodes]-rho_DT_bot)
-          np.savetxt('OUTPUT/bot_dynamic_topography_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],dyn_topo_bot]).T)
+       avrg_sigmarr=np.average(sigmarr_nodal[top_nodes])
+       dyn_topo_top=(sigmarr_nodal[top_nodes]-avrg_sigmarr)/gr_nodal[top_nodes]/(rho_nodal[top_nodes]-rho_DT_top)
+       np.savetxt('OUTPUT/top_dynamic_topography_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],dyn_topo_top]).T)
+       avrg_sigmarr=np.average(sigmarr_nodal[toop_nodes])
+       dyn_topo_toop=(sigmarr_nodal[toop_nodes]-avrg_sigmarr)/gr_nodal[toop_nodes]/(rho_nodal[toop_nodes]-rho_DT_top)
+       np.savetxt('OUTPUT/toop_dynamic_topography_'+str(istep)+'.ascii',np.array([theta_V[toop_nodes],dyn_topo_toop]).T)
+
+       avrg_sigmarr=np.average(sigmarr_nodal[bot_nodes])
+       dyn_topo_bot=(sigmarr_nodal[bot_nodes]-avrg_sigmarr)/gr_nodal[bot_nodes]/(rho_nodal[bot_nodes]-rho_DT_bot)
+       np.savetxt('OUTPUT/bot_dynamic_topography_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],dyn_topo_bot]).T)
+       avrg_sigmarr=np.average(sigmarr_nodal[boot_nodes])
+       dyn_topo_boot=(sigmarr_nodal[boot_nodes]-avrg_sigmarr)/gr_nodal[boot_nodes]/(rho_nodal[boot_nodes]-rho_DT_bot)
+       np.savetxt('OUTPUT/boot_dynamic_topography_'+str(istep)+'.ascii',np.array([theta_V[boot_nodes],dyn_topo_boot]).T)
 
     print("compute dynamic topo: %.3f s" % (clock.time()-start)) ; timings[26]+=clock.time()-start
 
