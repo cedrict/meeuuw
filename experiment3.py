@@ -67,6 +67,8 @@ rho_DT_top=0
 rho_DT_bot=0
 gravity_npts=0
 tol_ss=-1e-8
+top_free_slip=True
+bot_free_slip=True
 
 nelx=32
 nely=32

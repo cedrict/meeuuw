@@ -28,6 +28,8 @@ debug_nan=False
 rho_DT_top=0
 rho_DT_bot=0
 tol_ss=1e-8
+top_free_slip=True
+bot_free_slip=True
 
 nparticle_per_dim=6
 nstep=1000

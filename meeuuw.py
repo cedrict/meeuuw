@@ -46,7 +46,7 @@ print("-----------------------------")
 # experiment 10: axisymmetric aspect benchmark of Stokes sphere
 ###############################################################################
 
-experiment=9
+experiment=0
 
 if int(len(sys.argv)==5):
    experiment = int(sys.argv[1])
@@ -200,6 +200,8 @@ print('every_quadpoints_vtu',every_quadpoints_vtu)
 print('rho_DT_top',rho_DT_top)
 print('rho_DT_bot',rho_DT_bot)
 print('gravity_npts=',gravity_npts)  
+print('top_free_slip=',top_free_slip)
+print('bot_free_slip=',bot_free_slip)
 if geometry=='quarter' or geometry=='half':
    print('Rinner,Router=',Rinner,Router)
    print('hrad=',hrad)

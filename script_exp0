@@ -1,0 +1,15 @@
+#! /bin/bash
+
+e=0
+
+nstep=5
+
+for n  in 16 24 32 ; do
+
+    echo resolution: $n
+
+    python3 meeuuw.py $e $n $n $nstep > screen_${n}.txt
+    mkdir OUTPUT_${n}
+    mv OUTPUT/* OUTPUT_${n}/ 
+
+done

@@ -8,4 +8,6 @@ rm DEBUG/*.ascii
 rm OUTPUT/*.ascii
 rm OUTPUT/*.vtu 
 rm OUTPUT/*.pvd 
+rm *.txt
+
 
