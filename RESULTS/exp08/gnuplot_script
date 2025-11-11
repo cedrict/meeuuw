@@ -1,0 +1,19 @@
+#
+set term pdf enhanced font "Times,12pt"
+set grid
+
+set xlabel 'theta'
+
+set ylabel 'e_{rr}'
+set output 'top_err.pdf'
+plot[][]\
+'nqel3/top_err_0.ascii' w l t 'nqel=3^2',\
+'nqel4/top_err_0.ascii' w l t 'nqel=4^2',\
+'nqel5/top_err_0.ascii' w l t 'nqel=5^2',\
+
+set ylabel 'pressure'
+set output 'top_q.pdf'
+plot[][]\
+'nqel3/top_q_0.ascii' w l t 'nqel=3^2',\
+'nqel4/top_q_0.ascii' w l t 'nqel=4^2',\
+'nqel5/top_q_0.ascii' w l t 'nqel=5^2',\
