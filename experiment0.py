@@ -1,47 +1,25 @@
 import numpy as np
 
+geometry='box'
 Ly=1
 eta_ref=1
 solve_T=True
-vel_scale=1 ; vel_unit=' '
-time_scale=1 ; time_unit=' '
-p_scale=1 ; p_unit=' '
 Ttop=0
 Tbottom=1
 alphaT=1e-2   # thermal expansion coefficient
 hcond=1       # thermal conductivity
 hcapa=1       # heat capacity
 rho0=1
-TKelvin=0
-pressure_normalisation='surface'
 every_Nu=1
 end_time=0.25
 every_solution_vtu=10
 every_swarm_vtu=10
-every_quadpoints_vtu=500
 RKorder=-1
 particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 averaging='geometric'
-formulation='BA'
 debug_ascii=True
-debug_nan=False
-rho_DT_top=0
-rho_DT_bot=0
-tol_ss=1e-8
-top_free_slip=True
-bot_free_slip=True
-
 nparticle_per_dim=6
 nstep=1000
-CFLnb=0.5 
-
-geometry='box'
-Rinner=0.55
-Router=1
-
-gravity_npts=256   
-gravity_rho_ref=0
-gravity_height=0.1
 
 ###############################################################################
 
@@ -74,7 +52,6 @@ match(icase):
       nelx=80
       nely=32
 
-
 ###############################################################################
 
 def viscosity(x,y,T):
@@ -90,7 +67,6 @@ def viscosity(x,y,T):
           eta=np.exp(-6.907755279*T)
        case '2b':
           eta=np.exp(-9.704060528*T+4.158883083*(1-y))
-
     return eta
 
 ###############################################################################
@@ -108,7 +84,6 @@ def initial_temperature(x,y,rad,theta,nn_V):
        for i in range(0,nn_V):
            T[i]=(Tbottom-Ttop)*(Router-rad[i])/(Router-Rinner)+Ttop\
                 +0.1*np.cos(2*theta[i])*np.sin(np.pi*(rad[i]-Rinner)/(Router-Rinner))
-
     return T
 
 ###############################################################################

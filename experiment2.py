@@ -7,31 +7,16 @@ year=365.25*3600*24
 Lx=3000e3
 Ly=750e3
 eta_ref=1e21
-solve_T=False
 p_scale=1e6 ; p_unit="MPa"
 vel_scale=cm/year ; vel_unit='cm/yr'
 time_scale=year ; time_unit='yr'
-every_Nu=100000
-TKelvin=0
-pressure_normalisation='surface'
 end_time=50e6*year
 every_solution_vtu=1
 every_swarm_vtu=5
-every_quadpoints_vtu=5
 RKorder=4
-particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 averaging='geometric'
-formulation='BA'
 debug_ascii=False
-debug_nan=False
 nparticle_per_dim=5
-geometry='box'
-rho_DT_top=0
-rho_DT_bot=0
-gravity_npts=0
-tol_ss=-1e-8
-top_free_slip=True
-bot_free_slip=True
 
 nelx=128
 nely=64
@@ -104,6 +89,3 @@ def gravity_model(x,y):
     return gx,gy
 
 ###############################################################################
-
-
-

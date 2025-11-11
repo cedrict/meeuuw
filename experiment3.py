@@ -31,9 +31,6 @@ Lx=1
 Ly=1
 eta_ref=1
 solve_T=True
-vel_scale=1 ; vel_unit=' '
-time_scale=1 ; time_unit=' '
-p_scale=1 ; p_unit=' '
 Ttop=0
 Tbottom=1
 alphaT=1e-4
@@ -41,8 +38,6 @@ hcond=1
 hcapa=1 
 rho0=1
 Ra=1e4
-TKelvin=0
-pressure_normalisation='surface'
 every_Nu=1
 end_time=0.25
 case_tosi=1
@@ -54,27 +49,14 @@ eta_min=1e-5
 eta_max=1
 every_solution_vtu=1
 every_swarm_vtu=5
-every_quadpoints_vtu=5
 RKorder=4
-particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 averaging='geometric'
-formulation='BA'
 debug_ascii=False
-debug_nan=False
 nparticle_per_dim=5
-geometry='box'
-rho_DT_top=0
-rho_DT_bot=0
-gravity_npts=0
-tol_ss=-1e-8
-top_free_slip=True
-bot_free_slip=True
 
 nelx=32
 nely=32
 nstep=10
-
-CFLnb=0.5
 
 ###############################################################################
 

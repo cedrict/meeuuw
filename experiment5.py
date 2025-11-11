@@ -9,13 +9,9 @@ import numba
 # assuming strainrate = very small at surface, then eta_e very large 
 # and eta -> eta_T=1
 
-
 Lx=4
 Ly=1
 solve_T=True
-vel_scale=1 ; vel_unit=' '
-time_scale=1 ; time_unit=' '
-p_scale=1 ; p_unit=' '
 Ttop=0
 Tbottom=1
 
@@ -27,8 +23,6 @@ rho0=1
 Ra_surf=100
 sigma_y=2
 
-TKelvin=0
-pressure_normalisation='surface'
 every_Nu=1
 end_time=0.25
 gamma_T=np.log(1e5)
@@ -36,27 +30,15 @@ eta_star=1e-5
 eta_ref=1e-2
 every_solution_vtu=1
 every_swarm_vtu=5
-every_quadpoints_vtu=5
 RKorder=4
-particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 averaging='geometric'
-formulation='BA'
 debug_ascii=False
-debug_nan=False
 nparticle_per_dim=5
-rho_DT_top=0
-rho_DT_bot=0
-geometry='box'
-gravity_npts=0
-tol_ss=-1e-8
-top_free_slip=True
-bot_free_slip=True
            
 nelx=128
 nely=int(Ly/Lx*nelx)
 nstep=10000
 
-CFLnb=0.5
 
 ###############################################################################
 

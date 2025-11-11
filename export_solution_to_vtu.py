@@ -7,7 +7,7 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
                            rho_elemental,sigmaxx_nodal,sigmayy_nodal,sigmaxy_nodal,rad_V,theta_V,
                            eta_elemental,nparticle_elemental,area,icon_V,bc_fix_V,bc_fix_T,geometry,
                            gx_nodal,gy_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt,plith,nx,ny,
-                           exx_el,eyy_el,exy_el):
+                           exx_el,eyy_el,exy_el,taurr_nodal,tautt_nodal,taurt_nodal):
 
        debug_sol=False
 
@@ -99,17 +99,31 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
           vtufile.write("</DataArray>\n")
 
        #--
-       vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
-       exx_nodal.tofile(vtufile,sep=' ',format='%.4e')
-       vtufile.write("</DataArray>\n")
-       #--
-       vtufile.write("<DataArray type='Float32' Name='eyy' Format='ascii'> \n")
-       eyy_nodal.tofile(vtufile,sep=' ',format='%.4e')
-       vtufile.write("</DataArray>\n")
-       #--
-       vtufile.write("<DataArray type='Float32' Name='exy' Format='ascii'> \n")
-       exy_nodal.tofile(vtufile,sep=' ',format='%.4e')
-       vtufile.write("</DataArray>\n")
+       if not (geometry=='quarter' or geometry=='half'): 
+          vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
+          exx_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='eyy' Format='ascii'> \n")
+          eyy_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='exy' Format='ascii'> \n")
+          exy_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='sigmaxx' Format='ascii'> \n")
+          sigmaxx_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='sigmayy' Format='ascii'> \n")
+          sigmayy_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='sigmaxy' Format='ascii'> \n")
+          sigmaxy_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+
        #--
        vtufile.write("<DataArray type='Float32' Name='e' Format='ascii'> \n")
        e_nodal.tofile(vtufile,sep=' ',format='%.4e')
@@ -127,6 +141,19 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
           vtufile.write("<DataArray type='Float32' Name='ert' Format='ascii'> \n")
           ert_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='taurr' Format='ascii'> \n")
+          taurr_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='tautt' Format='ascii'> \n")
+          tautt_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='taurt' Format='ascii'> \n")
+          taurt_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+
        #--
        if debug_sol and (geometry=='quarter' or geometry=='half'):  
           vtufile.write("<DataArray type='Float32' Name='rad' Format='ascii'> \n")
@@ -138,17 +165,11 @@ def export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,
           vtufile.write("</DataArray>\n")
           #--
 
-       vtufile.write("<DataArray type='Float32' Name='sigmaxx' Format='ascii'> \n")
-       sigmaxx_nodal.tofile(vtufile,sep=' ',format='%.4e')
-       vtufile.write("</DataArray>\n")
-       #--
-       vtufile.write("<DataArray type='Float32' Name='sigmayy' Format='ascii'> \n")
-       sigmayy_nodal.tofile(vtufile,sep=' ',format='%.4e')
-       vtufile.write("</DataArray>\n")
-       #--
-       vtufile.write("<DataArray type='Float32' Name='sigmaxy' Format='ascii'> \n")
-       sigmaxy_nodal.tofile(vtufile,sep=' ',format='%.4e')
-       vtufile.write("</DataArray>\n")
+
+
+
+
+
        #--
        vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")
        eta_nodal.tofile(vtufile,sep=' ',format='%.4e')

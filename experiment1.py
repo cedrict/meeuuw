@@ -3,31 +3,17 @@ import numpy as np
 Lx=0.9142
 Ly=1
 eta_ref=100
-solve_T=False
 vel_scale=1 ; vel_unit=' '
 p_scale=1 ; p_unit=' '
 time_scale=1 ; time_unit=' '
 pressure_normalisation='volume'
-every_Nu=1000
-TKelvin=0
 end_time=2000
 every_solution_vtu=1
 every_swarm_vtu=5
-every_quadpoints_vtu=5
 RKorder=4
-particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 averaging='geometric'
-formulation='BA'
 debug_ascii=False
-debug_nan=False
 nparticle_per_dim=7
-rho_DT_top=0
-rho_DT_bot=0
-geometry='box'
-gravity_npts=0
-tol_ss=-1e-8
-top_free_slip=True
-bot_free_slip=True
 
 nelx=32
 nely=32

@@ -38,34 +38,20 @@ rho_DT_bot=10000
 #-----------------------------------------
 nstep=2
 eta_ref=1e21
-solve_T=False
-RKorder=2
 p_scale=1e6 ; p_unit="MPa"
 vel_scale=cm/year ; vel_unit='cm/yr'
 time_scale=year ; time_unit='yr'
-pressure_normalisation='surface'
-every_Nu=1000000
-TKelvin=0
 every_solution_vtu=1
 every_swarm_vtu=1
-every_quadpoints_vtu=500
 particle_distribution=1 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 nparticle_per_dim=7
 averaging='geometric'
-formulation='BA'
 debug_ascii=False
-debug_nan=False
 CFLnb=0.25
 end_time=100e6*year
-rho_DT_top=0
-rho_DT_bot=0
-geometry='box'
 gravity_npts=200
 gravity_height=200e3
 gravity_rho_ref=0
-tol_ss=-1e-8
-top_free_slip=True
-bot_free_slip=True
 
 ###############################################################################
 

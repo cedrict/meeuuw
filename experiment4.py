@@ -1,39 +1,35 @@
 import numpy as np
 from constants import *
 
+nely=32
 
-Rinner=3480e3
-Router=6370e3
-Lx=11600e3
-Ly=2900e3
+geometry='box'
+
+if geometry=='box':
+   Lx=11600e3
+   Ly=2900e3
+   nelx=int(Lx/Ly*nely)
+if geometry=='quarter':
+   Rinner=3480e3
+   Router=6370e3
+   nelx=int(np.pi/4*nely*(Rinner+Router)/(Router-Rinner))
+   top_free_slip=True
+   bot_free_slip=True
+
 eta_ref=1e22
 solve_T=True
-pressure_normalisation='surface'
 p_scale=1e6 ; p_unit="MPa"
 vel_scale=cm/year ; vel_unit='cm/yr'
 time_scale=year ; time_unit='yr'
-every_Nu=100000
 TKelvin=273.15
 end_time=1e9*year
 Tbottom=3000+TKelvin
 Ttop=0+TKelvin
 every_solution_vtu=10
 every_swarm_vtu=100
-every_quadpoints_vtu=100
-RKorder=4
-particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 averaging='geometric'
-formulation='BA'
 debug_ascii=False
-debug_nan=False
 nparticle_per_dim=5
-rho_DT_top=0
-rho_DT_bot=0
-geometry='quarter'
-gravity_npts=0
-tol_ss=-1e-8
-top_free_slip=True
-bot_free_slip=True
 
 rho0=3300
 alphaT=2e-5
@@ -49,20 +45,15 @@ sinphi=np.sin(phi)
 eta_min=1e20
 eta_max=6e24
 
-top_free_slip=True
-bot_free_slip=True
-
 print('kappa=',hcond0/hcapa0/rho0 )
-print('Ra=', (Tbottom-Ttop)*rho0*9.81*alphaT*Ly**3 / eta0 / (hcond0/hcapa0/rho0))
 
-nely=40
-
-if geometry=='box': nelx=nely
-if geometry=='quarter': nelx=int(np.pi/4*nely*(Rinner+Router)/(Router-Rinner))
+if geometry=='box':
+   print('Ra=', (Tbottom-Ttop)*rho0*9.81*alphaT*Ly**3 / eta0 / (hcond0/hcapa0/rho0))
+if geometry=='quarter':
+   print('Ra=', (Tbottom-Ttop)*rho0*9.81*alphaT*(Router-Rinner)**3 / eta0 / (hcond0/hcapa0/rho0))
 
 nstep=1000
 CFLnb=0.2         
-
 
 ###############################################################################
 

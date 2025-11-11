@@ -32,11 +32,18 @@ print("-----------------------------")
 print("----------- MEEUUW ----------")
 print("-----------------------------")
 
+
 ###############################################################################
-# experiment 0: Blankenbach et al, 1993    - isoviscous convection
+# set lots of generic parameters to default value
+###############################################################################
+
+from set_default_parameters import *
+
+###############################################################################
+# experiment  0: Blankenbach et al, 1993 - isoviscous convection
 # experiment  1: van Keken et al, JGR, 1997 - Rayleigh-Taylor experiment
 # experiment  2: Schmeling et al, PEPI 2008 - Newtonian subduction
-# experiment  3: Tosi et al, 2015           - visco-plastic convection
+# experiment  3: Tosi et al, 2015 - visco-plastic convection
 # experiment  4: not sure. mantle size convection
 # experiment  5: Trompert & Hansen, Nature 1998 - convection w/ plate-like  
 # experiment  6: Crameri et al, GJI 2012 (cosine perturbation & plume) 
@@ -46,7 +53,7 @@ print("-----------------------------")
 # experiment 10: axisymmetric aspect benchmark of Stokes sphere
 ###############################################################################
 
-experiment=0
+experiment=4
 
 if int(len(sys.argv)==5):
    experiment = int(sys.argv[1])
@@ -72,7 +79,7 @@ if int(len(sys.argv)==5): # override these parameters
 
 ###############################################################################
 
-if geometry=='quarter' or 'half':
+if geometry=='quarter' or geometry=='half':
    Lx=1 ; Ly=1 
 
 ndim=2                     # number of dimensions
@@ -119,10 +126,6 @@ if geometry=='box': L_ref=(Lx+Ly)/2
 if geometry=='quarter': L_ref=(Rinner+Router)/2
 if geometry=='half': L_ref=(Rinner+Router)/2
 
-method_nodal_strain_rate=1
-
-axisymmetric=True
-remove_rho_profile=False
 
 ###############################################################################
 #@@ quadrature rule points and weights
@@ -131,6 +134,25 @@ remove_rho_profile=False
 nqperdim=3
 qcoords=[-np.sqrt(3./5.),0.,np.sqrt(3./5.)]
 qweights=[5./9.,8./9.,5./9.]
+
+nqperdim=4
+qc4a=np.sqrt(3./7.+2./7.*np.sqrt(6./5.))
+qc4b=np.sqrt(3./7.-2./7.*np.sqrt(6./5.))
+qw4a=(18-np.sqrt(30.))/36.
+qw4b=(18+np.sqrt(30.))/36.
+qcoords=[-qc4a,-qc4b,qc4b,qc4a]
+qweights=[qw4a,qw4b,qw4b,qw4a]
+
+#nqperdim=5
+#qc5a=np.sqrt(5.+2.*np.sqrt(10./7.))/3.
+#qc5b=np.sqrt(5.-2.*np.sqrt(10./7.))/3.
+#qc5c=0.
+#qw5a=(322.-13.*np.sqrt(70.))/900.
+#qw5b=(322.+13.*np.sqrt(70.))/900.
+#qw5c=128./225.
+#qcoords=[-qc5a,-qc5b,qc5c,qc5b,qc5a]
+#qweights=[qw5a,qw5b,qw5c,qw5b,qw5a]
+
 nqel=nqperdim**ndim
 nq=nqel*nel
 
@@ -563,7 +585,7 @@ for i in range(0,nn_V):
 
 gr_nodal=gx_nodal*np.cos(theta_V)+gy_nodal*np.sin(theta_V)
 
-print("compute grav at qpts: %.3f s" % (clock.time()-start))
+print("compute grav on nodes: %.3f s" % (clock.time()-start))
 
 ###############################################################################
 #@@ compute normal vector of domain
@@ -1435,6 +1457,10 @@ for istep in range(0,nstep):
     if geometry=='quarter' or geometry=='half':
        taurr_nodal,tautt_nodal,taurt_nodal,tau_polar=\
        convert_tensor_to_polar_coords(theta_V,tauxx_nodal,tauyy_nodal,tauxy_nodal)
+    else:
+       taurr_nodal=0
+       tautt_nodal=0
+       taurt_nodal=0
 
     sigmaxx_nodal=-q+tauxx_nodal
     sigmayy_nodal=-q+tauyy_nodal
@@ -1625,7 +1651,8 @@ for istep in range(0,nstep):
                               eta_elemental,nparticle_elemental,area,icon_V,\
                               bc_fix_V,bc_fix_T,geometry,gx_nodal,gy_nodal,\
                               err_nodal,ett_nodal,ert_nodal,vr,vt,plith,nx,ny,\
-                              exx_elemental,eyy_elemental,exy_elemental)
+                              exx_elemental,eyy_elemental,exy_elemental,\
+                              taurr_nodal,tautt_nodal,taurt_nodal)
 
        print("export solution to vtu file: %.3f s" % (clock.time()-start)) ; timings[10]+=clock.time()-start
 
@@ -1717,7 +1744,7 @@ for istep in range(0,nstep):
          gtI[:,istep]=-gxI[:,istep]*np.sin(thetas)+gyI[:,istep]*np.cos(thetas)
 
          np.savetxt('OUTPUT/gravityI_'+str(istep)+'.ascii',\
-                    np.array([rads,thetas,gnormI[:,istep],grI[:,istep],gtI[:,istep]]).T,header='#x,y,g,gx,gy')
+                    np.array([rads,thetas,gnormI[:,istep],grI[:,istep],gtI[:,istep]]).T,header='#r,theta,g,gx,gy')
 
         case _ :
          print('gravity calculations not available for this geometry')   
