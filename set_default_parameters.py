@@ -16,6 +16,8 @@ remove_rho_profile=False
 top_free_slip=False
 bot_free_slip=False
 nstep=1
+nqperdim=3
+straighten_egdes=False
 
 #######################################
 # debug pparameters 

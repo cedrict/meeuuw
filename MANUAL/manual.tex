@@ -4,16 +4,29 @@
 \usepackage{graphicx}
 \usepackage{upgreek}
 \usepackage{amsmath}
-\usepackage{amsmath}
+\usepackage{verbatim}
 \usepackage{csquotes}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{bm}
 \usepackage{url}
+\usepackage{listings}
+\lstset{ 
+  language=Python,
+  backgroundcolor=\color{white},   % choose the background color; you must add \usepackage{xcolor}; should come as last argument
+  basicstyle=\footnotesize,        % the size of the fonts that are used for the code
+  breakatwhitespace=false,         % sets if automatic breaks should only happen at whitespace
+  breaklines=true,                 % sets automatic line breaking
+  captionpos=b,                    % sets the caption-position to bottom
+  frame=single,                    % adds a frame around the code
+  keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code 
+  keywordstyle=\color{blue},       % keyword style
+}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\title{MEEUUW - Mantle modelling Early Earth Utrecht University Work in progress}
-\author{C. Thieulot, A. van den Berg}
+\title{MEEUUW \\ Mantle modelling Early Earth Utrecht University Work in progress}
+\author{C. Thieulot} %, A. van den Berg}
 
 
 \usepackage[style=authoryear,maxnames=1]{biblatex}
@@ -26,8 +39,122 @@
 
 \begin{document}
 \maketitle
+\begin{center}
+\includegraphics[width=3cm]{IMAGES/meeuuw}
+\end{center}
 
-%==============================================================
+%==============================================================================
+\section{Foreword}
+
+I have quite a history of naming codes and regretting it afterwards. This 
+is one more in my collection: SoPHa, SPHene, FANTOM, ELEFANT, FLAPS, FieldStone.
+
+%==============================================================================
+\section{Install process}
+
+The code consists of a dozen of Python files. 
+Aside from standard Python modules (numpy, scipy, etc ...) the 
+numba\footnote{\url{https://numba.pydata.org/}} package is needed and needs to be installed.
+The reason for the use of this module is as follows: 
+``Numba translates Python functions to optimized machine code at runtime using the industry-standard LLVM compiler library. Numba-compiled numerical algorithms in Python can approach the speeds of C or FORTRAN.
+You don't need to replace the Python interpreter, run a separate compilation step, or even have a C/C++ compiler installed. Just apply one of the Numba decorators to your Python function, and Numba does the rest.'' [Taken from the numba website]
+
+If numba is not available on your machine, simply delete all occurences of 
+\lstinline{@numba.njit} before the functions.
+
+
+%==============================================================================
+\section{Philosophy}
+
+The code is entirely written in Python. The domain is only 2d, although
+an axisymmetric option has been implemented.
+The code is not meant to compete with ASPECT or any similar code. It is 
+meant to be an educational tool, typically for MSc or PhD students in mind. 
+The interface is simple and flexible. 
+Inside a \lstinline{experimentX.py} file the user needs to specify the 
+necessary parameters (e.g. the resolution, domain size, number of timesteps, etc ...)
+and fill in a few template functions:
+\begin{lstlisting}  
+initial_temperature
+assign_boundary_conditions_V
+assign_boundary_conditions_T
+particle_layout
+material_model
+gravity_model
+\end{lstlisting}  
+
+There are at the moment 10 so-called experiments (called cookbooks in ASPECT)
+that either aim at reproducing existing articles results (numerical benchmarks)
+or built as setups to be used in class.
+Each experiment is entirely contained in its corresponding \lstinline{experimentX.py} file.
+The current list of experiments is as follows:
+\begin{lstlisting}  
+# experiment  0: Blankenbach et al, 1993 - isoviscous convection
+# experiment  1: van Keken et al, JGR, 1997 - Rayleigh-Taylor experiment
+# experiment  2: Schmeling et al, PEPI 2008 - Newtonian subduction
+# experiment  3: Tosi et al, 2015 - visco-plastic convection
+# experiment  4: not sure. mantle size convection
+# experiment  5: Trompert & Hansen, Nature 1998 - convection w/ plate-like  
+# experiment  6: Crameri et al, GJI 2012 (cosine perturbation & plume) 
+# experiment  7: ESA workshop
+# experiment  8: quarter - sinker
+# experiment  9: axisymmetric Mars setup
+# experiment 10: axisymmetric aspect benchmark of Stokes sphere
+\end{lstlisting}  
+The results obtained with the code for these experiments are 
+available in the {\tt RESULTS} folder.
+
+In order to select one of these experiments, simply open \lstinline{meeuuw.py}
+and edit line 55 which reads \lstinline{experiment=X}.
+
+In order to run the code, simply then type the following in the terminal:
+\begin{verbatim}
+python3 meeuuw.py
+\end{verbatim}
+Note that a script carrying this also exists and can be executed as follows:
+\begin{verbatim}
+./run
+\end{verbatim}
+
+The code will then run and will produce {\it a lot} of information 
+while running in the terminal. If you wish to keep this information 
+you can redirect the screen output to a file as follows for example:
+\begin{verbatim}
+python3 meeuuw.py > screen_output.text
+\end{verbatim}
+The code also generates {\tt .ascii} files (to be plotted with gnuplot for example)
+and {\tt .vtu} files to be opened with ParaView. All are placed automatically 
+in the {\tt OUTPUT} folder.
+
+After a simulation, if results are to be discarded, and before running a new 
+model, it is recommended to remove all results by running the following script:
+\begin{verbatim}
+./cleandata
+\end{verbatim}
+
+
+
+%==============================================================================
+\section{Numerical methods}
+
+The Stokes equations are discretised by means of the Finite Element Method (FEM).
+As explained in \textcite{thba22} and \textcite{thba22}, there are many 
+so-called element pairs for the velocity and pressure spaces, and we here rely 
+on quadrilateral Taylor-Hood elements only, i.e. $Q_2 \times Q_1$.
+The energy equation relies on $Q_2$ elements for the temperature.
+
+The FEM formulation of these equations is explained in the FieldStone 
+manual\footnote{\url{https://cedrict.github.io/}}.
+
+\newpage
+%==============================================================================
+\section{Code structure}
+
+\verbatiminput{structure}
+
+
+\newpage
+%==============================================================================
 \section{Generic mass, momentum, energy conservation equations}
 
 We focus on the system of equations in a $d=2$- or $d=3$-dimensional
@@ -114,13 +241,13 @@ temperature, and write:
 \[
 \rho=\rho_0(1-\alpha(T-T_0))
 \]
-This approximation thus means that the inﬂuence of hydrostatic pressure 
+This approximation thus means that the influence of hydrostatic pressure 
 (as well as temperature $T_0$) on density is hidden
 in a spatial dependence of the reference density $\rho_0$.
 
 The reference density $\rho_0$ is assumed to be a time-independent function. 
 Considering only the largest term in the equation of continuity, that is, 
-neglecting thermal expansion, we arrive at the simpliﬁed equation:
+neglecting thermal expansion, we arrive at the simplified equation:
 \[
 \vec\nabla\cdot(\rho_0 \vec\upnu) =0
 \]
@@ -146,7 +273,7 @@ p and T) is then described by the well-known equation:
 - \alpha T  \vec\upnu \cdot \rho \vec{g} 
 + {\bm \tau} : \vec\nabla \vec\upnu + Q
 \]
-where cp is the isobaric speciﬁc heat, $\alpha$ is the thermal expansion
+where $C_p$ is the isobaric speciﬁc heat, $\alpha$ is the thermal expansion
 coefﬁcient and vr denotes the radial component of velocity. The
 left-hand side of equation 8 represents local changes of heat balance; 
 the second (third) term on the right-hand side describes ad-
@@ -290,6 +417,15 @@ equations. Nevertheless, many of them are generally accepted
 and widely used in geodynamic modelling studies, as
 they allow for simpler equations and more easily obtained solutions.
 \end{displayquote}
+
+%==============================================================================
+\section{Initial adiabatic temperature profile}
+
+
+
+
+%==============================================================================
+\section{Dynamic topography}
 
 
 

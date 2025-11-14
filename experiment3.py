@@ -27,6 +27,7 @@ def assign_parameters(icase):
 
 ###############################################################################
 
+case_tosi=4
 Lx=1
 Ly=1
 eta_ref=1
@@ -40,7 +41,6 @@ rho0=1
 Ra=1e4
 every_Nu=1
 end_time=0.25
-case_tosi=1
 gamma_T=np.log(1e5)
 eta_star=1e-3 
 eta_ref=1e-2
@@ -86,6 +86,7 @@ def viscosity(T,exx,eyy,exy,y,gamma_T,gamma_y,sigma_y,eta_star,icase):
     #-------------------
     elif icase==4:
        e=np.sqrt(0.5*(exx**2+eyy**2)+exy**2)
+       e=max(e,1e-12)
        eta_lin=np.exp(-gamma_T*T+gamma_y*(1-y))
        eta_plast=eta_star + sigma_y/(np.sqrt(2)*e)
        val=2/(1/eta_lin + 1/eta_plast)
@@ -93,7 +94,8 @@ def viscosity(T,exx,eyy,exy,y,gamma_T,gamma_y,sigma_y,eta_star,icase):
     # tosi et al, case 5
     #-------------------
     elif icase==5:
-       e=np.sqrt(0.5*(exx**2+eyy**2)+exy**2)
+       e=np.sqrt(0.5*(exx**2+eyy**2)+exy**2) 
+       e=max(e,1e-12)
        eta_lin=np.exp(-gamma_T*T+gamma_y*(1-y))
        eta_plast=eta_star + sigma_y/(np.sqrt(2)*e)
        val=2/(1/eta_lin + 1/eta_plast)

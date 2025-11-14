@@ -78,7 +78,7 @@ def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon
 
         G_el*=eta_ref/L_ref
 
-        if geometry=='quarter' or geometry=='half':
+        if geometry=='quarter' or geometry=='half' or geometry=='eighth':
            if top_element[iel] and top_free_slip: # free slip on top boundary
               for i in [2,3,6]:
                   inode=icon_V[i,iel] 
