@@ -2,10 +2,22 @@ import numpy as np
 import numba
 from constants import *
 
+###############################################################################
+
 @numba.njit
 def compute_gravity_at_point(xs,ys,nel,xc,yc,rho,vol,rho_ref):
-    # xs,ys: coordinates of the 'satellite' point
-    # where gravity is computed
+    """
+    Args:
+     xs,ys: coordinates of the 'satellite' point where gravity is computed
+     nel: number of elements in the mesh
+     xc,yc: coordinates of all element centers
+     rho: density of all elements
+     vol: volume of all elements
+     rho_ref: background reference density
+    Returns:
+     gx,gy: gravity vector at satellite point
+     gnorm: gravity norm at satellite point
+    """
 
     ggx=0.
     ggy=0.
@@ -19,3 +31,16 @@ def compute_gravity_at_point(xs,ys,nel,xc,yc,rho,vol,rho_ref):
     gnorm=np.sqrt(ggx**2+ggy**2)
 
     return ggx,ggy,gnorm
+
+###############################################################################
+
+def compute_gravity_at_point_axisymmetric(xs,ys,nel,xc,yc,rho,vol,rho_ref):
+
+    ggx=0.
+    ggy=0.
+
+    gnorm=np.sqrt(ggx**2+ggy**2)
+
+    return ggx,ggy,gnorm
+
+###############################################################################

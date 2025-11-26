@@ -1,6 +1,5 @@
 import numpy as np
 from constants import *
-from prem import * 
 
 #-----------------------------------------
 
@@ -8,10 +7,10 @@ axisymmetric=True
 
 geometry='quarter'
 
-nely=64
+nelz=64
 
-if geometry=='quarter': nelx=int(3*nely)
-if geometry=='half': nelx=int(6.7*nely)
+if geometry=='quarter': nelx=int(3*nelz)
+if geometry=='half': nelx=int(6.7*nelz)
 
 R_blob=200e3
 eta_blob=1e22
@@ -85,7 +84,7 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
 
 ###############################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
+def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
@@ -99,7 +98,7 @@ def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
        x_blob=3500e3
        y_blob=3500e3
        for ip in range(nparticle):
-           if (swarm_x[ip]-x_blob)**2+(swarm_y[ip]-y_blob)**2<R_blob**2:
+           if (swarm_x[ip]-x_blob)**2+(swarm_z[ip]-y_blob)**2<R_blob**2:
               swarm_mat[ip]=2
 
     if blob=='banaan':
@@ -112,14 +111,14 @@ def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
        x_blob=0
        y_blob=5000e3
        for ip in range(nparticle):
-           if (swarm_x[ip]-x_blob)**2+(swarm_y[ip]-y_blob)**2<R_blob**2:
+           if (swarm_x[ip]-x_blob)**2+(swarm_z[ip]-y_blob)**2<R_blob**2:
               swarm_mat[ip]=2
 
     return swarm_mat
 
 ###############################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_p):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -135,11 +134,11 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swa
 
 ###############################################################################
 
-def gravity_model(x,y):
+def gravity_model(x,z):
     g0=10
-    gx=-x/np.sqrt(x**2+y**2)*g0
-    gy=-y/np.sqrt(x**2+y**2)*g0
-    return gx,gy
+    gx=-x/np.sqrt(x**2+z**2)*g0
+    gz=-z/np.sqrt(x**2+z**2)*g0
+    return gx,gz
 
 ###############################################################################
 

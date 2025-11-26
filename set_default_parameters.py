@@ -11,13 +11,19 @@ vel_scale=1 ; vel_unit=' '
 time_scale=1 ; time_unit=' '
 p_scale=1 ; p_unit=' '
 solve_T=False
+solve_Stokes=True
 method_nodal_strain_rate=1
 remove_rho_profile=False
 top_free_slip=False
 bot_free_slip=False
 nstep=1
 nqperdim=3
-straighten_egdes=False
+straighten_edges=False
+use_elemental_rho=False
+use_elemental_eta=False
+mapping='Q2'
+averaging='geometric'
+use_melting=False
 
 #######################################
 # debug pparameters 
@@ -34,7 +40,7 @@ axisymmetric=False
 TKelvin=0
 geometry='box'
 Lx=1
-Ly=1
+Lz=1
 Rinner=0.55
 Router=1
 

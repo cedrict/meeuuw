@@ -10,7 +10,7 @@ import numba
 
 @numba.njit
 def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon_V,icon_P,\
-                        rhoq,etaq,JxWq,local_to_globalV,gxq,gyq,Ly,N_V,N_P,dNdr_V,dNds_V,\
+                        rhoq,etaq,JxWq,local_to_globalV,gxq,gyq,N_V,N_P,dNdr_V,dNds_V,\
                         jcbi00q,jcbi01q,jcbi10q,jcbi11q,eta_ref,L_ref,bc_fix_V,bc_val_V,\
                         bot_element,top_element,bot_free_slip,top_free_slip,geometry,theta_V,
                         axisymmetric,xq):

@@ -30,7 +30,7 @@ def interpolate_vel_on_pt___box(xp,yp,u,v,hx,hy,nelx,icon,x_V,y_V):
     return up,vp,iel
 
 @numba.njit
-def interpolate_vel_on_pt___quarter(xp,yp,u,v,hrad,htheta,nelx,icon,rad_V,theta_V,Rinner):
+def interpolate_vel_on_pt___annulus(xp,yp,u,v,hrad,htheta,nelx,icon,rad_V,theta_V,Rinner):
     """
     Args:
        xp,yp: coordinates of point
@@ -90,11 +90,11 @@ def interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,phi,icon)
 ###############################################################################
 
 @numba.njit
-def locate_particles___box(nparticle,swarm_x,swarm_y,hx,hy,x_V,y_V,icon,nelx):
+def locate_particles___box(nparticle,swarm_x,swarm_z,hx,hy,x_V,y_V,icon,nelx):
     """
     Args:
        nparticle: number of particles
-       swarm_x,swarm_y: cartesian coordinates arrays of all particles
+       swarm_x,swarm_z: cartesian coordinates arrays of all particles
        hx,hy: element size
        x_V,y_V: cartesian coordinate arrays of V nodes
        icon: connectivity of V nodes
@@ -106,17 +106,17 @@ def locate_particles___box(nparticle,swarm_x,swarm_y,hx,hy,x_V,y_V,icon,nelx):
     swarm_iel=np.zeros(nparticle,dtype=np.int32)
     for ip in range(0,nparticle):
         ielx=int(swarm_x[ip]/hx)
-        iely=int(swarm_y[ip]/hy)
+        iely=int(swarm_z[ip]/hy)
         iel=nelx*iely+ielx
         swarm_r[ip]=((swarm_x[ip]-x_V[icon[0,iel]])/hx-0.5)*2
-        swarm_s[ip]=((swarm_y[ip]-y_V[icon[0,iel]])/hy-0.5)*2
+        swarm_s[ip]=((swarm_z[ip]-y_V[icon[0,iel]])/hy-0.5)*2
         swarm_iel[ip]=iel
     return swarm_r,swarm_s,swarm_iel
 
 ###############################################################################
 
 @numba.njit
-def locate_particles___quarter(nparticle,swarm_rad,swarm_theta,hrad,htheta,rad_V,theta_V,icon,nelx,Rinner):
+def locate_particles___annulus(nparticle,swarm_rad,swarm_theta,hrad,htheta,rad_V,theta_V,icon,nelx,Rinner):
     """
     Args:
        nparticle: number of particles
@@ -146,40 +146,40 @@ def locate_particles___quarter(nparticle,swarm_rad,swarm_theta,hrad,htheta,rad_V
 ###############################################################################
 
 @numba.njit
-def advect_particles___box(RKorder,dt,nparticle,swarm_x,swarm_y,swarm_active,u,v,\
-                           Lx,Ly,hx,hy,nelx,icon,x_V,y_V):
+def advect_particles___box(RKorder,dt,nparticle,swarm_x,swarm_z,swarm_active,u,v,\
+                           Lx,Lz,hx,hy,nelx,icon,x_V,y_V):
     """
     Args:
        RKorder: Runge-Kutta algorithm order (1,2,4)
        dt: time step value
        nparticle: number of particles
-       swarm_x,swarm_y: cartesian coordinates of particles
+       swarm_x,swarm_z: cartesian coordinates of particles
        swarm_active: boolean array (True if particle still in domain)
        u,v: velocity arrays on FE mesh
-       Lx,Ly: domain dimensions
+       Lx,Lz: domain dimensions
        hx,hy: element size
        nelx: nb of elements in x direction
        icon: connectivity array of V nodes
        x_V,y_V: cartesian coordinate arrays of V nodes
     Returns:
-       swarm_x,swarm_y: cartesian coordinates of particles
-       swarm_u,swarm_v: velocity of particles
+       swarm_x,swarm_z: cartesian coordinates of particles
+       swarm_u,swarm_w: velocity of particles
        swarm_active: boolean array (True if particle still in domain)
     """
 
     swarm_u=np.zeros(nparticle,dtype=np.float64)
-    swarm_v=np.zeros(nparticle,dtype=np.float64)
+    swarm_w=np.zeros(nparticle,dtype=np.float64)
 
     if RKorder==1:
 
        for ip in range(0,nparticle):
            if swarm_active[ip]:
-              swarm_u[ip],swarm_v[ip],iel=\
-              interpolate_vel_on_pt___box(swarm_x[ip],swarm_y[ip],u,v,\
+              swarm_u[ip],swarm_w[ip],iel=\
+              interpolate_vel_on_pt___box(swarm_x[ip],swarm_z[ip],u,v,\
                                           hx,hy,nelx,icon,x_V,y_V)
               swarm_x[ip]+=swarm_u[ip]*dt
-              swarm_y[ip]+=swarm_v[ip]*dt
-              if swarm_x[ip]<0 or swarm_x[ip]>Lx or swarm_y[ip]<0 or swarm_y[ip]>Ly:
+              swarm_z[ip]+=swarm_w[ip]*dt
+              if swarm_x[ip]<0 or swarm_x[ip]>Lx or swarm_z[ip]<0 or swarm_z[ip]>Lz:
                  swarm_active[ip]=False
            # end if active
        # end for ip
@@ -189,20 +189,20 @@ def advect_particles___box(RKorder,dt,nparticle,swarm_x,swarm_y,swarm_active,u,v
        for ip in range(0,nparticle):
            if swarm_active[ip]:
               xA=swarm_x[ip]
-              yA=swarm_y[ip]
-              uA,vA,iel=interpolate_vel_on_pt___box(xA,yA,u,v,\
+              zA=swarm_z[ip]
+              uA,vA,iel=interpolate_vel_on_pt___box(xA,zA,u,v,\
                                                     hx,hy,nelx,icon,x_V,y_V)
               xB=xA+uA*dt/2.
-              yB=yA+vA*dt/2.
-              if xB<0 or xB>Lx or yB<0 or yB>Ly:
+              yB=zA+vA*dt/2.
+              if xB<0 or xB>Lx or yB<0 or yB>Lz:
                  swarm_active[ip]=False
               else:
                  uB,vB,iel=interpolate_vel_on_pt___box(xB,yB,u,v,\
                                                        hx,hy,nelx,icon,x_V,y_V)
                  swarm_x[ip]=xA+uB*dt
-                 swarm_y[ip]=yA+vB*dt
+                 swarm_z[ip]=zA+vB*dt
                  swarm_u[ip]=uB
-                 swarm_v[ip]=vB
+                 swarm_w[ip]=vB
               # end if active
            # end if active
        # end for ip
@@ -212,30 +212,30 @@ def advect_particles___box(RKorder,dt,nparticle,swarm_x,swarm_y,swarm_active,u,v
        for ip in range(0,nparticle):
            if swarm_active[ip]:
               xA=swarm_x[ip]
-              yA=swarm_y[ip]
-              uA,vA,iel=interpolate_vel_on_pt___box(xA,yA,u,v,hx,hy,nelx,icon,x_V,y_V)
+              zA=swarm_z[ip]
+              uA,vA,iel=interpolate_vel_on_pt___box(xA,zA,u,v,hx,hy,nelx,icon,x_V,y_V)
               xB=xA+uA*dt/2.
-              yB=yA+vA*dt/2.
-              if xB<0 or xB>Lx or yB<0 or yB>Ly:
+              yB=zA+vA*dt/2.
+              if xB<0 or xB>Lx or yB<0 or yB>Lz:
                  swarm_active[ip]=False
               else:
                  uB,vB,iel=interpolate_vel_on_pt___box(xB,yB,u,v,hx,hy,nelx,icon,x_V,y_V)
                  xC=xA+uB*dt/2.
-                 yC=yA+vB*dt/2.
-                 if xC<0 or xC>Lx or yC<0 or yC>Ly:
+                 yC=zA+vB*dt/2.
+                 if xC<0 or xC>Lx or yC<0 or yC>Lz:
                     swarm_active[ip]=False
                  else:
                     uC,vC,iel=interpolate_vel_on_pt___box(xC,yC,u,v,hx,hy,nelx,icon,x_V,y_V)
                     xD=xA+uC*dt
-                    yD=yA+vC*dt
-                    if xD<0 or xD>Lx or yD<0 or yD>Ly:
+                    yD=zA+vC*dt
+                    if xD<0 or xD>Lx or yD<0 or yD>Lz:
                        swarm_active[ip]=False
                     else:
                        uD,vD,iel=interpolate_vel_on_pt___box(xD,yD,u,v,hx,hy,nelx,icon,x_V,y_V)
                        swarm_u[ip]=(uA+2*uB+2*uC+uD)/6
-                       swarm_v[ip]=(vA+2*vB+2*vC+vD)/6
+                       swarm_w[ip]=(vA+2*vB+2*vC+vD)/6
                        swarm_x[ip]=xA+swarm_u[ip]*dt
-                       swarm_y[ip]=yA+swarm_v[ip]*dt
+                       swarm_z[ip]=zA+swarm_w[ip]*dt
                     # end if active
                  # end if active
               # end if active
@@ -245,14 +245,47 @@ def advect_particles___box(RKorder,dt,nparticle,swarm_x,swarm_y,swarm_active,u,v
     for im in range(0,nparticle):
         if not swarm_active[im]:
            swarm_x[im]=0
-           swarm_y[im]=0
+           swarm_z[im]=0
 
-    return swarm_x,swarm_y,swarm_u,swarm_v,swarm_active
+    return swarm_x,swarm_z,swarm_u,swarm_w,swarm_active
 
 ###############################################################################
 
 @numba.njit
-def advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_y,
+def advect_particles___eighth(RKorder,dt,nparticle,swarm_x,swarm_z,
+                              swarm_rad,swarm_theta,swarm_active,u,v,
+                              Rinner,Router,hrad,htheta,nelx,icon,rad_V,theta_V):
+
+    swarm_u=np.zeros(nparticle,dtype=np.float64)
+    swarm_w=np.zeros(nparticle,dtype=np.float64)
+
+    if True: #RKorder==1:
+
+       for ip in range(0,nparticle):
+           if swarm_active[ip]:
+              swarm_u[ip],swarm_w[ip],iel=\
+              interpolate_vel_on_pt___annulus(swarm_x[ip],swarm_z[ip],u,v,\
+                                              hrad,htheta,nelx,icon,rad_V,theta_V,Rinner)
+              swarm_x[ip]+=swarm_u[ip]*dt
+              swarm_z[ip]+=swarm_w[ip]*dt
+              swarm_rad[ip]=np.sqrt(swarm_x[ip]**2+swarm_z[ip]**2)
+              swarm_theta[ip]=np.pi/2-np.arctan2(swarm_x[ip],swarm_z[ip])
+              if swarm_x[ip]<0 or swarm_rad[ip]<Rinner or swarm_rad[ip]>Router or swarm_z[ip]<swarm_x[ip]:
+                 swarm_active[ip]=False
+           # end if active
+       # end for ip
+
+    for ip in range(0,nparticle):
+        if not swarm_active[ip]:
+           swarm_x[ip]=0
+           swarm_z[ip]=0
+
+    return swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_u,swarm_w,swarm_active
+
+###############################################################################
+
+@numba.njit
+def advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_z,
                                swarm_rad,swarm_theta,swarm_active,u,v,
                                Rinner,Router,hrad,htheta,nelx,icon,rad_V,theta_V):
     """
@@ -260,7 +293,7 @@ def advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_y,
        RKorder: Runge-Kutta algorithm order (1,2,4)
        dt: time step value
        nparticle: number of particles
-       swarm_x,swarm_y: cartesian coordinates of particles
+       swarm_x,swarm_z: cartesian coordinates of particles
        swarm_rad,swarm_theta: polar coordinates of particles
        swarm_active: boolean array (True if particle still in domain)
        u,v: velocity arrays on FE mesh
@@ -270,27 +303,27 @@ def advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_y,
        icon: connectivity array of V nodes
        rad_V,theta_V: polar coordinates of V nodes
     Returns:
-       swarm_x,swarm_y: cartesian coordinates of particles
+       swarm_x,swarm_z: cartesian coordinates of particles
        swarm_rad,swarm_theta: polar coordinates of particles
-       swarm_u,swarm_v: velocity of particles
+       swarm_u,swarm_w: velocity of particles
        swarm_active: boolean array (True if particle still in domain)
     """
 
     swarm_u=np.zeros(nparticle,dtype=np.float64)
-    swarm_v=np.zeros(nparticle,dtype=np.float64)
+    swarm_w=np.zeros(nparticle,dtype=np.float64)
 
     if RKorder==1:
 
        for ip in range(0,nparticle):
            if swarm_active[ip]:
-              swarm_u[ip],swarm_v[ip],iel=\
-              interpolate_vel_on_pt___quarter(swarm_x[ip],swarm_y[ip],u,v,\
+              swarm_u[ip],swarm_w[ip],iel=\
+              interpolate_vel_on_pt___annulus(swarm_x[ip],swarm_z[ip],u,v,\
                                               hrad,htheta,nelx,icon,rad_V,theta_V,Rinner)
               swarm_x[ip]+=swarm_u[ip]*dt
-              swarm_y[ip]+=swarm_v[ip]*dt
-              swarm_rad[ip]=np.sqrt(swarm_x[ip]**2+swarm_y[ip]**2)
-              swarm_theta[ip]=np.pi/2-np.arctan2(swarm_x[ip],swarm_y[ip])
-              if swarm_x[ip]<0 or swarm_y[ip]<0 or swarm_rad[ip]<Rinner or swarm_rad[ip]>Router:
+              swarm_z[ip]+=swarm_w[ip]*dt
+              swarm_rad[ip]=np.sqrt(swarm_x[ip]**2+swarm_z[ip]**2)
+              swarm_theta[ip]=np.pi/2-np.arctan2(swarm_x[ip],swarm_z[ip])
+              if swarm_x[ip]<0 or swarm_z[ip]<0 or swarm_rad[ip]<Rinner or swarm_rad[ip]>Router:
                  swarm_active[ip]=False
            # end if active
        # end for ip
@@ -300,27 +333,27 @@ def advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_y,
        for ip in range(0,nparticle):
            if swarm_active[ip]:
               xA=swarm_x[ip]
-              yA=swarm_y[ip]
+              zA=swarm_z[ip]
               uA,vA,iel=\
-              interpolate_vel_on_pt___quarter(xA,yA,u,v,\
+              interpolate_vel_on_pt___annulus(xA,zA,u,v,\
                                               hrad,htheta,nelx,icon,rad_V,theta_V,Rinner)
 
               xB=xA+uA*dt/2.
-              yB=yA+vA*dt/2.
-              rB=np.sqrt(xA**2+yA**2)
+              yB=zA+vA*dt/2.
+              rB=np.sqrt(xA**2+zA**2)
               if xB<0 or yB<0 or rB<Rinner or rB>Router:
                  swarm_active[ip]=False
               else:
                  uB,vB,iel=\
-                 interpolate_vel_on_pt___quarter(xB,yB,u,v,\
+                 interpolate_vel_on_pt___annulus(xB,yB,u,v,\
                                                  hrad,htheta,nelx,icon,rad_V,theta_V,Rinner)
                  swarm_x[ip]=xA+uB*dt
-                 swarm_y[ip]=yA+vB*dt
+                 swarm_z[ip]=zA+vB*dt
                  swarm_u[ip]=uB
-                 swarm_v[ip]=vB
-                 swarm_rad[ip]=np.sqrt(swarm_x[ip]**2+swarm_y[ip]**2)
-                 swarm_theta[ip]=np.pi/2-np.arctan2(swarm_x[ip],swarm_y[ip])
-                 if swarm_x[ip]<0 or swarm_y[ip]<0 or swarm_rad[ip]<Rinner or swarm_rad[ip]>Router:
+                 swarm_w[ip]=vB
+                 swarm_rad[ip]=np.sqrt(swarm_x[ip]**2+swarm_z[ip]**2)
+                 swarm_theta[ip]=np.pi/2-np.arctan2(swarm_x[ip],swarm_z[ip])
+                 if swarm_x[ip]<0 or swarm_z[ip]<0 or swarm_rad[ip]<Rinner or swarm_rad[ip]>Router:
                     swarm_active[ip]=False
               # end if active
            # end if active
@@ -329,14 +362,14 @@ def advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_y,
     for ip in range(0,nparticle):
         if not swarm_active[ip]:
            swarm_x[ip]=0
-           swarm_y[ip]=0
+           swarm_z[ip]=0
 
-    return swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_u,swarm_v,swarm_active
+    return swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_u,swarm_w,swarm_active
 
 ###############################################################################
 
 @numba.njit
-def advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_y,
+def advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_z,
                             swarm_rad,swarm_theta,swarm_active,u,v,
                             Rinner,Router,hrad,htheta,nelx,icon,rad_V,theta_V):
     """
@@ -344,7 +377,7 @@ def advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_y,
        RKorder: Runge-Kutta algorithm order (1,2,4)
        dt: time step value
        nparticle: number of particles
-       swarm_x,swarm_y: cartesian coordinates of particles
+       swarm_x,swarm_z: cartesian coordinates of particles
        swarm_rad,swarm_theta: polar coordinates of particles
        swarm_active: boolean array (True if particle still in domain)
        u,v: velocity arrays on FE mesh
@@ -354,26 +387,26 @@ def advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_y,
        icon: connectivity array of V nodes
        rad_V,theta_V: polar coordinates of V nodes
     Returns:
-       swarm_x,swarm_y: cartesian coordinates of particles
+       swarm_x,swarm_z: cartesian coordinates of particles
        swarm_rad,swarm_theta: polar coordinates of particles
-       swarm_u,swarm_v: velocity of particles
+       swarm_u,swarm_w: velocity of particles
        swarm_active: boolean array (True if particle still in domain)
     """
 
     swarm_u=np.zeros(nparticle,dtype=np.float64)
-    swarm_v=np.zeros(nparticle,dtype=np.float64)
+    swarm_w=np.zeros(nparticle,dtype=np.float64)
 
     if RKorder==1:
 
        for ip in range(0,nparticle):
            if swarm_active[ip]:
-              swarm_u[ip],swarm_v[ip],iel=\
-              interpolate_vel_on_pt___quarter(swarm_x[ip],swarm_y[ip],u,v,\
+              swarm_u[ip],swarm_w[ip],iel=\
+              interpolate_vel_on_pt___annulus(swarm_x[ip],swarm_z[ip],u,v,\
                                               hrad,htheta,nelx,icon,rad_V,theta_V,Rinner)
               swarm_x[ip]+=swarm_u[ip]*dt
-              swarm_y[ip]+=swarm_v[ip]*dt
-              swarm_rad[ip]=np.sqrt(swarm_x[ip]**2+swarm_y[ip]**2)
-              swarm_theta[ip]=np.pi/2-np.arctan2(swarm_x[ip],swarm_y[ip])
+              swarm_z[ip]+=swarm_w[ip]*dt
+              swarm_rad[ip]=np.sqrt(swarm_x[ip]**2+swarm_z[ip]**2)
+              swarm_theta[ip]=np.pi/2-np.arctan2(swarm_x[ip],swarm_z[ip])
               if swarm_x[ip]<0 or swarm_rad[ip]<Rinner or swarm_rad[ip]>Router:
                  swarm_active[ip]=False
            # end if active
@@ -384,26 +417,26 @@ def advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_y,
        for ip in range(0,nparticle):
            if swarm_active[ip]:
               xA=swarm_x[ip]
-              yA=swarm_y[ip]
+              zA=swarm_z[ip]
               uA,vA,iel=\
-              interpolate_vel_on_pt___quarter(xA,yA,u,v,\
+              interpolate_vel_on_pt___annulus(xA,zA,u,v,\
                                               hrad,htheta,nelx,icon,rad_V,theta_V,Rinner)
 
               xB=xA+uA*dt/2.
-              yB=yA+vA*dt/2.
-              rB=np.sqrt(xA**2+yA**2)
+              yB=zA+vA*dt/2.
+              rB=np.sqrt(xA**2+zA**2)
               if xB<0 or rB<Rinner or rB>Router:
                  swarm_active[ip]=False
               else:
                  uB,vB,iel=\
-                 interpolate_vel_on_pt___quarter(xB,yB,u,v,\
+                 interpolate_vel_on_pt___annulus(xB,yB,u,v,\
                                                  hrad,htheta,nelx,icon,rad_V,theta_V,Rinner)
                  swarm_x[ip]=xA+uB*dt
-                 swarm_y[ip]=yA+vB*dt
+                 swarm_z[ip]=zA+vB*dt
                  swarm_u[ip]=uB
-                 swarm_v[ip]=vB
-                 swarm_rad[ip]=np.sqrt(swarm_x[ip]**2+swarm_y[ip]**2)
-                 swarm_theta[ip]=np.pi/2-np.arctan2(swarm_x[ip],swarm_y[ip])
+                 swarm_w[ip]=vB
+                 swarm_rad[ip]=np.sqrt(swarm_x[ip]**2+swarm_z[ip]**2)
+                 swarm_theta[ip]=np.pi/2-np.arctan2(swarm_x[ip],swarm_z[ip])
                  if swarm_x[ip]<0 or swarm_rad[ip]<Rinner or swarm_rad[ip]>Router:
                     swarm_active[ip]=False
               # end if active
@@ -413,9 +446,9 @@ def advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_y,
     for ip in range(0,nparticle):
         if not swarm_active[ip]:
            swarm_x[ip]=0
-           swarm_y[ip]=0
+           swarm_z[ip]=0
 
-    return swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_u,swarm_v,swarm_active
+    return swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_u,swarm_w,swarm_active
 
 ###############################################################################
 

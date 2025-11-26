@@ -1,13 +1,12 @@
 import numpy as np
 from constants import *
-#from prem import * 
 
 #-----------------------------------------
 solve_T=True
 geometry='eighth'
 
-nely=64
-nelx=nely
+nelz=64
+nelx=int(nelz*0.8)
 
 alpha=2e-5
 eta_mantle=5e22
@@ -25,18 +24,18 @@ hcapa0=1250
 Tsurface=1250+TKelvin
 Tbottom=2250+TKelvin
 
-CFLnb=0.1
+CFLnb=0.5
 
-nstep=1
+nstep=100
 eta_ref=1e22
 p_scale=1e6 ; p_unit="MPa"
 vel_scale=cm/year ; vel_unit='cm/yr'
 time_scale=year ; time_unit='yr'
 every_solution_vtu=1
 every_swarm_vtu=1
-nparticle_per_dim=7
+nparticle_per_dim=5
 averaging='geometric'
-debug_ascii=False
+debug_ascii=True
 end_time=1000e6*year
 
 top_free_slip=True
@@ -80,7 +79,7 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
 
 ###############################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
+def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
     swarm_mat[:]=1
@@ -89,8 +88,8 @@ def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
 
 ###############################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,\
-                   swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_p):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
+                   swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -108,10 +107,10 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,\
 
 ###############################################################################
 
-def gravity_model(x,y):
-    gx=-x/np.sqrt(x**2+y**2)*g0
-    gy=-y/np.sqrt(x**2+y**2)*g0
-    return gx,gy
+def gravity_model(x,z):
+    gx=-x/np.sqrt(x**2+z**2)*g0
+    gz=-z/np.sqrt(x**2+z**2)*g0
+    return gx,gz
 
 ###############################################################################
 
@@ -145,3 +144,4 @@ def assign_boundary_conditions_T(x_V,y_V,rad_V,theta_V,Nfem_T,nn_V):
 
     return bc_fix_T,bc_val_T
 
+###############################################################################

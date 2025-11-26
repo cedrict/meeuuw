@@ -2,45 +2,144 @@
 
 e=10
 
-echo ---------------------------------- 
-python3 meeuuw.py $e 107 16 1 > opla
-mv opla opla_16
-mkdir res16
-mv OUTPUT/top*.ascii res16/
-mv OUTPUT/bot*.ascii res16/
+################################################################
+# PLANE STRAIN
+################################################################
+axi=0
 
-echo ---------------------------------- 
-python3 meeuuw.py $e 214 32 1 > opla
-mv opla opla_32
-mkdir res32
-mv OUTPUT/top*.ascii res32/
-mv OUTPUT/bot*.ascii res32/
+nely=64
+nelx=428
 
-echo ---------------------------------- 
-python3 meeuuw.py $e 321 48 1 > opla
-mv opla opla_48
-mkdir res48
-mv OUTPUT/top*.ascii res48/
-mv OUTPUT/bot*.ascii res48/
+for rhoprof  in 0 1 ; do
+    for straight in 0 1 ; do
+        echo rhoprof=$rhoprof straight=$straight
 
-echo ---------------------------------- 
-python3 meeuuw.py $e 428 64 1 > opla
-mv opla opla_64
-mkdir res64
-mv OUTPUT/top*.ascii res64/
-mv OUTPUT/bot*.ascii res64/
+        python3 meeuuw.py $e $nelx $nely 1 $axi $rhoprof $straight > opla
+        mkdir res64_ps_${rhoprof}_${straight}
+        mv OUTPUT/top*.ascii res64_ps_${rhoprof}_${straight}
+        mv OUTPUT/bot*.ascii res64_ps_${rhoprof}_${straight}
 
-echo ---------------------------------- 
-python3 meeuuw.py $e 536 80 1 > opla
-mv opla opla_80
-mkdir res80
-mv OUTPUT/top*.ascii res80/
-mv OUTPUT/bot*.ascii res80/
+    done
+done
 
-echo ---------------------------------- 
-python3 meeuuw.py $e 643 96 1 > opla
-mv opla opla_96
-mkdir res96
-mv OUTPUT/top*.ascii res96/
-mv OUTPUT/bot*.ascii res96/
+################################################################
+# AXISYMMETRIC
+################################################################
+axi=1
+
+nely=64
+nelx=428
+
+for rhoprof  in 0 1 ; do
+    for straight in 0 1 ; do
+        echo rhoprof=$rhoprof straight=$straight
+
+        python3 meeuuw.py $e $nelx $nely 1 $axi $rhoprof $straight > opla
+        mkdir res64_axi_${rhoprof}_${straight}
+        mv OUTPUT/top*.ascii res64_axi_${rhoprof}_${straight}
+        mv OUTPUT/bot*.ascii res64_axi_${rhoprof}_${straight}
+
+    done
+done
+
+################################################################
+# PLANE STRAIN
+################################################################
+axi=0
+rhoprof=0
+straight=0
+
+echo ---------------------------------- PLANE STRAIN 16
+python3 meeuuw.py $e 107 16 1 $axi $rhoprof $straight > opla
+mkdir res16_ps
+mv OUTPUT/top*.ascii res16_ps/
+mv OUTPUT/bot*.ascii res16_ps/
+mv opla res16_ps/
+
+echo ---------------------------------- PLANE STRAIN 32
+python3 meeuuw.py $e 214 32 1 $axi $rhoprof $straight > opla
+mkdir res32_ps
+mv OUTPUT/top*.ascii res32_ps/
+mv OUTPUT/bot*.ascii res32_ps/
+mv opla res32_ps/
+
+echo ---------------------------------- PLANE STRAIN 48
+python3 meeuuw.py $e 321 48 1 $axi $rhoprof $straight > opla
+mkdir res48_ps
+mv OUTPUT/top*.ascii res48_ps/
+mv OUTPUT/bot*.ascii res48_ps/
+mv opla res48_ps/
+
+echo ---------------------------------- PLANE STRAIN 64
+python3 meeuuw.py $e 428 64 1 $axi $rhoprof $straight > opla
+mkdir res64_ps
+mv OUTPUT/top*.ascii res64_ps/
+mv OUTPUT/bot*.ascii res64_ps/
+mv opla res64_ps/
+
+echo ---------------------------------- PLANE STRAIN 80
+python3 meeuuw.py $e 536 80 1 $axi $rhoprof $straight > opla
+mkdir res80_ps
+mv OUTPUT/top*.ascii res80_ps/
+mv OUTPUT/bot*.ascii res80_ps/
+mv opla res80_ps/
+
+echo ---------------------------------- PLANE STRAIN 96
+python3 meeuuw.py $e 643 96 1 $axi $rhoprof $straight > opla
+mkdir res96_ps
+mv OUTPUT/top*.ascii res96_ps/
+mv OUTPUT/bot*.ascii res96_ps/
+mv opla res96_ps/
+
+################################################################
+# AXISYMMETRIC
+################################################################
+
+axi=1
+rhoprof=0
+straight=0
+
+echo ---------------------------------- AXISYMMETRIC 16
+python3 meeuuw.py $e 107 16 1 $axi $rhoprof $straight > opla
+mkdir res16_axi
+mv OUTPUT/top*.ascii res16_axi/
+mv OUTPUT/bot*.ascii res16_axi/
+mv opla res16_axi/
+
+echo ---------------------------------- AXISYMMETRIC 32
+python3 meeuuw.py $e 214 32 1 $axi $rhoprof $straight > opla
+mkdir res32_axi
+mv OUTPUT/top*.ascii res32_axi/
+mv OUTPUT/bot*.ascii res32_axi/
+mv opla res32_axi/
+
+echo ---------------------------------- AXISYMMETRIC 48
+python3 meeuuw.py $e 321 48 1 $axi $rhoprof $straight > opla
+mkdir res48_axi
+mv OUTPUT/top*.ascii res48_axi/
+mv OUTPUT/bot*.ascii res48_axi/
+mv opla res48_axi/
+
+echo ---------------------------------- AXISYMMETRIC 64
+python3 meeuuw.py $e 428 64 1 $axi $rhoprof $straight > opla
+mkdir res64_axi
+mv OUTPUT/top*.ascii res64_axi/
+mv OUTPUT/bot*.ascii res64_axi/
+mv opla res64_axi/
+
+echo ---------------------------------- AXISYMMETRIC 80
+python3 meeuuw.py $e 536 80 1 $axi $rhoprof $straight > opla
+mkdir res80_axi
+mv OUTPUT/top*.ascii res80_axi/
+mv OUTPUT/bot*.ascii res80_axi/
+mv opla res80_axi/
+
+echo ---------------------------------- AXISYMMETRIC 96
+python3 meeuuw.py $e 643 96 1 $axi $rhoprof $straight > opla
+mkdir res96_axi
+mv OUTPUT/top*.ascii res96_axi/
+mv OUTPUT/bot*.ascii res96_axi/
+mv opla res96_axi/
+
+################################################################
 

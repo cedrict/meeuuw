@@ -5,7 +5,7 @@ from basis_functions import *
 ###############################################################################
 
 @numba.njit
-def global_quantities(nel,nqel,xq,yq,uq,vq,Tq,rhoq,hcapaq,etaq,exxq,eyyq,exyq,volume,JxWq,gxq,gyq):
+def global_quantities(nel,nqel,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,volume,JxWq,gxq,gzq):
 
     TM=0  # Total mass
     EK=0  # Kinetic Energy
@@ -18,12 +18,12 @@ def global_quantities(nel,nqel,xq,yq,uq,vq,Tq,rhoq,hcapaq,etaq,exxq,eyyq,exyq,vo
     for iel in range(0,nel):
         for iq in range(0,nqel):
             TM+=rhoq[iel,iq]                                                        *JxWq[iel,iq]
-            EK+=0.5*rhoq[iel,iq]*(uq[iel,iq]**2+vq[iel,iq]**2)                      *JxWq[iel,iq]
-            WAG-=rhoq[iel,iq]*(uq[iel,iq]*gxq[iel,iq]+vq[iel,iq]*gyq[iel,iq])       *JxWq[iel,iq]
-            TVD+=2*etaq[iel,iq]*(exxq[iel,iq]**2+eyyq[iel,iq]**2+2*exyq[iel,iq]**2) *JxWq[iel,iq]
-            #GPE+=rhoq[iel,iq]*gyq[iel,iq]*(Ly-yq[iel,iq])                           *JxWq[iel,iq]
+            EK+=0.5*rhoq[iel,iq]*(uq[iel,iq]**2+wq[iel,iq]**2)                      *JxWq[iel,iq]
+            WAG-=rhoq[iel,iq]*(uq[iel,iq]*gxq[iel,iq]+wq[iel,iq]*gzq[iel,iq])       *JxWq[iel,iq]
+            TVD+=2*etaq[iel,iq]*(exxq[iel,iq]**2+ezzq[iel,iq]**2+2*exzq[iel,iq]**2) *JxWq[iel,iq]
+            #GPE+=rhoq[iel,iq]*gzq[iel,iq]*(Lz-zq[iel,iq])                           *JxWq[iel,iq]
             ITE+=rhoq[iel,iq]*hcapaq[iel,iq]*Tq[iel,iq]                             *JxWq[iel,iq]
-            vrms+=(uq[iel,iq]**2+vq[iel,iq]**2)                                     *JxWq[iel,iq]
+            vrms+=(uq[iel,iq]**2+wq[iel,iq]**2)                                     *JxWq[iel,iq]
         #end for iq
     #end for iel
     vrms=np.sqrt(vrms/volume) 
@@ -32,7 +32,7 @@ def global_quantities(nel,nqel,xq,yq,uq,vq,Tq,rhoq,hcapaq,etaq,exxq,eyyq,exyq,vo
 
 ###############################################################################
 
-def compute_Nu(Lx,Ly,nel,top_element,bottom_element,icon_V,T,dTdy_nodal,\
+def compute_Nu(Lx,Lz,nel,top_element,bottom_element,icon_V,T,dTdy_nodal,\
                nqperdim,qcoords,qweights,hx):
 
     avrg_T_top=0    ; avrg_dTdy_top=0    
@@ -74,7 +74,7 @@ def compute_Nu(Lx,Ly,nel,top_element,bottom_element,icon_V,T,dTdy_nodal,\
     avrg_dTdy_top/=Lx
     avrg_dTdy_bottom/=Lx
 
-    Nu=np.abs(avrg_dTdy_top)/avrg_T_bottom*Ly
+    Nu=np.abs(avrg_dTdy_top)/avrg_T_bottom*Lz
 
     return avrg_T_bottom,avrg_T_top,avrg_dTdy_bottom,avrg_dTdy_top,Nu
 

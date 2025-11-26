@@ -49,11 +49,11 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 
 ### Finite elements
 
-- u,v:  velocity components arrays
+- u,w:  velocity components arrays
 - T: temperature array
 - p: pressure field (on Q1 mesh)
 - q: pressure field (on Q2 mesh)
-- nelx,nely: number of elements in each direction
+- nelx,nelz: number of elements in each direction
 - nel: number of elements
 - nn_V: number of velocity nodes
 - nn_P: number of pressure nodes
@@ -65,7 +65,7 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - m_V: number of velocity nodes per element (=9)
 - m_P: number of pressure nodes per element (=4)
 - m_T: number of temperature nodes per element (=9)
-- hx,hy: size of an element
+- hx,hz: size of an element
 - x_V,y_V: coordinates arrays of velocity nodes
 - x_P,y_P: coordinates arrays of pressure nodes
 - icon_V: connectivity array for velocity nodes
@@ -74,9 +74,9 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - bc_fix_T, bc_val_T: boundary conditions arrays for temperature
 - N_V, dNdr_V, dNds_V, dNdx_V, dNdy_V: velocity basis functions and derivatives
 - N_P: pressure basis functions
-- exx_n,eyy_n,exy_n: nodal components of strain rate tensor
+- exx_n,ezz_n,exz_n: nodal components of strain rate tensor
 - vrms: root means square velocity
-- qx_nodal, qy_nodal: nodal heat flux component
+- qx_nodal, qz_nodal: nodal heat flux component
 - II_V, JJ_V, VV_V: arrays to store Stokes FEM matrix
 - II_T, JJ_T, VV_T: arrays to store energy FEM matrix
 - r_V, s_V: arrays of size m_V containing red coords of V nodes

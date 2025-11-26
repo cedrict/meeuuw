@@ -31,9 +31,7 @@ def compute_nodal_strain_rate(icon_V,u,v,nn_V,m_V,nel,dNdr_V_n,dNds_V_n,jcbi00n,
     eyy_n/=count
     exy_n/=count
 
-    e_n=np.sqrt(0.5*(exx_n**2+eyy_n**2)+exy_n**2)
-
-    return exx_n,eyy_n,exy_n,e_n
+    return exx_n,eyy_n,exy_n
 
 ###################################################################################################
 # this cannot be numba'ed, bc sparse stuff will not allow it.
@@ -88,8 +86,6 @@ def compute_nodal_strain_rate2(bignb,II,JJ,m_T,nqel,icon_V,u,v,nn_V,nel,JxWq,N_V
     exx_n=sps.linalg.spsolve(sparse_matrix,rhs_xx)
     eyy_n=sps.linalg.spsolve(sparse_matrix,rhs_yy)
     exy_n=sps.linalg.spsolve(sparse_matrix,rhs_xy)
-
-    e_n=np.sqrt(0.5*(exx_n**2+eyy_n**2)+exy_n**2)
 
     return exx_n,eyy_n,exy_n,e_n
 

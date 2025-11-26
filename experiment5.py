@@ -10,7 +10,7 @@ import numba
 # and eta -> eta_T=1
 
 Lx=4
-Ly=1
+Lz=1
 solve_T=True
 Ttop=0
 Tbottom=1
@@ -36,7 +36,7 @@ debug_ascii=False
 nparticle_per_dim=5
            
 nelx=128
-nely=int(Ly/Lx*nelx)
+nelz=int(Lz/Lx*nelx)
 nstep=10000
 
 
@@ -59,8 +59,8 @@ def initial_temperature(x,y,rad,theta,nn_V):
     T=np.zeros(nn_V,dtype=np.float64)
 
     for i in range(0,nn_V):
-        T[i]=(Tbottom-Ttop)*(Ly-y[i])/Ly+Ttop\
-            +0.01*np.cos(3*np.pi*x[i]/Lx)*np.sin(3*np.pi*y[i]/Ly)
+        T[i]=(Tbottom-Ttop)*(Lz-y[i])/Lz+Ttop\
+            +0.01*np.cos(3*np.pi*x[i]/Lx)*np.sin(3*np.pi*y[i]/Lz)
 
     return T
 
@@ -80,9 +80,9 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
         if x_V[i]/Lx>(1-eps):
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if y_V[i]/Ly<eps:
+        if y_V[i]/Lz<eps:
            bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-        if y_V[i]/Ly>(1-eps):
+        if y_V[i]/Lz>(1-eps):
            bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
     return bc_fix_V,bc_val_V
@@ -99,14 +99,14 @@ def assign_boundary_conditions_T(x_V,y_V,rad_V,theta_V,Nfem_T,nn_V):
     for i in range(0,nn_V):
         if y_V[i]<eps:
            bc_fix_T[i]=True ; bc_val_T[i]=Tbottom
-        if y_V[i]>(Ly-eps):
+        if y_V[i]>(Lz-eps):
            bc_fix_T[i]=True ; bc_val_T[i]=Ttop
 
     return bc_fix_T,bc_val_T
 
 ###############################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
+def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
@@ -116,7 +116,7 @@ def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
 
 ###############################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_p):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -127,7 +127,7 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swa
     swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-T0))
 
     for ip in range(0,nparticle):
-        swarm_eta[ip]=viscosity(swarm_T[ip],swarm_exx[ip],swarm_eyy[ip],swarm_exy[ip],swarm_y[ip])
+        swarm_eta[ip]=viscosity(swarm_T[ip],swarm_exx[ip],swarm_ezz[ip],swarm_exz[ip],swarm_z[ip])
 
     swarm_hcond[:]=hcond0
     swarm_hcapa[:]=hcapa0

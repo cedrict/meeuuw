@@ -2,7 +2,7 @@ import numpy as np
 
 ###############################################################################
 
-def export_quadpoints_to_vtu(istep,nel,nqel,nq,solve_T,xq,yq,rhoq,etaq,Tq,\
+def output_quadpoints_to_vtu(istep,nel,nqel,nq,solve_T,xq,yq,rhoq,etaq,Tq,\
                              hcondq,hcapaq,dpdxq,dpdyq,gxq,gyq):
 
        filename='OUTPUT/quadpoints_{:04d}.vtu'.format(istep)

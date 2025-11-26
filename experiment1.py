@@ -1,7 +1,7 @@
 import numpy as np
 
 Lx=0.9142
-Ly=1
+Lz=1
 eta_ref=100
 vel_scale=1 ; vel_unit=' '
 p_scale=1 ; p_unit=' '
@@ -16,18 +16,18 @@ debug_ascii=False
 nparticle_per_dim=7
 
 nelx=32
-nely=32
+nelz=32
 nstep=10
 CFLnb=0.5
 
 ###############################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
+def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
     for im in range (0,nparticle):
-        if swarm_y[im]<0.2+0.02*np.cos(swarm_x[im]*np.pi/0.9142):
+        if swarm_z[im]<0.2+0.02*np.cos(swarm_x[im]*np.pi/0.9142):
            swarm_mat[im]=1
         else:
            swarm_mat[im]=2
@@ -49,10 +49,10 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
         if x_V[i]/Lx>(1-eps):
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if y_V[i]/Ly<eps:
+        if y_V[i]/Lz<eps:
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
            bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-        if y_V[i]/Ly>(1-eps):
+        if y_V[i]/Lz>(1-eps):
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
            bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
@@ -60,7 +60,7 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
 
 ###############################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_p):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -75,10 +75,10 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swa
 
 ###############################################################################
 
-def gravity_model(x,y):
+def gravity_model(x,z):
     gx=0
-    gy=-10 
-    return gx,gy
+    gz=-10 
+    return gx,gz
 
 ###############################################################################
 

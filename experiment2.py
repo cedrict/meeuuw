@@ -5,39 +5,40 @@ cm=0.01
 year=365.25*3600*24
 
 Lx=3000e3
-Ly=750e3
+Lz=750e3
 eta_ref=1e21
 p_scale=1e6 ; p_unit="MPa"
 vel_scale=cm/year ; vel_unit='cm/yr'
 time_scale=year ; time_unit='yr'
 end_time=50e6*year
 every_solution_vtu=1
-every_swarm_vtu=5
-RKorder=4
-averaging='geometric'
+every_swarm_vtu=1
+RKorder=2
+averaging='arithmetic'
 debug_ascii=False
-nparticle_per_dim=5
+nparticle_per_dim=7
+use_elemental_eta=True
 
-nelx=128
-nely=64
+nelz=64
+nelx=int(Lx/Lz*nelz)
 CFLnb=0.25
-nstep=10
+nstep=500
 
 ###############################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
+def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
     swarm_mat[:]=2 # mantle 
 
     for ip in range(0,nparticle):
-        if swarm_y[ip]>Ly-50e3:
+        if swarm_z[ip]>Lz-50e3:
            swarm_mat[ip]=1 # sticky air
-        if swarm_x[ip]>1000e3 and swarm_y[ip]<Ly-50e3 and swarm_y[ip]>Ly-150e3: 
+        if swarm_x[ip]>1000e3 and swarm_z[ip]<Lz-50e3 and swarm_z[ip]>Lz-150e3: 
            swarm_mat[ip]=3 # lithosphere
         if swarm_x[ip]>1000e3 and swarm_x[ip]<1100e3 and\
-           swarm_y[ip]>Ly-250e3 and swarm_y[ip]<Ly-50e3:
+           swarm_z[ip]>Lz-250e3 and swarm_z[ip]<Lz-50e3:
            swarm_mat[ip]=3 # lithosphere
 
     return swarm_mat
@@ -58,16 +59,16 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
         if x_V[i]/Lx>(1-eps):
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if y_V[i]/Ly<eps:
+        if y_V[i]/Lz<eps:
            bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-        if y_V[i]/Ly>(1-eps):
+        if y_V[i]/Lz>(1-eps):
            bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
     return bc_fix_V,bc_val_V
 
 ###############################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_p):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -83,9 +84,9 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swa
 
 ###############################################################################
 
-def gravity_model(x,y):
+def gravity_model(x,z):
     gx=0
-    gy=-9.81
-    return gx,gy
+    gz=-9.81
+    return gx,gz
 
 ###############################################################################

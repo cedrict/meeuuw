@@ -4,27 +4,29 @@ import numba
 import random
 import time as clock
 import scipy.sparse as sps
+from toolbox import *
+from update_F import *
 from constants import *
 from scipy import sparse
 from PoissonDisc import *
-from compute_vrms import *
 from pic_functions import *
 from basis_functions import *
 from build_matrix_plith import *
 from build_matrix_stokes import *
 from build_matrix_energy import *
+from define_mapping import * 
 from compute_normals import *
 from compute_nodal_strain_rate import *
 from compute_nodal_heat_flux import *
 from compute_nodal_pressure import *
-from export_swarm_to_vtu import *
-from export_solution_to_vtu import *
-from export_quadpoints_to_vtu import *
+from output_swarm_to_vtu import *
+from output_solution_to_vtu import *
+from output_quadpoints_to_vtu import *
 from compute_gravity_at_point import *
 from compute_gravity_fromDT_at_point import *
+from compute_pressure_average import *
 from project_nodal_field_onto_qpoints import *
 from compute_nodal_pressure_gradient import *
-from convert_tensor_to_polar_coords import *
 from compute_elemental_strain_rate import * 
 from postprocessors import *
 
@@ -43,19 +45,20 @@ from set_default_parameters import *
 # experiment  1: van Keken et al, JGR, 1997 - Rayleigh-Taylor experiment
 # experiment  2: Schmeling et al, PEPI 2008 - Newtonian subduction
 # experiment  3: Tosi et al, 2015 - visco-plastic convection
-# experiment  4: not sure. mantle size convection
+# experiment  4: Lindi MSc 
 # experiment  5: Trompert & Hansen, Nature 1998 - convection w/ plate-like  
 # experiment  6: Crameri et al, GJI 2012 (cosine perturbation & plume) 
 # experiment  7: ESA workshop
 # experiment  8: quarter - sinker
 # experiment  9: axisymmetric Mars setup
-# experiment 10: axisymmetric aspect benchmark of Stokes sphere
+# experiment 10: axisymmetric 4D dyn Earth benchmark of Stokes sphere
 # experiment 11: rising plume 
+# experiment 12: hollow earth gravity benchmark 
 ###############################################################################
 
-experiment=11
+experiment=2
 
-if int(len(sys.argv)==5):
+if int(len(sys.argv)==8):
    experiment = int(sys.argv[1])
 
 match(experiment):
@@ -71,30 +74,34 @@ match(experiment):
      case 9 : from experiment9 import *
      case 10: from experiment10 import *
      case 11: from experiment11 import *
+     case 12: from experiment12 import *
      case _ : exit('setup - unknown experiment')  
 
-if int(len(sys.argv)==5): # override these parameters
+if int(len(sys.argv)==8): # override these parameters
    nelx  = int(sys.argv[2])
-   nely  = int(sys.argv[3])
+   nelz  = int(sys.argv[3])
    nstep = int(sys.argv[4])
+   axisymmetric=(int(sys.argv[5])==1)
+   remove_rho_profile=(int(sys.argv[6])==1)
+   straighten_edges=(int(sys.argv[7])==1)
 
 ###############################################################################
 
 if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-   Lx=1 ; Ly=1 
+   Lx=1 ; Lz=1 
 
 ndim=2                     # number of dimensions
 ndof_V=2                   # number of velocity dofs per node
-nel=nelx*nely              # total number of elements
-nn_V=(2*nelx+1)*(2*nely+1) # number of V nodes
-nn_P=(nelx+1)*(nely+1)     # number of P nodes
+nel=nelx*nelz              # total number of elements
+nn_V=(2*nelx+1)*(2*nelz+1) # number of V nodes
+nn_P=(nelx+1)*(nelz+1)     # number of P nodes
 
 m_V=9 # number of velocity nodes per element
 m_P=4 # number of pressure nodes per element
 m_T=9 # number of temperature nodes per element
 
 r_V=[-1, 1,1,-1, 0,1,0,-1,0]
-s_V=[-1,-1,1, 1,-1,0,1, 0,0]
+t_V=[-1,-1,1, 1,-1,0,1, 0,0]
 
 ndof_V_el=m_V*ndof_V
 
@@ -104,8 +111,7 @@ Nfem_T=nn_V        # number of temperature dofs
 Nfem=Nfem_V+Nfem_P # total nb of dofs
 
 hx=Lx/nelx # element size in x direction
-hy=Ly/nely # element size in y direction
-
+hz=Lz/nelz # element size in y direction
 
 if geometry=='eighth': 
    opening_angle=np.pi/8
@@ -120,7 +126,7 @@ if geometry=='half':
    theta_min=-np.pi/2
 
 if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-   hrad=(Router-Rinner)/nely
+   hrad=(Router-Rinner)/nelz
    htheta=opening_angle/nelx
 
 nparticle_per_element=nparticle_per_dim**2
@@ -129,7 +135,7 @@ nparticle=nel*nparticle_per_element
 timings=np.zeros(29+1)
 timings_mem=np.zeros(29+1)
 
-if geometry=='box': L_ref=(Lx+Ly)/2
+if geometry=='box': L_ref=(Lx+Lz)/2
 if geometry=='quarter': L_ref=(Rinner+Router)/2
 if geometry=='half': L_ref=(Rinner+Router)/2
 if geometry=='eighth': L_ref=(Rinner+Router)/2
@@ -189,23 +195,26 @@ if solve_T:
    Nu_file=open('OUTPUT/Nu.ascii',"w") ; Nu_file.write("#time Nu\n")
    avrg_T_bot_file=open('OUTPUT/avrg_T_bot.ascii',"w") 
    avrg_T_top_file=open('OUTPUT/avrg_T_top.ascii',"w") 
-   avrg_dTdy_bot_file=open('OUTPUT/avrg_dTdy_bot.ascii',"w") 
-   avrg_dTdy_top_file=open('OUTPUT/avrg_dTdy_top.ascii',"w") 
+   avrg_dTdz_bot_file=open('OUTPUT/avrg_dTdz_bot.ascii',"w") 
+   avrg_dTdz_top_file=open('OUTPUT/avrg_dTdz_top.ascii',"w") 
 
 ###############################################################################
 
 if nstep==1: CFLnb=0
 
-if geometry=='box': volume=Lx*Ly
+if geometry=='box': volume=Lx*Lz
 if geometry=='quarter': volume=np.pi*(Router**2-Rinner**2)/4
 if geometry=='half': volume=np.pi*(Router**2-Rinner**2)/2
 if geometry=='eighth': volume=np.pi*(Router**2-Rinner**2)/8
 
 print('experiment=',experiment)
+print('axisymmetric=',axisymmetric)
 print('geometry=',geometry)
-print('nelx,nely=',nelx,nely)
-print('Lx,Ly=',Lx,Ly)
-print('hx,hy=',hx,hy)
+print('straighten_edges=',straighten_edges)
+print('remove_rho_profile=',remove_rho_profile)
+print('nelx,nelz=',nelx,nelz)
+print('Lx,Lz=',Lx,Lz)
+print('hx,hz=',hx,hz)
 print('nn_V=',nn_V)
 print('nn_P=',nn_P)
 print('nel=',nel)
@@ -241,58 +250,54 @@ print('-----------------------------')
 ###############################################################################
 #@@ build velocity nodes coordinates 
 # BL: bottom left, BR: bottom right, TL: top left, TR: top right
-# if geometry is 'eighth', 'quarter' or 'half' we still need to set Lx=Ly=1
+# if geometry is 'eighth', 'quarter' or 'half' we still need to set Lx=Lz=1
 ###############################################################################
 start=clock.time()
 
 x_V=np.zeros(nn_V,dtype=np.float64) 
-y_V=np.zeros(nn_V,dtype=np.float64)
+z_V=np.zeros(nn_V,dtype=np.float64)
 rad_V=np.zeros(nn_V,dtype=np.float64) 
 theta_V=np.zeros(nn_V,dtype=np.float64)
-top_nodes=np.zeros(nn_V,dtype=bool)
-toop_nodes=np.zeros(nn_V,dtype=bool)
-bot_nodes=np.zeros(nn_V,dtype=bool)
-boot_nodes=np.zeros(nn_V,dtype=bool)
-left_nodes=np.zeros(nn_V,dtype=bool)
-right_nodes=np.zeros(nn_V,dtype=bool)
+top_Vnodes=np.zeros(nn_V,dtype=bool)
+bot_Vnodes=np.zeros(nn_V,dtype=bool)
+left_Vnodes=np.zeros(nn_V,dtype=bool)
+right_Vnodes=np.zeros(nn_V,dtype=bool)
 middleH_nodes=np.zeros(nn_V,dtype=bool)
 middleV_nodes=np.zeros(nn_V,dtype=bool)
 hull_nodes=np.zeros(nn_V,dtype=bool)
 
 nnx=2*nelx+1 
-nny=2*nely+1 
+nnz=2*nelz+1 
 
 counter=0    
-for j in range(0,2*nely+1):
+for j in range(0,2*nelz+1):
     for i in range(0,2*nelx+1):
         x_V[counter]=i*hx/2
-        y_V[counter]=j*hy/2
-        if (i==0): left_nodes[counter]=True
-        if (i==2*nelx): right_nodes[counter]=True
-        if (j==0): bot_nodes[counter]=True
-        if (j==2*nely): top_nodes[counter]=True
-        if top_nodes[counter] or bot_nodes[counter] or\
-           right_nodes[counter] or left_nodes[counter]: hull_nodes[counter]=True
-        if top_nodes[counter] and i%2==0: toop_nodes[counter]=True
-        if bot_nodes[counter] and i%2==0: boot_nodes[counter]=True
+        z_V[counter]=j*hz/2
+        if (i==0): left_Vnodes[counter]=True
+        if (i==2*nelx): right_Vnodes[counter]=True
+        if (j==0): bot_Vnodes[counter]=True
+        if (j==2*nelz): top_Vnodes[counter]=True
+        if top_Vnodes[counter] or bot_Vnodes[counter] or\
+           right_Vnodes[counter] or left_Vnodes[counter]: hull_nodes[counter]=True
         if abs(x_V[counter]/Lx-0.5)<eps: middleV_nodes[counter]=True
-        if abs(y_V[counter]/Ly-0.5)<eps: middleH_nodes[counter]=True
+        if abs(z_V[counter]/Lz-0.5)<eps: middleH_nodes[counter]=True
         if i==0 and j==0: cornerBL=counter
         if i==nnx-1 and j==0: cornerBR=counter
-        if i==0 and j==nny-1: cornerTL=counter
-        if i==nnx-1 and j==nny-1: cornerTR=counter
+        if i==0 and j==nnz-1: cornerTL=counter
+        if i==nnx-1 and j==nnz-1: cornerTR=counter
         counter+=1
     #end for
 #end for
 
 if geometry=='quarter' or geometry=='half' or geometry=='eighth':
    for i in range(0,nn_V):
-       rad_V[i]=Rinner+y_V[i]*(Router-Rinner)
+       rad_V[i]=Rinner+z_V[i]*(Router-Rinner)
        theta_V[i]=np.pi/2-x_V[i]*opening_angle
        x_V[i]=rad_V[i]*np.cos(theta_V[i])
-       y_V[i]=rad_V[i]*np.sin(theta_V[i])
+       z_V[i]=rad_V[i]*np.sin(theta_V[i])
 
-if debug_ascii: np.savetxt('DEBUG/gridV.ascii',np.array([x_V,y_V]).T,header='# x,y')
+if debug_ascii: np.savetxt('DEBUG/mesh_V.ascii',np.array([x_V,z_V]).T,header='# x,z')
 
 print("build V grid: %.3f s" % (clock.time() - start))
 
@@ -308,7 +313,7 @@ left_element=np.zeros(nel,dtype=bool)
 right_element=np.zeros(nel,dtype=bool)
 
 counter=0
-for j in range(0,nely):
+for j in range(0,nelz):
     for i in range(0,nelx):
         icon_V[0,counter]=i*2+1+j*2*nnx -1
         icon_V[1,counter]=i*2+3+j*2*nnx -1
@@ -322,7 +327,7 @@ for j in range(0,nely):
         if (i==0): left_element[counter]=True
         if (i==nelx-1): right_element[counter]=True
         if (j==0): bot_element[counter]=True
-        if (j==nely-1): top_element[counter]=True
+        if (j==nelz-1): top_element[counter]=True
         counter+=1
     #end for
 #end for
@@ -339,19 +344,19 @@ print("build icon_V: %.3f s" % (clock.time()-start))
 # straighten the element sides
 ###############################################################################
 
-if axisymmetric and straighten_egdes and \
+if axisymmetric and straighten_edges and \
    (geometry=='quarter' or geometry=='half' or geometry=='eighth'):
    for iel in range(0,nel):
        x_V[icon_V[4,iel]]=0.5*(x_V[icon_V[0,iel]]+x_V[icon_V[1,iel]])
-       y_V[icon_V[4,iel]]=0.5*(y_V[icon_V[0,iel]]+y_V[icon_V[1,iel]])
+       z_V[icon_V[4,iel]]=0.5*(z_V[icon_V[0,iel]]+z_V[icon_V[1,iel]])
        x_V[icon_V[5,iel]]=0.5*(x_V[icon_V[1,iel]]+x_V[icon_V[2,iel]])
-       y_V[icon_V[5,iel]]=0.5*(y_V[icon_V[1,iel]]+y_V[icon_V[2,iel]])
+       z_V[icon_V[5,iel]]=0.5*(z_V[icon_V[1,iel]]+z_V[icon_V[2,iel]])
        x_V[icon_V[6,iel]]=0.5*(x_V[icon_V[2,iel]]+x_V[icon_V[3,iel]])
-       y_V[icon_V[6,iel]]=0.5*(y_V[icon_V[2,iel]]+y_V[icon_V[3,iel]])
+       z_V[icon_V[6,iel]]=0.5*(z_V[icon_V[2,iel]]+z_V[icon_V[3,iel]])
        x_V[icon_V[7,iel]]=0.5*(x_V[icon_V[3,iel]]+x_V[icon_V[0,iel]])
-       y_V[icon_V[7,iel]]=0.5*(y_V[icon_V[3,iel]]+y_V[icon_V[0,iel]])
-       x_V[icon_V[8,iel]]=0.5*(x_V[icon_V[4,iel]]+x_V[icon_V[6,iel]])
-       y_V[icon_V[8,iel]]=0.5*(y_V[icon_V[4,iel]]+y_V[icon_V[6,iel]])
+       z_V[icon_V[7,iel]]=0.5*(z_V[icon_V[3,iel]]+z_V[icon_V[0,iel]])
+       x_V[icon_V[8,iel]]=0.25*(x_V[icon_V[0,iel]]+x_V[icon_V[1,iel]]+x_V[icon_V[2,iel]]+x_V[icon_V[3,iel]])
+       z_V[icon_V[8,iel]]=0.25*(z_V[icon_V[0,iel]]+z_V[icon_V[1,iel]]+z_V[icon_V[2,iel]]+z_V[icon_V[3,iel]])
 
 ###############################################################################
 #@@ build pressure grid 
@@ -359,27 +364,31 @@ if axisymmetric and straighten_egdes and \
 start=clock.time()
 
 x_P=np.zeros(nn_P,dtype=np.float64)
-y_P=np.zeros(nn_P,dtype=np.float64)
+z_P=np.zeros(nn_P,dtype=np.float64)
 rad_P=np.zeros(nn_P,dtype=np.float64) 
 theta_P=np.zeros(nn_P,dtype=np.float64)
+top_Pnodes=np.zeros(nn_P,dtype=bool)
+bot_Pnodes=np.zeros(nn_P,dtype=bool)
 
 counter=0    
-for j in range(0,nely+1):
+for j in range(0,nelz+1):
     for i in range(0,nelx+1):
         x_P[counter]=i*hx
-        y_P[counter]=j*hy
+        z_P[counter]=j*hz
+        if (j==0): bot_Pnodes[counter]=True
+        if (j==nelz): top_Pnodes[counter]=True
         counter+=1
     #end for
  #end for
 
 if geometry=='quarter' or geometry=='half' or geometry=='eighth':
    for i in range(0,nn_P):
-       rad_P[i]=Rinner+y_P[i]*(Router-Rinner)
+       rad_P[i]=Rinner+z_P[i]*(Router-Rinner)
        theta_P[i]=np.pi/2-x_P[i]*opening_angle
        x_P[i]=rad_P[i]*np.cos(theta_P[i])
-       y_P[i]=rad_P[i]*np.sin(theta_P[i])
+       z_P[i]=rad_P[i]*np.sin(theta_P[i])
 
-if debug_ascii: np.savetxt('DEBUG/gridP.ascii',np.array([x_P,y_P]).T,header='# x,y')
+if debug_ascii: np.savetxt('DEBUG/mesh_P.ascii',np.array([x_P,z_P]).T,header='# x,z')
 
 print("build P grid: %.3f s" % (clock.time() - start))
 
@@ -391,7 +400,7 @@ start=clock.time()
 icon_P=np.zeros((m_P,nel),dtype=np.int32)
 
 counter=0
-for j in range(0,nely):
+for j in range(0,nelz):
     for i in range(0,nelx):
         icon_P[0,counter]=i+j*(nelx+1)
         icon_P[1,counter]=i+1+j*(nelx+1)
@@ -411,8 +420,8 @@ print("build icon_P: %.3f s" % (clock.time()-start))
 start=clock.time()
 
 bc_fix_V,bc_val_V=\
-assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
-                             hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes)
+assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
+                             hull_nodes,top_Vnodes,bot_Vnodes,left_Vnodes,right_Vnodes)
 
 print("velocity b.c.: %.3f s" % (clock.time()-start))
 
@@ -424,7 +433,7 @@ print("velocity b.c.: %.3f s" % (clock.time()-start))
 start=clock.time()
 
 if solve_T:
-   bc_fix_T,bc_val_T=assign_boundary_conditions_T(x_V,y_V,rad_V,theta_V,Nfem_T,nn_V)
+   bc_fix_T,bc_val_T=assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V)
 else:
    bc_fix_T=False
    
@@ -437,7 +446,7 @@ print("temperature b.c.: %.3f s" % (clock.time()-start))
 start=clock.time()
 
 if solve_T: 
-   T=initial_temperature(x_V,y_V,rad_V,theta_V,nn_V)
+   T=initial_temperature(x_V,z_V,rad_V,theta_V,nn_V)
 
    for i in range(nn_V):
        if bc_fix_T[i]:
@@ -445,7 +454,7 @@ if solve_T:
 
    T_mem=T.copy()
 
-   if debug_ascii: np.savetxt('DEBUG/T_init.ascii',np.array([x_V,y_V,T]).T,header='# x,y,T')
+   if debug_ascii: np.savetxt('DEBUG/T_init.ascii',np.array([x_V,z_V,T]).T,header='# x,z,T')
 
    print("     -> T init (m,M) %.3e %.3e " %(np.min(T)-TKelvin,np.max(T)-TKelvin))
 
@@ -453,6 +462,15 @@ if solve_T:
 
 else:
    T=np.zeros(nn_V,dtype=np.float64) 
+
+###############################################################################
+#@@ define_mapping 
+###############################################################################
+
+#x_M,z_M,m_M=define_mapping(geometry,mapping,nelx,nel,x_V,z_V,icon_V,rad_V,theta_V)
+#if debug_ascii: i
+#np.savetxt('DEBUG/mesh_M.ascii',np.array([x_M.flatten(),z_M.flatten()]).T,header='# x,z')
+#exit()
 
 ###############################################################################
 #@@ compute area of elements / sanity check
@@ -463,17 +481,18 @@ start=clock.time()
 
 jcb=np.zeros((ndim,ndim),dtype=np.float64)
 rq=np.zeros(nqel,dtype=np.float64) 
-sq=np.zeros(nqel,dtype=np.float64) 
+tq=np.zeros(nqel,dtype=np.float64) 
 weightq=np.zeros(nqel,dtype=np.float64) 
 N_V=np.zeros((nqel,m_V),dtype=np.float64) 
 N_P=np.zeros((nqel,m_P),dtype=np.float64) 
 dNdr_V=np.zeros((nqel,m_V),dtype=np.float64) 
-dNds_V=np.zeros((nqel,m_V),dtype=np.float64) 
+dNdt_V=np.zeros((nqel,m_V),dtype=np.float64) 
 
 area=np.zeros(nel,dtype=np.float64) 
 xc=np.zeros(nel,dtype=np.float64) 
-yc=np.zeros(nel,dtype=np.float64) 
+zc=np.zeros(nel,dtype=np.float64) 
 theta_c=np.zeros(nel,dtype=np.float64) 
+rad_c=np.zeros(nel,dtype=np.float64) 
 
 JxWq=np.zeros((nel,nqel),dtype=np.float64) 
 jcbi00q=np.zeros((nel,nqel),dtype=np.float64) 
@@ -487,17 +506,17 @@ for iel in range(0,nel):
         for jq in range(0,nqperdim):
             if iel==0:
                rq[counterq]=qcoords[iq]
-               sq[counterq]=qcoords[jq]
+               tq[counterq]=qcoords[jq]
                weightq[counterq]=qweights[iq]*qweights[jq]
-               N_V[counterq,0:m_V]=basis_functions_V(rq[counterq],sq[counterq])
-               N_P[counterq,0:m_P]=basis_functions_P(rq[counterq],sq[counterq])
-               dNdr_V[counterq,0:m_V]=basis_functions_V_dr(rq[counterq],sq[counterq])
-               dNds_V[counterq,0:m_V]=basis_functions_V_ds(rq[counterq],sq[counterq])
+               N_V[counterq,0:m_V]=basis_functions_V(rq[counterq],tq[counterq])
+               N_P[counterq,0:m_P]=basis_functions_P(rq[counterq],tq[counterq])
+               dNdr_V[counterq,0:m_V]=basis_functions_V_dr(rq[counterq],tq[counterq])
+               dNdt_V[counterq,0:m_V]=basis_functions_V_dt(rq[counterq],tq[counterq])
             #end if
             jcb[0,0]=np.dot(dNdr_V[counterq,:],x_V[icon_V[:,iel]])
-            jcb[0,1]=np.dot(dNdr_V[counterq,:],y_V[icon_V[:,iel]])
-            jcb[1,0]=np.dot(dNds_V[counterq,:],x_V[icon_V[:,iel]])
-            jcb[1,1]=np.dot(dNds_V[counterq,:],y_V[icon_V[:,iel]])
+            jcb[0,1]=np.dot(dNdr_V[counterq,:],z_V[icon_V[:,iel]])
+            jcb[1,0]=np.dot(dNdt_V[counterq,:],x_V[icon_V[:,iel]])
+            jcb[1,1]=np.dot(dNdt_V[counterq,:],z_V[icon_V[:,iel]])
             jcbi=np.linalg.inv(jcb)
             JxWq[iel,counterq]=np.linalg.det(jcb)*weightq[counterq]
             jcbi00q[iel,counterq]=jcbi[0,0]
@@ -509,9 +528,10 @@ for iel in range(0,nel):
         #end for
     #end for
     xc[iel]=x_V[icon_V[8,iel]]
-    yc[iel]=y_V[icon_V[8,iel]]
+    zc[iel]=z_V[icon_V[8,iel]]
     if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-       theta_c[iel]=np.pi/2-np.arctan2(xc[iel],yc[iel])
+       rad_c[iel]=np.sqrt(xc[iel]**2+zc[iel]**2)
+       theta_c[iel]=np.pi/2-np.arctan2(xc[iel],zc[iel])
 #end for
 
 print("     -> area (m,M) %.4e %.4e " %(np.min(area),np.max(area)))
@@ -520,13 +540,13 @@ print("     -> total area %e %e " %(area.sum(),volume))
 print("comp elts areas, N, grad(N) at q pts: %.3f s" % (clock.time()-start))
 
 ###############################################################################
-#@@ precompute basis functions values at V nodes
+#@@ precompute basis functions and jacobian values at V nodes
 ###############################################################################
 start=clock.time()
 
 N_P_n=np.zeros((m_V,m_P),dtype=np.float64) 
 dNdr_V_n=np.zeros((m_V,m_V),dtype=np.float64) 
-dNds_V_n=np.zeros((m_V,m_V),dtype=np.float64) 
+dNdt_V_n=np.zeros((m_V,m_V),dtype=np.float64) 
 jcbi00n=np.zeros((nel,m_V),dtype=np.float64) 
 jcbi01n=np.zeros((nel,m_V),dtype=np.float64) 
 jcbi10n=np.zeros((nel,m_V),dtype=np.float64) 
@@ -535,13 +555,13 @@ jcbi11n=np.zeros((nel,m_V),dtype=np.float64)
 for iel in range(0,nel):
     for i in range(0,m_V):
         if iel==0:
-           N_P_n[i,0:m_P]=basis_functions_P(r_V[i],s_V[i])
-           dNdr_V_n[i,0:m_V]=basis_functions_V_dr(r_V[i],s_V[i])
-           dNds_V_n[i,0:m_V]=basis_functions_V_ds(r_V[i],s_V[i])
+           N_P_n[i,0:m_P]=basis_functions_P(r_V[i],t_V[i])
+           dNdr_V_n[i,0:m_V]=basis_functions_V_dr(r_V[i],t_V[i])
+           dNdt_V_n[i,0:m_V]=basis_functions_V_dt(r_V[i],t_V[i])
         jcb[0,0]=np.dot(dNdr_V_n[i,:],x_V[icon_V[:,iel]])
-        jcb[0,1]=np.dot(dNdr_V_n[i,:],y_V[icon_V[:,iel]])
-        jcb[1,0]=np.dot(dNds_V_n[i,:],x_V[icon_V[:,iel]])
-        jcb[1,1]=np.dot(dNds_V_n[i,:],y_V[icon_V[:,iel]])
+        jcb[0,1]=np.dot(dNdr_V_n[i,:],z_V[icon_V[:,iel]])
+        jcb[1,0]=np.dot(dNdt_V_n[i,:],x_V[icon_V[:,iel]])
+        jcb[1,1]=np.dot(dNdt_V_n[i,:],z_V[icon_V[:,iel]])
         jcbi=np.linalg.inv(jcb)
         jcbi00n[iel,i]=jcbi[0,0]
         jcbi01n[iel,i]=jcbi[0,1]
@@ -551,36 +571,36 @@ for iel in range(0,nel):
 print("compute N & grad(N) at V nodes: %.3f s" % (clock.time()-start))
 
 ###############################################################################
-#@@ compute coordinates of quadrature points - xq,yq are size (nel,nqel)
+#@@ compute coordinates of quadrature points - xq,zq are size (nel,nqel)
 ###############################################################################
 start=clock.time()
 
 xq=Q2_project_nodal_field_onto_qpoints(x_V,nqel,nel,N_V,icon_V)
-yq=Q2_project_nodal_field_onto_qpoints(y_V,nqel,nel,N_V,icon_V)
+zq=Q2_project_nodal_field_onto_qpoints(z_V,nqel,nel,N_V,icon_V)
 
 print("     -> xq (m,M) %.3e %.3e " %(np.min(xq),np.max(xq)))
-print("     -> yq (m,M) %.3e %.3e " %(np.min(yq),np.max(yq)))
+print("     -> zq (m,M) %.3e %.3e " %(np.min(zq),np.max(zq)))
 
-if debug_ascii: np.savetxt('DEBUG/qpoints.ascii',np.array([xq.flatten(),yq.flatten()]).T,header='# x,y')
+if debug_ascii: np.savetxt('DEBUG/qpoints.ascii',np.array([xq.flatten(),zq.flatten()]).T,header='# x,z')
 
 print("compute coords quad pts: %.3f s" % (clock.time()-start))
 
 ###############################################################################
-#@@ compute gravity vector at quadrature points -  gxq,gyq are size (nel,nqel)
+#@@ compute gravity vector at quadrature points -  gxq,gzq are size (nel,nqel)
 ###############################################################################
 start=clock.time()
 
 gxq=np.zeros((nel,nqel),dtype=np.float64) 
-gyq=np.zeros((nel,nqel),dtype=np.float64) 
+gzq=np.zeros((nel,nqel),dtype=np.float64) 
 
 for iel in range(0,nel):
     for iq in range(0,nqel):
-        gxq[iel,iq],gyq[iel,iq]=gravity_model(xq[iel,iq],yq[iel,iq])
+        gxq[iel,iq],gzq[iel,iq]=gravity_model(xq[iel,iq],zq[iel,iq])
 
 print("     -> gxq (m,M) %.3e %.3e " %(np.min(gxq),np.max(gxq)))
-print("     -> gyq (m,M) %.3e %.3e " %(np.min(gyq),np.max(gyq)))
+print("     -> gzq (m,M) %.3e %.3e " %(np.min(gzq),np.max(gzq)))
 
-if debug_ascii: np.savetxt('DEBUG/gravityq.ascii',np.array([xq.flatten(),yq.flatten(),gxq.flatten(),gyq.flatten()]).T)
+if debug_ascii: np.savetxt('DEBUG/qgravity.ascii',np.array([xq.flatten(),zq.flatten(),gxq.flatten(),gzq.flatten()]).T,header='#x,z,gx,gz')
 
 print("compute grav at qpts: %.3f s" % (clock.time()-start))
 
@@ -590,27 +610,36 @@ print("compute grav at qpts: %.3f s" % (clock.time()-start))
 start=clock.time()
 
 gx_nodal=np.zeros(nn_V,dtype=np.float64) 
-gy_nodal=np.zeros(nn_V,dtype=np.float64) 
+gz_nodal=np.zeros(nn_V,dtype=np.float64) 
+gx_elemental=np.zeros(nel,dtype=np.float64) 
+gz_elemental=np.zeros(nel,dtype=np.float64) 
 
 for i in range(0,nn_V):
-    gx_nodal[i],gy_nodal[i]=gravity_model(x_V[i],y_V[i])
+    gx_nodal[i],gz_nodal[i]=gravity_model(x_V[i],z_V[i])
 
-gr_nodal=gx_nodal*np.cos(theta_V)+gy_nodal*np.sin(theta_V)
+gr_nodal=gx_nodal*np.cos(theta_V)+gz_nodal*np.sin(theta_V)
+
+for iel in range(0,nel):
+    gx_elemental[iel],gz_elemental[iel]=gravity_model(xc[iel],zc[iel])
+
+gr_elemental=gx_elemental*np.cos(theta_c)+gz_elemental*np.sin(theta_c)
+
+if debug_ascii:
+   np.savetxt('DEBUG/gr_nodal.ascii',np.array([x_V,z_V,gr_nodal]).T,header='#x,z,gr')
+   np.savetxt('DEBUG/gr_elemental.ascii',np.array([xc,zc,gr_elemental]).T,header='#x,z,gr')
 
 print("compute grav on nodes: %.3f s" % (clock.time()-start))
 
 ###############################################################################
-#@@ compute normal vector of domain
+#@@ compute normal vector of domain - NOT needed anymore
 ###############################################################################
-start=clock.time()
-
-nx,ny=compute_normals(geometry,nel,nn_V,nqel,m_V,icon_V,dNdr_V,dNds_V,\
-                      JxWq,hull_nodes,jcbi00q,jcbi01q,jcbi10q,jcbi11q)
-
-if debug_ascii: np.savetxt('DEBUG/normal_vector.ascii',np.array([x_V[hull_nodes],\
-                           y_V[hull_nodes],nx[hull_nodes],ny[hull_nodes]]).T)
-
-print("compute normal vector: %.3f s" % (clock.time()-start))
+#start=clock.time()
+#nx,nz=compute_normals(geometry,nel,nn_V,nqel,m_V,icon_V,dNdr_V,dNdt_V,\
+#                      JxWq,hull_nodes,jcbi00q,jcbi01q,jcbi10q,jcbi11q)
+#if debug_ascii: np.savetxt('DEBUG/normal_vector.ascii',np.array([x_V[hull_nodes],\
+#                           z_V[hull_nodes],nx[hull_nodes],nz[hull_nodes]]).T,header='#x,z,nx,nz')
+#
+#print("compute normal vector: %.3f s" % (clock.time()-start))
 
 ###############################################################################
 #@@ compute array for assembly
@@ -686,9 +715,9 @@ print("fill II_T,JJ_T arrays: %.3f s" % (clock.time()-start))
 start=clock.time()
 
 swarm_x=np.zeros(nparticle,dtype=np.float64)
-swarm_y=np.zeros(nparticle,dtype=np.float64)
+swarm_z=np.zeros(nparticle,dtype=np.float64)
 swarm_r=np.zeros(nparticle,dtype=np.float64)
-swarm_s=np.zeros(nparticle,dtype=np.float64)
+swarm_t=np.zeros(nparticle,dtype=np.float64)
 swarm_iel=np.zeros(nparticle,dtype=np.int32)
 
 match(particle_distribution):
@@ -698,12 +727,12 @@ match(particle_distribution):
          for iel in range(0,nel):
              for im in range(0,nparticle_per_element):
                  r=random.uniform(-1.,+1)
-                 s=random.uniform(-1.,+1)
-                 N=basis_functions_V(r,s)
+                 t=random.uniform(-1.,+1)
+                 N=basis_functions_V(r,t)
                  swarm_x[counter]=np.dot(N[:],x_V[icon_V[:,iel]])
-                 swarm_y[counter]=np.dot(N[:],y_V[icon_V[:,iel]])
+                 swarm_z[counter]=np.dot(N[:],z_V[icon_V[:,iel]])
                  swarm_r[counter]=r
-                 swarm_s[counter]=s
+                 swarm_t[counter]=t
                  swarm_iel[counter]=iel
                  counter+=1
              #end for
@@ -716,12 +745,12 @@ match(particle_distribution):
              for j in range(0,nparticle_per_dim):
                  for i in range(0,nparticle_per_dim):
                      r=-1.+i*2./nparticle_per_dim + 1./nparticle_per_dim
-                     s=-1.+j*2./nparticle_per_dim + 1./nparticle_per_dim
-                     N=basis_functions_V(r,s)
+                     t=-1.+j*2./nparticle_per_dim + 1./nparticle_per_dim
+                     N=basis_functions_V(r,t)
                      swarm_x[counter]=np.dot(N[:],x_V[icon_V[:,iel]])
-                     swarm_y[counter]=np.dot(N[:],y_V[icon_V[:,iel]])
+                     swarm_z[counter]=np.dot(N[:],z_V[icon_V[:,iel]])
                      swarm_r[counter]=r
-                     swarm_s[counter]=s
+                     swarm_t[counter]=t
                      swarm_iel[counter]=iel
                      counter+=1
                  #end for
@@ -735,12 +764,12 @@ match(particle_distribution):
          kpoisson=30
          nparticle_wish=nel*nparticle_per_element # target
          print ('     -> nparticle_wish: %d ' % (nparticle_wish) )
-         avrgdist=np.sqrt(Lx*Ly/nparticle_wish)/1.25
-         nparticle,swarm_x,swarm_y=PoissonDisc(kpoisson,avrgdist,Lx,Ly)
+         avrgdist=np.sqrt(Lx*Lz/nparticle_wish)/1.25
+         nparticle,swarm_x,swarm_z=PoissonDisc(kpoisson,avrgdist,Lx,Lz)
          print ('     -> nparticle: %d ' % (nparticle) )
 
-         swarm_r,swarm_s,swarm_iel=\
-         locate_particles(nparticle,swarm_x,swarm_y,hx,hy,x_V,y_V,icon_V,nelx)
+         swarm_r,swarm_t,swarm_iel=\
+         locate_particles(nparticle,swarm_x,swarm_z,hx,hz,x_V,z_V,icon_V,nelx)
 
      case 3 : # pseudo-random
 
@@ -749,14 +778,14 @@ match(particle_distribution):
              for j in range(0,nparticle_per_dim):
                  for i in range(0,nparticle_per_dim):
                      r=-1.+i*2./nparticle_per_dim + 1./nparticle_per_dim
-                     s=-1.+j*2./nparticle_per_dim + 1./nparticle_per_dim
+                     t=-1.+j*2./nparticle_per_dim + 1./nparticle_per_dim
                      r+=random.uniform(-0.2,+0.2)*(2/nparticle_per_dim)
-                     s+=random.uniform(-0.2,+0.2)*(2/nparticle_per_dim)
-                     N=basis_functions_V(r,s)
+                     t+=random.uniform(-0.2,+0.2)*(2/nparticle_per_dim)
+                     N=basis_functions_V(r,t)
                      swarm_x[counter]=np.dot(N[:],x_V[icon_V[:,iel]])
-                     swarm_y[counter]=np.dot(N[:],y_V[icon_V[:,iel]])
+                     swarm_z[counter]=np.dot(N[:],z_V[icon_V[:,iel]])
                      swarm_r[counter]=r
-                     swarm_s[counter]=s
+                     swarm_t[counter]=t
                      swarm_iel[counter]=iel
                      counter+=1
                  #end for
@@ -766,17 +795,17 @@ match(particle_distribution):
      case _ :
          exit('unknown particle_distribution')
 
-if debug_ascii: np.savetxt('DEBUG/swarm_distribution.ascii',np.array([swarm_x,swarm_y]).T)
+if debug_ascii: np.savetxt('DEBUG/swarm_distribution.ascii',np.array([swarm_x,swarm_z]).T,header='#x,z')
 
 swarm_active=np.zeros(nparticle,dtype=bool) ; swarm_active[:]=True
 
 print("     -> nparticle %d " % nparticle)
 print("     -> swarm_x (m,M) %.3e %.3e " %(np.min(swarm_x),np.max(swarm_x)))
-print("     -> swarm_y (m,M) %.3e %.3e " %(np.min(swarm_y),np.max(swarm_y)))
+print("     -> swarm_z (m,M) %.3e %.3e " %(np.min(swarm_z),np.max(swarm_z)))
 
 if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-   swarm_rad=np.sqrt(swarm_x**2+swarm_y**2)
-   swarm_theta=np.pi/2-np.arctan2(swarm_x,swarm_y)
+   swarm_rad=np.sqrt(swarm_x**2+swarm_z**2)
+   swarm_theta=np.pi/2-np.arctan2(swarm_x,swarm_z)
    print("     -> swarm_rad (m,M) %.3e %.3e " %(np.min(swarm_rad),np.max(swarm_rad)))
    print("     -> swarm_theta (m,M) %.3e %.3e " %(np.min(swarm_theta),np.max(swarm_theta)))
 else:
@@ -802,9 +831,9 @@ match(geometry):
           if swarm_x[ip]>i*dx and swarm_x[ip]<(i+1)*dx:
              swarm_paint[ip]+=1
   for i in [0,2,4,6,8,10,12,14]:
-      dy=Ly/16
+      dz=Lz/16
       for ip in range (0,nparticle):
-          if swarm_y[ip]>i*dy and swarm_y[ip]<(i+1)*dy:
+          if swarm_z[ip]>i*dz and swarm_z[ip]<(i+1)*dz:
              swarm_paint[ip]+=1
 
  case 'quarter' | 'half' | 'eighth':
@@ -826,11 +855,18 @@ print("particles paint: %.3f s" % (clock.time()-start))
 ###############################################################################
 start=clock.time()
 
-swarm_mat=particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly)
+swarm_mat=particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz)
 
 print("     -> swarm_mat (m,M) %d %d " %(np.min(swarm_mat),np.max(swarm_mat)))
     
-if debug_ascii: np.savetxt('DEBUG/swarm_mat.ascii',np.array([swarm_x,swarm_y,swarm_mat]).T)
+if debug_ascii: np.savetxt('DEBUG/swarm_mat.ascii',np.array([swarm_x,swarm_z,swarm_mat]).T,header='#x,z,mat')
+
+if use_melting:
+   swarm_F=np.zeros(nparticle,dtype=np.float32)
+   swarm_sst=np.zeros(nparticle,dtype=np.float32)
+else:
+   swarm_F=0.
+   swarm_sst=0.
 
 print("particle layout: %.3f s" % (clock.time()-start))
 
@@ -841,19 +877,18 @@ print("particle layout: %.3f s" % (clock.time()-start))
 ###############################################################################
 ###############################################################################
 ###############################################################################
-C=np.array([[2,0,0],[0,2,0],[0,0,1]],dtype=np.float64) 
 
 geological_time=0.
 dt1_mem=1e50
 dt2_mem=1e50
        
 exx_nodal=np.zeros(nn_V,dtype=np.float64)  
-eyy_nodal=np.zeros(nn_V,dtype=np.float64)  
-exy_nodal=np.zeros(nn_V,dtype=np.float64)  
+ezz_nodal=np.zeros(nn_V,dtype=np.float64)  
+exz_nodal=np.zeros(nn_V,dtype=np.float64)  
 dpdx_nodal=np.zeros(nn_V,dtype=np.float64)  
-dpdy_nodal=np.zeros(nn_V,dtype=np.float64)  
+dpdz_nodal=np.zeros(nn_V,dtype=np.float64)  
 u_mem=np.zeros(nn_V,dtype=np.float64)  
-v_mem=np.zeros(nn_V,dtype=np.float64)  
+w_mem=np.zeros(nn_V,dtype=np.float64)  
 p_mem=np.zeros(nn_P,dtype=np.float64)  
 q=np.zeros(nn_V,dtype=np.float64)  
 
@@ -864,40 +899,49 @@ for istep in range(0,nstep):
     print("istep= %d | time= %.4e " %(istep,geological_time/time_scale))
     print("-------------------------------------")
 
-    ###########################################################################
-    #@@ interpolate strain rate on particles
-    ###########################################################################
+    ###############################################################################################
+    #@@ interpolate strain rate, pressure and temperature on particles
+    ###############################################################################################
     start=clock.time()
 
-    swarm_exx=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,exx_nodal,icon_V)
-    swarm_eyy=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,eyy_nodal,icon_V)
-    swarm_exy=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,exy_nodal,icon_V)
+    swarm_exx=interpolate_field_on_particles(nparticle,swarm_r,swarm_t,swarm_iel,exx_nodal,icon_V)
+    swarm_ezz=interpolate_field_on_particles(nparticle,swarm_r,swarm_t,swarm_iel,ezz_nodal,icon_V)
+    swarm_exz=interpolate_field_on_particles(nparticle,swarm_r,swarm_t,swarm_iel,exz_nodal,icon_V)
 
-    swarm_p=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,q,icon_V)
-
-    print("interp strain rate & q on particles: %.3fs" % (clock.time()-start)) ; timings[24]+=clock.time()-start
-
-    ###########################################################################
-    #@@ interpolate temperature on particles
-    ###########################################################################
-    start=clock.time()
+    swarm_p=interpolate_field_on_particles(nparticle,swarm_r,swarm_t,swarm_iel,q,icon_V)
 
     if solve_T:
-       swarm_T=interpolate_field_on_particles(nparticle,swarm_r,swarm_s,swarm_iel,T,icon_V)
+       swarm_T=interpolate_field_on_particles(nparticle,swarm_r,swarm_t,swarm_iel,T,icon_V)
        print("     -> swarm_T (m,M) %.3e %.3e " %(np.min(swarm_T)-TKelvin,np.max(swarm_T)-TKelvin))
     else:
        swarm_T=0
 
-    print("interp temperature on particles: %.3fs" % (clock.time()-start)) ; timings[25]+=clock.time()-start
+    print("interp sr, q, T on particles: %.3fs" % (clock.time()-start)) ; timings[24]+=clock.time()-start
 
-    ###########################################################################
+    ###############################################################################################
+    #@@ compute depletion and super solidus temperature
+    ###############################################################################################
+    start=clock.time()
+
+    if istep>0 and use_melting and solve_T: 
+       swarm_F,swarm_sst=update_F(nparticle,swarm_p,swarm_T,swarm_F)
+
+       print('****************************************')
+
+       print("     -> swarm_F (m,M) %.3e %.3e " %(np.min(swarm_F),np.max(swarm_F)))
+       print("     -> swarm_sst (m,M) %.3e %.3e " %(np.min(swarm_sst),np.max(swarm_sst)))
+
+    print("melting on particles: %.3fs" % (clock.time()-start)) 
+
+    ###############################################################################################
     #@@ evaluate density and viscosity on particles (and hcond, hcapa, hprod)
     # if solve_T is false then swarm_{hcond,hcapa,hprod} are scalars equal to zero
-    ###########################################################################
+    ###############################################################################################
     start=clock.time()
 
     swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod=\
-    material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_p) 
+    material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
+                   swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p) 
 
     print("     -> swarm_rho (m,M) %.5e %.5e " %(np.min(swarm_rho),np.max(swarm_rho)))
     print("     -> swarm_eta (m,M) %.5e %.5e " %(np.min(swarm_eta),np.max(swarm_eta)))
@@ -907,14 +951,15 @@ for istep in range(0,nstep):
        print("     -> swarm_hcond (m,M) %.5e %.5e " %(np.min(swarm_hcond),np.max(swarm_hcond)))
        print("     -> swarm_hprod (m,M) %.5e %.5e " %(np.min(swarm_hprod),np.max(swarm_hprod)))
 
-    if debug_ascii: np.savetxt('DEBUG/swarm_rho.ascii',np.array([swarm_x,swarm_y,swarm_rho]).T,header='# x,y,rho')
-    if debug_ascii: np.savetxt('DEBUG/swarm_eta.ascii',np.array([swarm_x,swarm_y,swarm_eta]).T,header='# x,y,eta')
+    if debug_ascii: np.savetxt('DEBUG/swarm_rho.ascii',np.array([swarm_x,swarm_z,swarm_rho]).T,header='# x,z,rho')
+    if debug_ascii: np.savetxt('DEBUG/swarm_eta.ascii',np.array([swarm_x,swarm_z,swarm_eta]).T,header='# x,z,eta')
 
-    print("compute rho,eta on particles: %.3fs" % (clock.time()-start)) ; timings[15]+=clock.time()-start
+    print("call material model on particles: %.3fs" % (clock.time()-start)) ; timings[15]+=clock.time()-start
 
-    ###########################################################################
+    ###############################################################################################
     #@@ project particle properties on elements 
-    ###########################################################################
+    # this is also where the nparticle_elemental array is filled
+    ###############################################################################################
     start=clock.time()
 
     rho_elemental,eta_elemental,nparticle_elemental=\
@@ -930,19 +975,19 @@ for istep in range(0,nstep):
     print("     -> rho_elemental (m,M) %.3e %.3e " %(np.min(rho_elemental),np.max(rho_elemental)))
     print("     -> eta_elemental (m,M) %.3e %.3e " %(np.min(eta_elemental),np.max(eta_elemental)))
 
-    if debug_ascii: np.savetxt('DEBUG/rho_elemental.ascii',np.array([xc,yc,rho_elemental]).T,header='# x,y,rho')
-    if debug_ascii: np.savetxt('DEBUG/eta_elemental.ascii',np.array([xc,yc,eta_elemental]).T,header='# x,y,eta')
+    if debug_ascii: np.savetxt('DEBUG/rho_elemental.ascii',np.array([xc,zc,rho_elemental]).T,header='# x,z,rho')
+    if debug_ascii: np.savetxt('DEBUG/eta_elemental.ascii',np.array([xc,zc,eta_elemental]).T,header='# x,z,eta')
 
     if debug_nan and np.isnan(np.sum(rho_elemental)): exit('nan found in rho_elemental')
     if debug_nan and np.isnan(np.sum(eta_elemental)): exit('nan found in eta_elemental')
 
     print("project particle fields on elements: %.3fs" % (clock.time()-start)) ; timings[17]+=clock.time()-start
 
-    ###########################################################################
+    ###############################################################################################
     #@@ project particle properties on V nodes
     # nodal rho & eta are computed on nodes 0,1,2,3, while values on nodes
     # 4,5,6,7,8 are obtained by simple averages. In the end we obtaine Q1 fields 
-    ###########################################################################
+    ###############################################################################################
     start=clock.time()
 
     rho_nodal=project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_rho,icon_V,swarm_iel,'arithmetic')
@@ -951,8 +996,8 @@ for istep in range(0,nstep):
     print("     -> rho_nodal (m,M) %.3e %.3e " %(np.min(rho_nodal),np.max(rho_nodal)))
     print("     -> eta_nodal (m,M) %.3e %.3e " %(np.min(eta_nodal),np.max(eta_nodal)))
 
-    if debug_ascii: np.savetxt('DEBUG/rho_nodal.ascii',np.array([x_V,y_V,rho_nodal,rad_V,theta_V]).T,header='# x,y,rho')
-    if debug_ascii: np.savetxt('DEBUG/eta_nodal.ascii',np.array([x_V,y_V,eta_nodal,rad_V,theta_V]).T,header='# x,y,eta')
+    if debug_ascii: np.savetxt('DEBUG/rho_nodal.ascii',np.array([x_V,z_V,rho_nodal,rad_V,theta_V]).T,header='# x,z,rho,rad,theta')
+    if debug_ascii: np.savetxt('DEBUG/eta_nodal.ascii',np.array([x_V,z_V,eta_nodal,rad_V,theta_V]).T,header='# x,z,eta,rad,theta')
 
     if solve_T:
        hcond_nodal=project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_hcond,icon_V,swarm_iel,'arithmetic')
@@ -963,9 +1008,9 @@ for istep in range(0,nstep):
        print("     -> hcapa_nodal (m,M) %.3e %.3e " %(np.min(hcapa_nodal),np.max(hcapa_nodal)))
        print("     -> hprod_nodal (m,M) %.3e %.3e " %(np.min(hprod_nodal),np.max(hprod_nodal)))
 
-       if debug_ascii: np.savetxt('DEBUG/hcond_nodal.ascii',np.array([x_V,y_V,hcond_nodal]).T,header='# x,y,hcond')
-       if debug_ascii: np.savetxt('DEBUG/hcapa_nodal.ascii',np.array([x_V,y_V,hcapa_nodal]).T,header='# x,y,hcapa')
-       if debug_ascii: np.savetxt('DEBUG/hprod_nodal.ascii',np.array([x_V,y_V,hprod_nodal]).T,header='# x,y,hprod')
+       if debug_ascii: np.savetxt('DEBUG/hcond_nodal.ascii',np.array([x_V,z_V,hcond_nodal]).T,header='# x,z,hcond')
+       if debug_ascii: np.savetxt('DEBUG/hcapa_nodal.ascii',np.array([x_V,z_V,hcapa_nodal]).T,header='# x,z,hcapa')
+       if debug_ascii: np.savetxt('DEBUG/hprod_nodal.ascii',np.array([x_V,z_V,hprod_nodal]).T,header='# x,z,hprod')
 
     print("project particle fields on nodes: %.3fs" % (clock.time()-start)) ; timings[18]+=clock.time()-start
 
@@ -974,20 +1019,34 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    rho_profile=np.zeros(nny,dtype=np.float64)
+    rho_nodal_profile=np.zeros(nnz,dtype=np.float64)
+    rho_elemental_profile=np.zeros(nelz,dtype=np.float64)
 
     counter=0    
-    for j in range(0,nny):
+    for j in range(0,nnz):
         for i in range(0,nnx):
-            rho_profile[j]+=rho_nodal[counter]
+            rho_nodal_profile[j]+=rho_nodal[counter]
             counter+=1
-    rho_profile/=nnx
+    rho_nodal_profile/=nnx
 
-    np.savetxt('OUTPUT/rho_profile.ascii',np.array([rad_V[left_nodes],rho_profile]).T,header='# rad,rho')
+    counter=0
+    for j in range(0,nelz):
+        for i in range(0,nelx):
+            rho_elemental_profile[j]+=rho_elemental[counter]
+            counter+=1
+    rho_elemental_profile/=nelx
 
-    print("     -> rho_profile (m,M) %.3e %.3e " %(np.min(rho_profile),np.max(rho_profile)))
+    if geometry=='box':
+       np.savetxt('OUTPUT/rho_nodal_profile.ascii',np.array([z_V[left_Vnodes],rho_nodal_profile]).T,header='# z,rho')
+       np.savetxt('OUTPUT/rho_elemental_profile.ascii',np.array([zc[left_element],rho_elemental_profile]).T,header='# z,rho')
+    else:
+       np.savetxt('OUTPUT/rho_nodal_profile.ascii',np.array([rad_V[left_Vnodes],rho_nodal_profile]).T,header='# rad,rho')
+       np.savetxt('OUTPUT/rho_elemental_profile.ascii',np.array([rad_c[left_element],rho_elemental_profile]).T,header='# rad,rho')
 
-    print("compute rho_profile: %.3fs" % (clock.time()-start)) #; timings[18]+=clock.time()-start
+    print("     -> rho_nodal_profile (m,M) %.3e %.3e " %(np.min(rho_nodal_profile),np.max(rho_nodal_profile)))
+    print("     -> rho_elemental_profile (m,M) %.3e %.3e " %(np.min(rho_elemental_profile),np.max(rho_elemental_profile)))
+
+    print("compute rho_profile: %.3fs" % (clock.time()-start)) 
 
     ###########################################################################
     #@@ remove nodal rho profile
@@ -995,29 +1054,48 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if remove_rho_profile:
-       rho_DT_top-=rho_profile[nny-1]
-       rho_DT_bot-=rho_profile[0]
+       rho_DT_top-=rho_nodal_profile[nnz-1]
+       rho_DT_bot-=rho_nodal_profile[0]
+
        counter=0    
-       for j in range(0,nny):
+       for j in range(0,nnz):
            for i in range(0,nnx):
-               rho_nodal[counter]-=rho_profile[j]
+               rho_nodal[counter]-=rho_nodal_profile[j]
                counter+=1
 
-    print("remove rho_profile: %.3fs" % (clock.time()-start)) #; timings[18]+=clock.time()-start
+       counter=0    
+       for j in range(0,nelz):
+           for i in range(0,nelx):
+               rho_elemental[counter]-=rho_elemental_profile[j]
+               counter+=1
+
+    print("remove rho_profile: %.3fs" % (clock.time()-start)) 
 
     ###########################################################################
-    #@@ project nodal values onto quadrature points
-    # rhoq, etaq, exxq, eyyq, exyq have size (nel,nqel)
+    #@@ project nodal/elemental values onto quadrature points
+    # rhoq, etaq, exxq, ezzq, exzq, hcondq, hcapaq, hprodq have size (nel,nqel)
     ###########################################################################
     start=clock.time()
 
-    rhoq=Q1_project_nodal_field_onto_qpoints(rho_nodal,nqel,nel,N_P,icon_V)
-    etaq=Q1_project_nodal_field_onto_qpoints(eta_nodal,nqel,nel,N_P,icon_V)
+    if use_elemental_rho:
+       rhoq=np.zeros((nel,nqel),dtype=np.float64)
+       for iel in range(0,nel):
+           rhoq[iel,:]=rho_elemental[iel]
+    else:
+       rhoq=Q1_project_nodal_field_onto_qpoints(rho_nodal,nqel,nel,N_P,icon_V)
+
+    if use_elemental_eta:
+       etaq=np.zeros((nel,nqel),dtype=np.float64)
+       for iel in range(0,nel):
+           etaq[iel,:]=eta_elemental[iel]
+    else:
+       etaq=Q1_project_nodal_field_onto_qpoints(eta_nodal,nqel,nel,N_P,icon_V)
+
     exxq=Q2_project_nodal_field_onto_qpoints(exx_nodal,nqel,nel,N_V,icon_V)
-    eyyq=Q2_project_nodal_field_onto_qpoints(eyy_nodal,nqel,nel,N_V,icon_V)
-    exyq=Q2_project_nodal_field_onto_qpoints(exy_nodal,nqel,nel,N_V,icon_V)
+    ezzq=Q2_project_nodal_field_onto_qpoints(ezz_nodal,nqel,nel,N_V,icon_V)
+    exzq=Q2_project_nodal_field_onto_qpoints(exz_nodal,nqel,nel,N_V,icon_V)
     dpdxq=Q2_project_nodal_field_onto_qpoints(dpdx_nodal,nqel,nel,N_V,icon_V)
-    dpdyq=Q2_project_nodal_field_onto_qpoints(dpdy_nodal,nqel,nel,N_V,icon_V)
+    dpdzq=Q2_project_nodal_field_onto_qpoints(dpdz_nodal,nqel,nel,N_V,icon_V)
 
     if solve_T:
        Tq=Q2_project_nodal_field_onto_qpoints(T,nqel,nel,N_V,icon_V)
@@ -1039,22 +1117,22 @@ for istep in range(0,nstep):
        print("     -> hcondq (m,M) %.5e %.5e " %(np.min(hcondq),np.max(hcondq)))
        print("     -> hprodq (m,M) %.5e %.5e " %(np.min(hprodq),np.max(hprodq)))
 
-    if debug_ascii: np.savetxt('DEBUG/rhoq.ascii',np.array([xq.flatten(),yq.flatten(),rhoq.flatten()]).T)
-    if debug_ascii: np.savetxt('DEBUG/etaq.ascii',np.array([xq.flatten(),yq.flatten(),etaq.flatten()]).T)
-    if debug_ascii and solve_T: np.savetxt('DEBUG/Tq.ascii',np.array([xq.flatten(),yq.flatten(),Tq.flatten()]).T)
-    if debug_ascii and solve_T: np.savetxt('DEBUG/hcapaq.ascii',np.array([xq.flatten(),yq.flatten(),hcapaq.flatten()]).T)
-    if debug_ascii and solve_T: np.savetxt('DEBUG/hcondq.ascii',np.array([xq.flatten(),yq.flatten(),hcondq.flatten()]).T)
-    if debug_ascii and solve_T: np.savetxt('DEBUG/hprodq.ascii',np.array([xq.flatten(),yq.flatten(),hprodq.flatten()]).T)
+    if debug_ascii: np.savetxt('DEBUG/rhoq.ascii',np.array([xq.flatten(),zq.flatten(),rhoq.flatten()]).T,header='#x,z,rho')
+    if debug_ascii: np.savetxt('DEBUG/etaq.ascii',np.array([xq.flatten(),zq.flatten(),etaq.flatten()]).T,header='#x,z,eta')
+    if debug_ascii and solve_T: np.savetxt('DEBUG/Tq.ascii',np.array([xq.flatten(),zq.flatten(),Tq.flatten()]).T,header='#x,z,T')
+    if debug_ascii and solve_T: np.savetxt('DEBUG/hcapaq.ascii',np.array([xq.flatten(),zq.flatten(),hcapaq.flatten()]).T,header='#x,z,hcapa')
+    if debug_ascii and solve_T: np.savetxt('DEBUG/hcondq.ascii',np.array([xq.flatten(),zq.flatten(),hcondq.flatten()]).T,header='#x,z,hcond')
+    if debug_ascii and solve_T: np.savetxt('DEBUG/hprodq.ascii',np.array([xq.flatten(),zq.flatten(),hprodq.flatten()]).T,header='#x,z,hprod')
 
     print("project nodal fields onto qpts: %.3fs" % (clock.time()-start)) ; timings[21]+=clock.time()-start
 
     ###########################################################################
-    # compute lithostatic pressure a la Jourdon & May, Solid Earth, 2022
+    #@@ compute lithostatic pressure a la Jourdon & May, Solid Earth, 2022
     ###########################################################################
     start=clock.time()
 
-    VV_T,rhs=build_matrix_plith(bignb_T,nel,nqel,m_T,Nfem_T,icon_V,rhoq,gxq,gyq,\
-                                JxWq,N_V,dNdr_V,dNds_V,jcbi00q,jcbi01q,jcbi10q,jcbi11q,top_nodes)
+    VV_T,rhs=build_matrix_plith(bignb_T,nel,nqel,m_T,Nfem_T,icon_V,rhoq,gxq,gzq,\
+                                JxWq,N_V,dNdr_V,dNdt_V,jcbi00q,jcbi01q,jcbi10q,jcbi11q,top_Vnodes)
     sparse_matrix=sparse.coo_matrix((VV_T,(II_T,JJ_T)),shape=(Nfem_T,Nfem_T)).tocsr()
     plith=sps.linalg.spsolve(sparse_matrix,rhs)
 
@@ -1063,32 +1141,35 @@ for istep in range(0,nstep):
     print("compute lithostatic pressure: %.3fs" % (clock.time()-start)) ; timings[28]+=clock.time()-start
 
     ###########################################################################
-    #@ build FE matrix
+    #@@ build FE matrix
     # [ K G ][u]=[f]
     # [GT 0 ][p] [h]
     ###########################################################################
     start=clock.time()
 
-    VV_V,rhs=build_matrix_stokes(bignb_V,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,\
-                                 ndof_V_el,icon_V,icon_P,rhoq,etaq,JxWq,\
-                                 local_to_globalV,gxq,gyq,Ly,N_V,N_P,dNdr_V,dNds_V,\
-                                 jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
-                                 eta_ref,L_ref,bc_fix_V,bc_val_V,\
-                                 bot_element,top_element,bot_free_slip,top_free_slip,\
-                                 geometry,theta_V,axisymmetric,xq)
+    if solve_Stokes:
+       VV_V,rhs=build_matrix_stokes(bignb_V,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,\
+                                    ndof_V_el,icon_V,icon_P,rhoq,etaq,JxWq,\
+                                    local_to_globalV,gxq,gzq,N_V,N_P,dNdr_V,dNdt_V,\
+                                    jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
+                                    eta_ref,L_ref,bc_fix_V,bc_val_V,\
+                                    bot_element,top_element,bot_free_slip,top_free_slip,\
+                                    geometry,theta_V,axisymmetric,xq)
 
     if debug_nan and np.isnan(np.sum(VV_V)): exit('nan found in VV_V')
 
     print("build FE matrix stokes: %.3fs" % (clock.time()-start)) ; timings[1]+=clock.time()-start
 
     ###############################################################################################
-    #@ solve stokes system
+    #@@ solve stokes system
     ###############################################################################################
     start=clock.time()
 
-    sparse_matrix=sparse.coo_matrix((VV_V,(II_V,JJ_V)),shape=(Nfem,Nfem)).tocsr()
-
-    sol=sps.linalg.spsolve(sparse_matrix,rhs)
+    if solve_Stokes:
+       sparse_matrix=sparse.coo_matrix((VV_V,(II_V,JJ_V)),shape=(Nfem,Nfem)).tocsr()
+       sol=sps.linalg.spsolve(sparse_matrix,rhs)
+    else:
+       sol=np.zeros(Nfem,dtype=np.float64)
 
     print("solve time: %.3f s" % (clock.time()-start)) ; timings[2]+=clock.time()-start
 
@@ -1097,39 +1178,48 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    u,v=np.reshape(sol[0:Nfem_V],(nn_V,2)).T
+    u,w=np.reshape(sol[0:Nfem_V],(nn_V,2)).T
     p=sol[Nfem_V:Nfem]*(eta_ref/L_ref)
 
     if debug_nan and np.isnan(np.sum(u)): exit('nan found in u')
-    if debug_nan and np.isnan(np.sum(v)): exit('nan found in v')
+    if debug_nan and np.isnan(np.sum(w)): exit('nan found in w')
     if debug_nan and np.isnan(np.sum(p)): exit('nan found in p')
 
     if (geometry=='quarter' or geometry=='half' or geometry=='eighth') and top_free_slip:
        for i in range(0,nn_V):
-           if top_nodes[i] and (not bc_fix_V[2*i]) and (not bc_fix_V[2*i+1]):
-              ui=np.cos(theta_V[i])*u[i]-np.sin(theta_V[i])*v[i]
-              vi=np.sin(theta_V[i])*u[i]+np.cos(theta_V[i])*v[i] 
+           if top_Vnodes[i] and (not bc_fix_V[2*i]) and (not bc_fix_V[2*i+1]):
+              ui=np.cos(theta_V[i])*u[i]-np.sin(theta_V[i])*w[i]
+              wi=np.sin(theta_V[i])*u[i]+np.cos(theta_V[i])*w[i] 
               u[i]=ui
-              v[i]=vi
+              w[i]=wi
                  
     if (geometry=='quarter' or geometry=='half' or geometry=='eighth') and bot_free_slip:
        for i in range(0,nn_V):
-           if bot_nodes[i] and (not bc_fix_V[2*i]) and (not bc_fix_V[2*i+1]):
-              ui=np.cos(theta_V[i])*u[i]-np.sin(theta_V[i])*v[i]
-              vi=np.sin(theta_V[i])*u[i]+np.cos(theta_V[i])*v[i] 
+           if bot_Vnodes[i] and (not bc_fix_V[2*i]) and (not bc_fix_V[2*i+1]):
+              ui=np.cos(theta_V[i])*u[i]-np.sin(theta_V[i])*w[i]
+              wi=np.sin(theta_V[i])*u[i]+np.cos(theta_V[i])*w[i] 
               u[i]=ui
-              v[i]=vi
+              w[i]=wi
+
+    vel=np.sqrt(u**2+w**2)
+
+    if geometry=='box':
+       np.savetxt('OUTPUT/top_vel_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],vel[top_Vnodes]]).T)
+       np.savetxt('OUTPUT/bot_vel_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],vel[bot_Vnodes]]).T)
+    if geometry=='quarter' or geometry=='half' or geometry=='eighth':
+       np.savetxt('OUTPUT/top_vel_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],vel[top_Vnodes]]).T)
+       np.savetxt('OUTPUT/bot_vel_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],vel[bot_Vnodes]]).T)
 
     print("     -> u (m,M) %.3e %.3e %s" %(np.min(u)/vel_scale,np.max(u)/vel_scale,vel_unit))
-    print("     -> v (m,M) %.3e %.3e %s" %(np.min(v)/vel_scale,np.max(v)/vel_scale,vel_unit))
+    print("     -> w (m,M) %.3e %.3e %s" %(np.min(w)/vel_scale,np.max(w)/vel_scale,vel_unit))
     print("     -> p (m,M) %.3e %.3e %s" %(np.min(p)/p_scale,np.max(p)/p_scale,p_unit))
 
     vstats_file.write("%.3e %.3e %.3e %.3e %.3e\n" % (istep,np.min(u)/vel_scale,np.max(u)/vel_scale,\
-                                                            np.min(v)/vel_scale,np.max(v)/vel_scale))
+                                                            np.min(w)/vel_scale,np.max(w)/vel_scale))
     vstats_file.flush()
 
-    if debug_ascii: np.savetxt('DEBUG/velocity.ascii',np.array([x_V,y_V,u,v,rad_V,theta_V]).T,header='# x,y,u,v')
-    if debug_ascii: np.savetxt('DEBUG/pressure.ascii',np.array([x_P,y_P,p,rad_P,theta_P]).T,header='# x,y,p')
+    if debug_ascii: np.savetxt('DEBUG/velocity.ascii',np.array([x_V,z_V,u,w,rad_V,theta_V]).T,header='# x,z,u,w,rad,theta')
+    if debug_ascii: np.savetxt('DEBUG/pressure.ascii',np.array([x_P,z_P,p,rad_P,theta_P]).T,header='# x,z,p,rad,theta')
 
     print("split vel into u,v: %.3f s" % (clock.time()-start)) ; timings[14]+=clock.time()-start
 
@@ -1138,9 +1228,16 @@ for istep in range(0,nstep):
     ###############################################################################################
 
     if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-       vr=u*np.cos(theta_V)+v*np.sin(theta_V)
-       vt=-u*np.sin(theta_V)+v*np.cos(theta_V)
-       if debug_ascii: np.savetxt('DEBUG/velocity_polar.ascii',np.array([x_V,y_V,vr,vt,rad_V,theta_V]).T)
+       if axisymmetric:
+          vr=u*np.cos(theta_V)+w*np.sin(theta_V)
+          vt=u*np.sin(theta_V)-w*np.cos(theta_V)
+       else:
+          vr= u*np.cos(theta_V)+w*np.sin(theta_V)
+          vt=-u*np.sin(theta_V)+w*np.cos(theta_V)
+       if debug_ascii: 
+          np.savetxt('DEBUG/velocity_polar.ascii',np.array([x_V,z_V,vr,vt,rad_V,theta_V]).T,header='#x,z,vr,vt,rad,theta')
+          np.savetxt('DEBUG/top_vt.ascii',np.array([theta_V[top_Vnodes],vt[top_Vnodes]]).T,header='#theta,vt')
+          np.savetxt('DEBUG/bot_vt.ascii',np.array([theta_V[bot_Vnodes],vt[bot_Vnodes]]).T,header='#theta,vt')
     else:
        vr=0 ; vt=0
     
@@ -1150,10 +1247,13 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    if geometry=='box': dt1=CFLnb*min(hx,hy)/np.max(np.sqrt(u**2+v**2))
-    if geometry=='quarter': dt1=CFLnb*hrad/np.max(np.sqrt(u**2+v**2))
-    if geometry=='half': dt1=CFLnb*hrad/np.max(np.sqrt(u**2+v**2))
-    if geometry=='eighth': dt1=CFLnb*hrad/np.max(np.sqrt(u**2+v**2))
+    if solve_Stokes:
+       if geometry=='box': dt1=CFLnb*min(hx,hz)/np.max(vel)
+       if geometry=='quarter': dt1=CFLnb*hrad/np.max(vel)
+       if geometry=='half': dt1=CFLnb*hrad/np.max(vel)
+       if geometry=='eighth': dt1=CFLnb*hrad/np.max(vel)
+    else:
+       dt1=0.
 
     print('     -> dt1= %.3e %s' %(dt1/time_scale,time_unit))
     
@@ -1161,7 +1261,7 @@ for istep in range(0,nstep):
        avrg_hcond=np.average(swarm_hcond)
        avrg_hcapa=np.average(swarm_hcapa)
        avrg_rho=np.average(swarm_rho)
-       if geometry=='box': dt2=CFLnb*min(hx,hy)**2/(avrg_hcond/avrg_hcapa/avrg_rho)
+       if geometry=='box': dt2=CFLnb*min(hx,hz)**2/(avrg_hcond/avrg_hcapa/avrg_rho)
        if geometry=='quarter': dt2=CFLnb*hrad**2/(avrg_hcond/avrg_hcapa/avrg_rho)
        if geometry=='half': dt2=CFLnb*hrad**2/(avrg_hcond/avrg_hcapa/avrg_rho)
        if geometry=='eighth': dt2=CFLnb*hrad**2/(avrg_hcond/avrg_hcapa/avrg_rho)
@@ -1193,27 +1293,51 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    match(pressure_normalisation): 
-         case('surface'):
-             pressure_avrg=np.average(p[nn_P-(nelx+1):nn_P])
-             p-=pressure_avrg
-         case('volume'):
-             pressure_avrg=0
-             for iel in range(0,nel):
-                 for iq in range(0,nqel):
-                     pressure_avrg+=np.dot(N_P[iq,:],p[icon_P[:,iel]])*JxWq[iel,iq]
-             p-=pressure_avrg/volume
-         case _ :
-             exit('pressure_normalisation: unknown value')
+    pressure_average=compute_pressure_average(geometry,pressure_normalisation,axisymmetric,top_element,\
+                                              nel,nelx,nqel,N_P,JxWq,p,icon_P,theta_P,xq,volume)
+
+    print('     -> pressure_average=',pressure_average)
+
+    p-=pressure_average
 
     print("     -> p (m,M) %.3e %.3e %s" %(np.min(p),np.max(p),p_unit))
 
     pstats_file.write("%d %.3e %.3e\n" % (istep,np.min(p),np.max(p)))
     pstats_file.flush()
 
-    if debug_ascii: np.savetxt('DEBUG/pressure_normalised.ascii',np.array([x_P,y_P,p,rad_P,theta_P]).T,header='# x,y,p')
+    if geometry=='box':
+       np.savetxt('OUTPUT/top_p_'+str(istep)+'.ascii',np.array([x_P[top_Pnodes],p[top_Pnodes]]).T)
+       np.savetxt('OUTPUT/bot_p_'+str(istep)+'.ascii',np.array([x_P[bot_Pnodes],p[bot_Pnodes]]).T)
+    if geometry=='quarter' or geometry=='half' or geometry=='eighth':
+       np.savetxt('OUTPUT/top_p_'+str(istep)+'.ascii',np.array([theta_P[top_Pnodes],p[top_Pnodes]]).T)
+       np.savetxt('OUTPUT/bot_p_'+str(istep)+'.ascii',np.array([theta_P[bot_Pnodes],p[bot_Pnodes]]).T)
+
+    if debug_ascii: np.savetxt('DEBUG/pressure_normalised.ascii',np.array([x_P,z_P,p,rad_P,theta_P]).T,header='# x,z,p,rad,theta')
 
     print("normalise pressure: %.3f s" % (clock.time()-start)) ; timings[12]+=clock.time()-start
+
+    ###############################################################################################
+    #@@ compute elemental pressure
+    ###############################################################################################
+    start=clock.time()
+
+    p_elemental=np.zeros(nel,dtype=np.float64)  
+
+    for iel in range(0,nel):
+        p_elemental[iel]=np.sum(p[icon_P[:,iel]])/m_P
+
+    print("     -> p_elemental (m,M) %.3e %.3e %s" %(np.min(p_elemental)/p_scale,np.max(p_elemental)/p_scale,p_unit))
+
+    if geometry=='box':
+       np.savetxt('OUTPUT/top_p_elemental_'+str(istep)+'.ascii',np.array([xc[top_element],p_elemental[top_element]]).T)
+       np.savetxt('OUTPUT/bot_p_elemental_'+str(istep)+'.ascii',np.array([xc[bot_element],p_elemental[bot_element]]).T)
+    if geometry=='quarter' or geometry=='half' or geometry=='eighth':
+       np.savetxt('OUTPUT/top_p_elemental_'+str(istep)+'.ascii',np.array([theta_c[top_element],p_elemental[top_element]]).T)
+       np.savetxt('OUTPUT/bot_p_elemental_'+str(istep)+'.ascii',np.array([theta_c[bot_element],p_elemental[bot_element]]).T)
+
+    if debug_ascii: np.savetxt('DEBUG/pressure_elemental.ascii',np.array([xc,zc,p_elemental]).T,header='# x,z,p')
+
+    print("compute elemental pressure: %.3f s" % (clock.time()-start)) #; timings[14]+=clock.time()-start
 
     ###############################################################################################
     #@@ project Q1 pressure onto Q2 (vel,T) mesh
@@ -1224,19 +1348,14 @@ for istep in range(0,nstep):
     
     print("     -> q (m,M) %.3e %.3e %s" %(np.min(q),np.max(q),p_unit))
 
-    if debug_ascii: np.savetxt('DEBUG/q.ascii',np.array([x_V,y_V,q]).T,header='# x,y,q')
+    if debug_ascii: np.savetxt('DEBUG/q.ascii',np.array([x_V,z_V,q]).T,header='# x,z,q')
 
     if geometry=='box':
-       np.savetxt('OUTPUT/top_q_'+str(istep)+'.ascii',np.array([x_V[top_nodes],q[top_nodes]]).T)
-       np.savetxt('OUTPUT/bot_q_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],q[bot_nodes]]).T)
-       np.savetxt('OUTPUT/toop_q_'+str(istep)+'.ascii',np.array([x_V[toop_nodes],q[toop_nodes]]).T)
-       np.savetxt('OUTPUT/boot_q_'+str(istep)+'.ascii',np.array([x_V[boot_nodes],q[boot_nodes]]).T)
-
+       np.savetxt('OUTPUT/top_q_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],q[top_Vnodes]]).T)
+       np.savetxt('OUTPUT/bot_q_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],q[bot_Vnodes]]).T)
     if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-       np.savetxt('OUTPUT/top_q_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],q[top_nodes]]).T)
-       np.savetxt('OUTPUT/bot_q_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],q[bot_nodes]]).T)
-       np.savetxt('OUTPUT/toop_q_'+str(istep)+'.ascii',np.array([theta_V[toop_nodes],q[toop_nodes]]).T)
-       np.savetxt('OUTPUT/boot_q_'+str(istep)+'.ascii',np.array([theta_V[boot_nodes],q[boot_nodes]]).T)
+       np.savetxt('OUTPUT/top_q_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],q[top_Vnodes]]).T)
+       np.savetxt('OUTPUT/bot_q_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],q[bot_Vnodes]]).T)
 
     print("compute nodal press: %.3f s" % (clock.time()-start)) ; timings[3]+=clock.time()-start
 
@@ -1246,7 +1365,7 @@ for istep in range(0,nstep):
     start=clock.time()
 
     uq=Q2_project_nodal_field_onto_qpoints(u,nqel,nel,N_V,icon_V)
-    vq=Q2_project_nodal_field_onto_qpoints(v,nqel,nel,N_V,icon_V)
+    wq=Q2_project_nodal_field_onto_qpoints(w,nqel,nel,N_V,icon_V)
 
     print("project vel on quad points: %.3f s" % (clock.time()-start)) ; timings[21]+=clock.time()-start
 
@@ -1256,8 +1375,8 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if solve_T: 
-       VV_T,rhs=build_matrix_energy(bignb_T,nel,nqel,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,vq,\
-                                    hcondq,hcapaq,exxq,eyyq,exyq,dpdxq,dpdyq,JxWq,N_V,dNdr_V,dNds_V,\
+       VV_T,rhs=build_matrix_energy(bignb_T,nel,nqel,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,wq,\
+                                    hcondq,hcapaq,exxq,ezzq,exzq,dpdxq,dpdzq,JxWq,N_V,dNdr_V,dNdt_V,\
                                     jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
                                     bc_fix_T,bc_val_T,dt,formulation,rho0)
 
@@ -1277,7 +1396,7 @@ for istep in range(0,nstep):
 
        print("     -> T (m,M) %.3e %.3e " %(np.min(T),np.max(T)))
 
-       if debug_ascii: np.savetxt('DEBUG/T.ascii',np.array([x_V,y_V,T]).T,header='# x,y,T')
+       if debug_ascii: np.savetxt('DEBUG/T.ascii',np.array([x_V,z_V,T]).T,header='# x,z,T')
 
        Tstats_file.write("%.3e %.3e %.3e\n" %(istep,np.min(T)-TKelvin,np.max(T)-TKelvin)) 
        Tstats_file.flush()
@@ -1292,7 +1411,7 @@ for istep in range(0,nstep):
     start=clock.time()
 
     vrms,EK,WAG,TVD,GPE,ITE,TM=\
-    global_quantities(nel,nqel,xq,yq,uq,vq,Tq,rhoq,hcapaq,etaq,exxq,eyyq,exyq,volume,JxWq,gxq,gyq)
+    global_quantities(nel,nqel,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,volume,JxWq,gxq,gzq)
 
     vrms_file.write("%e %e \n" % (geological_time/time_scale,vrms/vel_scale)) ; vrms_file.flush()
     TM_file.write("%e %e \n" % (geological_time/time_scale,TM)) ; TM_file.flush()
@@ -1310,26 +1429,26 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if solve_T: 
-       dTdx_nodal,dTdy_nodal,qx_nodal,qy_nodal=\
-       compute_nodal_heat_flux(icon_V,T,hcond_nodal,nn_V,m_V,nel,dNdr_V_n,dNds_V_n,jcbi00n,jcbi01n,jcbi10n,jcbi11n)
+       dTdx_nodal,dTdz_nodal,qx_nodal,qz_nodal=\
+       compute_nodal_heat_flux(icon_V,T,hcond_nodal,nn_V,m_V,nel,dNdr_V_n,dNdt_V_n,jcbi00n,jcbi01n,jcbi10n,jcbi11n)
 
        print("     -> dTdx_nodal (m,M) %.3e %.3e " %(np.min(dTdx_nodal),np.max(dTdx_nodal)))
-       print("     -> dTdy_nodal (m,M) %.3e %.3e " %(np.min(dTdy_nodal),np.max(dTdy_nodal)))
+       print("     -> dTdz_nodal (m,M) %.3e %.3e " %(np.min(dTdz_nodal),np.max(dTdz_nodal)))
        print("     -> qx_nodal (m,M) %.3e %.3e " %(np.min(qx_nodal),np.max(qx_nodal)))
-       print("     -> qy_nodal (m,M) %.3e %.3e " %(np.min(qy_nodal),np.max(qy_nodal)))
+       print("     -> qz_nodal (m,M) %.3e %.3e " %(np.min(qz_nodal),np.max(qz_nodal)))
 
-       qx0=qx_nodal[cornerBL] ; qy0=qy_nodal[cornerBL]
-       qx1=qx_nodal[cornerBR] ; qy1=qy_nodal[cornerBR]
-       qx2=qx_nodal[cornerTR] ; qy2=qy_nodal[cornerTR]
-       qx3=qx_nodal[cornerTL] ; qy3=qy_nodal[cornerTL]
+       qx0=qx_nodal[cornerBL] ; qz0=qz_nodal[cornerBL]
+       qx1=qx_nodal[cornerBR] ; qz1=qz_nodal[cornerBR]
+       qx2=qx_nodal[cornerTR] ; qz2=qz_nodal[cornerTR]
+       qx3=qx_nodal[cornerTL] ; qz3=qz_nodal[cornerTL]
 
        corner_q_file.write("%e %e %e %e %e %e %e %e %e\n" % (geological_time/time_scale,\
-                                                             qx0,qy0,qx1,qy1,qx2,qy2,qx3,qy3)) 
+                                                             qx0,qz0,qx1,qz1,qx2,qz2,qx3,qz3)) 
        corner_q_file.flush()
 
     else:
        qx_nodal=0 
-       qy_nodal=0 
+       qz_nodal=0 
 
     print("compute nodal heat flux: %.3f s" % (clock.time()-start)) ; timings[7]+=clock.time()-start
 
@@ -1340,120 +1459,148 @@ for istep in range(0,nstep):
 
     if istep%every_Nu==0 and solve_T: 
 
-       avrg_T_bot,avrg_T_top,avrg_dTdy_bot,avrg_dTdy_top,Nu=\
-       compute_Nu(Lx,Ly,nel,top_element,bot_element,icon_V,T,dTdy_nodal,nqperdim,qcoords,qweights,hx)
+       avrg_T_bot,avrg_T_top,avrg_dTdz_bot,avrg_dTdz_top,Nu=\
+       compute_Nu(Lx,Lz,nel,top_element,bot_element,icon_V,T,dTdz_nodal,nqperdim,qcoords,qweights,hx)
 
        print("     -> <T> (bot,top)= %.3e %.3e " %(avrg_T_bot,avrg_T_top))
-       print("     -> <dTdy> (bot,top)= %.3e %.3e " %(avrg_dTdy_bot,avrg_dTdy_top))
+       print("     -> <dTdz> (bot,top)= %.3e %.3e " %(avrg_dTdz_bot,avrg_dTdz_top))
        print("     -> Nusselt= %.3e " %(Nu))
 
        Nu_file.write("%e %e \n" % (geological_time/time_scale,Nu)) ; Nu_file.flush()
        avrg_T_bot_file.write("%e %e \n" % (geological_time/time_scale,avrg_T_bot)) ; avrg_T_bot_file.flush()
        avrg_T_top_file.write("%e %e \n" % (geological_time/time_scale,avrg_T_top)) ; avrg_T_top_file.flush()
-       avrg_dTdy_bot_file.write("%e %e \n" % (geological_time/time_scale,avrg_dTdy_bot)) ; avrg_dTdy_bot_file.flush()
-       avrg_dTdy_top_file.write("%e %e \n" % (geological_time/time_scale,avrg_dTdy_top)) ; avrg_dTdy_top_file.flush()
+       avrg_dTdz_bot_file.write("%e %e \n" % (geological_time/time_scale,avrg_dTdz_bot)) ; avrg_dTdz_bot_file.flush()
+       avrg_dTdz_top_file.write("%e %e \n" % (geological_time/time_scale,avrg_dTdz_top)) ; avrg_dTdz_top_file.flush()
 
        print("compute Nu: %.3f s" % (clock.time()-start)) ; timings[8]+=clock.time()-start
 
     ###########################################################################
     #@@ compute temperature profile
+    # not the most elegant but works
     ###########################################################################
     start=clock.time()
 
     if istep%2500==0 and solve_T: 
 
-       T_profile=np.zeros(nny,dtype=np.float64)  
-       y_profile=np.zeros(nny,dtype=np.float64)  
+       T_profile=np.zeros(nnz,dtype=np.float64)  
+       coord_profile=np.zeros(nnz,dtype=np.float64) 
 
        counter=0    
-       for j in range(0,nny):
+       for j in range(0,nnz):
+           if geometry=='box':
+              coord_profile[j]=z_V[counter]
+           else:
+              coord_profile[j]=rad_V[counter]
            for i in range(0,nnx):
                T_profile[j]+=T[counter]/nnx
-               y_profile[j]=y_V[counter]
                counter+=1
            #end for
        #end for
 
-       np.savetxt('OUTPUT/T_profile_'+str(istep)+'.ascii',np.array([y_profile,T_profile]).T,header='#y,T')
+       np.savetxt('OUTPUT/T_profile_'+str(istep)+'.ascii',np.array([coord_profile,T_profile]).T,header='#z,T')
 
        print("compute T profile: %.3f s" % (clock.time()-start)) ; timings[9]+=clock.time()-start
 
     ###########################################################################
-    # compute elemental strain rate
+    # compute elemental strain rate and deviatoric strainrate
     ###########################################################################
     start=clock.time()
 
-    exx_elemental,eyy_elemental,exy_elemental,e_elemental=\
-    compute_elemental_strain_rate(icon_V,u,v,nn_V,nel,x_V,y_V)
+    exx_elemental,ezz_elemental,exz_elemental=\
+    compute_elemental_strain_rate(icon_V,u,w,nn_V,nel,x_V,z_V)
+
+    divv_elemental=exx_elemental+ezz_elemental
+    dxx_elemental=exx_elemental-divv_elemental/3
+    dzz_elemental=ezz_elemental-divv_elemental/3
+    dxz_elemental=exz_elemental
 
     print("     -> exx_elemental (m,M) %.3e %.3e " %(np.min(exx_elemental),np.max(exx_elemental)))
-    print("     -> eyy_elemental (m,M) %.3e %.3e " %(np.min(eyy_elemental),np.max(eyy_elemental)))
-    print("     -> exy_elemental (m,M) %.3e %.3e " %(np.min(exy_elemental),np.max(exy_elemental)))
+    print("     -> ezz_elemental (m,M) %.3e %.3e " %(np.min(ezz_elemental),np.max(ezz_elemental)))
+    print("     -> exz_elemental (m,M) %.3e %.3e " %(np.min(exz_elemental),np.max(exz_elemental)))
 
     if debug_ascii: 
        np.savetxt('DEBUG/strainrate_cartesian_elemental.ascii',\
-                  np.array([xc,yc,exx_elemental,eyy_elemental,exy_elemental]).T)
+                  np.array([xc,zc,exx_elemental,ezz_elemental,exz_elemental,
+                            effective(exx_elemental,ezz_elemental,exz_elemental)]).T,header='#x,z,exx,ezz,exz,e')
 
     if geometry=='quarter' or geometry=='half' or geometry=='eighth':    
-
-       err_elemental,ett_elemental,ert_elemental,dummy=\
-       convert_tensor_to_polar_coords(theta_c,exx_elemental,eyy_elemental,exy_elemental)
+       if axisymmetric:
+          err_elemental,ett_elemental,ert_elemental,dummy=\
+          convert_tensor_to_spherical_coords(theta_c,exx_elemental,ezz_elemental,exz_elemental)
+          drr_elemental,dtt_elemental,drt_elemental,dummy=\
+          convert_tensor_to_spherical_coords(theta_c,dxx_elemental,dzz_elemental,dxz_elemental)
+       else:
+          err_elemental,ett_elemental,ert_elemental,dummy=\
+          convert_tensor_to_polar_coords(theta_c,exx_elemental,ezz_elemental,exz_elemental)
+          drr_elemental,dtt_elemental,drt_elemental,dummy=\
+          convert_tensor_to_polar_coords(theta_c,dxx_elemental,dzz_elemental,dxz_elemental)
 
        print("     -> err_elemental (m,M) %.3e %.3e " %(np.min(err_elemental),np.max(err_elemental)))
        print("     -> ett_elemental (m,M) %.3e %.3e " %(np.min(ett_elemental),np.max(ett_elemental)))
        print("     -> ert_elemental (m,M) %.3e %.3e " %(np.min(ert_elemental),np.max(ert_elemental)))
 
        if debug_ascii: np.savetxt('DEBUG/strainrate_polar_elemental.ascii',\
-                                  np.array([xc,yc,err_elemental,ett_elemental,ert_elemental]).T)
+                                  np.array([xc,zc,err_elemental,ett_elemental,ert_elemental]).T,header='#x,z,err,ett,ert')
 
        np.savetxt('OUTPUT/top_err_elemental_'+str(istep)+'.ascii',\
                   np.array([theta_c[top_element],err_elemental[top_element]]).T)
+       np.savetxt('OUTPUT/top_drr_elemental_'+str(istep)+'.ascii',\
+                  np.array([theta_c[top_element],drr_elemental[top_element]]).T)
 
     print("compute elemental sr: %.3f s" % (clock.time()-start)) ; timings[29]+=clock.time()-start
 
     ###########################################################################
     #@@ compute nodal strainrate
+    # method 2 is probably bit more accurate, but more expensive
     ###########################################################################
     start=clock.time()
 
     if method_nodal_strain_rate==1:
-       exx_nodal,eyy_nodal,exy_nodal,e_nodal=\
-       compute_nodal_strain_rate(icon_V,u,v,nn_V,m_V,nel,dNdr_V_n,dNds_V_n,\
+       exx_nodal,ezz_nodal,exz_nodal=\
+       compute_nodal_strain_rate(icon_V,u,w,nn_V,m_V,nel,dNdr_V_n,dNdt_V_n,\
                                  jcbi00n,jcbi01n,jcbi10n,jcbi11n)
 
-    if method_nodal_strain_rate==2: #probably bit more accurate, but more expensive
-       exx_nodal,eyy_nodal,exy_nodal,e_nodal=\
-       compute_nodal_strain_rate2(bignb_T,II_T,JJ_T,m_T,nqel,icon_V,u,v,nn_V,nel,JxWq,\
-                                  N_V,dNdr_V,dNds_V,jcbi00q,jcbi01q,jcbi10q,jcbi11q)
+    if method_nodal_strain_rate==2: 
+       exx_nodal,ezz_nodal,exz_nodal=\
+       compute_nodal_strain_rate2(bignb_T,II_T,JJ_T,m_T,nqel,icon_V,u,w,nn_V,nel,JxWq,\
+                                  N_V,dNdr_V,dNdt_V,jcbi00q,jcbi01q,jcbi10q,jcbi11q)
+
+    e_nodal=effective(exx_nodal,ezz_nodal,exz_nodal)
 
     print("     -> exx_nodal (m,M) %.3e %.3e " %(np.min(exx_nodal),np.max(exx_nodal)))
-    print("     -> eyy_nodal (m,M) %.3e %.3e " %(np.min(eyy_nodal),np.max(eyy_nodal)))
-    print("     -> exy_nodal (m,M) %.3e %.3e " %(np.min(exy_nodal),np.max(exy_nodal)))
+    print("     -> ezz_nodal (m,M) %.3e %.3e " %(np.min(ezz_nodal),np.max(ezz_nodal)))
+    print("     -> exz_nodal (m,M) %.3e %.3e " %(np.min(exz_nodal),np.max(exz_nodal)))
 
     if debug_ascii: np.savetxt('DEBUG/strainrate_cartesian_nodal.ascii',\
-                               np.array([x_V,y_V,exx_nodal,eyy_nodal,exy_nodal,e_nodal,rad_V,theta_V]).T)
+                               np.array([x_V,z_V,exx_nodal,ezz_nodal,exz_nodal,e_nodal,rad_V,theta_V]).T,\
+                               header='#x,z,exx,ezz,exz,e,rad,theta')
 
     if geometry=='quarter' or geometry=='half' or geometry=='eighth':    
-
-       err_nodal,ett_nodal,ert_nodal,e_polar=convert_tensor_to_polar_coords(theta_V,exx_nodal,eyy_nodal,exy_nodal)
+       if axisymmetric:
+          err_nodal,ett_nodal,ert_nodal,e_polar=\
+          convert_tensor_to_spherical_coords(theta_V,exx_nodal,ezz_nodal,exz_nodal)
+          if debug_ascii: np.savetxt('DEBUG/strainrate_spherical_coords.ascii',\
+                                     np.array([x_V,z_V,err_nodal,ett_nodal,ert_nodal,rad_V,theta_V]).T,\
+                                     header='#x,z,err,ett,ert,rad,theta')
+       else:
+          err_nodal,ett_nodal,ert_nodal,e_polar=\
+          convert_tensor_to_polar_coords(theta_V,exx_nodal,ezz_nodal,exz_nodal)
+          if debug_ascii: np.savetxt('DEBUG/strainrate_polar_coords.ascii',\
+                                     np.array([x_V,z_V,err_nodal,ett_nodal,ert_nodal,rad_V,theta_V]).T,\
+                                     header='#x,z,err,ett,ert,rad,theta')
 
        print("     -> err_nodal (m,M) %.3e %.3e " %(np.min(err_nodal),np.max(err_nodal)))
        print("     -> ett_nodal (m,M) %.3e %.3e " %(np.min(ett_nodal),np.max(ett_nodal)))
        print("     -> ert_nodal (m,M) %.3e %.3e " %(np.min(ert_nodal),np.max(ert_nodal)))
 
-       if debug_ascii: np.savetxt('DEBUG/strainrate_polar.ascii',np.array([x_V,y_V,err_nodal,ett_nodal,ert_nodal,\
-                                                                           e_polar,rad_V,theta_V]).T)
-
-       np.savetxt('OUTPUT/top_err_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],err_nodal[top_nodes]]).T)
-       np.savetxt('OUTPUT/bot_err_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],err_nodal[bot_nodes]]).T)
-       np.savetxt('OUTPUT/toop_err_'+str(istep)+'.ascii',np.array([theta_V[toop_nodes],err_nodal[toop_nodes]]).T)
-       np.savetxt('OUTPUT/boot_err_'+str(istep)+'.ascii',np.array([theta_V[boot_nodes],err_nodal[boot_nodes]]).T)
+       np.savetxt('OUTPUT/top_err_nodal_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],err_nodal[top_Vnodes]]).T)
+       np.savetxt('OUTPUT/bot_err_nodal_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],err_nodal[bot_Vnodes]]).T)
 
     else:
        err_nodal=0 ; ett_nodal=0 ; ert_nodal=0
 
-       np.savetxt('OUTPUT/top_eyy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],eyy_nodal[top_nodes]]).T)
-       np.savetxt('OUTPUT/bot_eyy_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],eyy_nodal[bot_nodes]]).T)
+       np.savetxt('OUTPUT/top_ezz_nodal'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],ezz_nodal[top_Vnodes]]).T)
+       np.savetxt('OUTPUT/bot_ezz_nodal'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],ezz_nodal[bot_Vnodes]]).T)
 
     print("compute nodal sr: %.3f s" % (clock.time()-start)) ; timings[11]+=clock.time()-start
 
@@ -1462,89 +1609,134 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    divv_nodal=exx_nodal+eyy_nodal
+    divv_nodal=exx_nodal+ezz_nodal
 
     dxx_nodal=exx_nodal-divv_nodal/3
-    dyy_nodal=eyy_nodal-divv_nodal/3
-    dxy_nodal=exy_nodal
+    dzz_nodal=ezz_nodal-divv_nodal/3
+    dxz_nodal=exz_nodal
 
     print("     -> divv_nodal (m,M) %.3e %.3e " %(np.min(divv_nodal),np.max(divv_nodal)))
     print("     -> dxx_nodal (m,M) %.3e %.3e " %(np.min(dxx_nodal),np.max(dxx_nodal)))
-    print("     -> dyy_nodal (m,M) %.3e %.3e " %(np.min(dyy_nodal),np.max(dyy_nodal)))
-    print("     -> dxy_nodal (m,M) %.3e %.3e " %(np.min(dxy_nodal),np.max(dxy_nodal)))
+    print("     -> dzz_nodal (m,M) %.3e %.3e " %(np.min(dzz_nodal),np.max(dzz_nodal)))
+    print("     -> dxz_nodal (m,M) %.3e %.3e " %(np.min(dxz_nodal),np.max(dxz_nodal)))
 
     print("compute nodal sr: %.3f s" % (clock.time()-start)) ; timings[11]+=clock.time()-start
 
     ###########################################################################
-    #@@ compute stress tensor components
+    #@@ compute deviatoric stress tensor components
     ###########################################################################
     start=clock.time()
 
-    tauxx_nodal=2*eta_nodal*dxx_nodal
-    tauyy_nodal=2*eta_nodal*dyy_nodal
-    tauxy_nodal=2*eta_nodal*dxy_nodal
+    taurr_nodal=0
+    tautt_nodal=0
+    taurt_nodal=0
+    taurr_elemental=0
+    tautt_elemental=0
+    taurt_elemental=0
 
-    if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-       taurr_nodal,tautt_nodal,taurt_nodal,tau_polar=\
-       convert_tensor_to_polar_coords(theta_V,tauxx_nodal,tauyy_nodal,tauxy_nodal)
+    if solve_Stokes:
+
+       tauxx_nodal=2*eta_nodal*dxx_nodal ; tauxx_elemental=2*eta_elemental*dxx_elemental
+       tauzz_nodal=2*eta_nodal*dzz_nodal ; tauzz_elemental=2*eta_elemental*dzz_elemental
+       tauxz_nodal=2*eta_nodal*dxz_nodal ; tauxz_elemental=2*eta_elemental*dxz_elemental
+
+       if geometry=='box':
+          np.savetxt('OUTPUT/top_tauzz_nodal_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],tauzz_nodal[top_Vnodes]]).T)
+          np.savetxt('OUTPUT/bot_tauzz_nodal_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],tauzz_nodal[bot_Vnodes]]).T)
+
+       if geometry=='quarter' or geometry=='half' or geometry=='eighth':
+          if axisymmetric:
+             taurr_nodal,tautt_nodal,taurt_nodal,tau_polar=\
+             convert_tensor_to_spherical_coords(theta_V,tauxx_nodal,tauzz_nodal,tauxz_nodal)
+             taurr_elemental,tautt_elemental,taurt_elemental,dummy=\
+             convert_tensor_to_spherical_coords(theta_c,tauxx_elemental,tauzz_elemental,tauxz_elemental)
+          else:
+             taurr_nodal,tautt_nodal,taurt_nodal,tau_polar=\
+             convert_tensor_to_polar_coords(theta_V,tauxx_nodal,tauzz_nodal,tauxz_nodal)
+             taurr_elemental,tautt_elemental,taurt_elemental,dummy=\
+             convert_tensor_to_polar_coords(theta_c,tauxx_elemental,tauzz_elemental,tauxz_elemental)
+          #
+          np.savetxt('OUTPUT/top_taurr_nodal_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],taurr_nodal[top_Vnodes]]).T)
+          np.savetxt('OUTPUT/bot_taurr_nodal_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],taurr_nodal[bot_Vnodes]]).T)
+          np.savetxt('OUTPUT/top_taurr_elemental'+str(istep)+'.ascii',np.array([theta_c[top_element],taurr_elemental[top_element]]).T)
+          np.savetxt('OUTPUT/bot_taurr_elemental'+str(istep)+'.ascii',np.array([theta_c[bot_element],taurr_elemental[bot_element]]).T)
+
+    print("compute deviatoric stress: %.3f s" % (clock.time()-start)) ; timings[27]+=clock.time()-start
+
+    ###########################################################################
+    #@@ compute deviatoric stress tensor components
+    ###########################################################################
+    start=clock.time()
+
+    if solve_Stokes:
+
+       sigmaxx_nodal=-q+tauxx_nodal ; sigmaxx_elemental=-p_elemental+tauxx_elemental
+       sigmazz_nodal=-q+tauzz_nodal ; sigmazz_elemental=-p_elemental+tauzz_elemental
+       sigmaxz_nodal=   tauxz_nodal ; sigmaxz_elemental=             tauxz_elemental
+
+       if geometry=='quarter' or geometry=='half' or geometry=='eighth':
+          if axisymmetric:
+             sigmarr_nodal,sigmatt_nodal,sigmart_nodal,sigma_polar=\
+             convert_tensor_to_spherical_coords(theta_V,sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal)
+             sigmarr_elemental,sigmatt_elemental,sigmart_elemental,dummy=\
+             convert_tensor_to_spherical_coords(theta_c,sigmaxx_elemental,sigmazz_elemental,sigmaxz_elemental)
+          else:
+             sigmarr_nodal,sigmatt_nodal,sigmart_nodal,sigma_polar=\
+             convert_tensor_to_polar_coords(theta_V,sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal)
+             sigmarr_elemental,sigmatt_elemental,sigmart_elemental,dummy=\
+             convert_tensor_to_polar_coords(theta_c,sigmaxx_elemental,sigmazz_elemental,sigmaxz_elemental)
+
+       if geometry=='box':
+          np.savetxt('OUTPUT/top_sigmazz_nodal_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],sigmazz_nodal[top_Vnodes]]).T)
+          np.savetxt('OUTPUT/bot_sigmazz_nodal_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],sigmazz_nodal[bot_Vnodes]]).T)
+          np.savetxt('OUTPUT/top_sigmazz_elemental_'+str(istep)+'.ascii',np.array([xc[top_element],sigmazz_elemental[top_element]]).T)
+          np.savetxt('OUTPUT/bot_sigmazz_elemental_'+str(istep)+'.ascii',np.array([xc[bot_element],sigmazz_elemental[bot_element]]).T)
+
+       if geometry=='quarter' or geometry=='half' or geometry=='eighth':
+          np.savetxt('OUTPUT/top_sigmarr_nodal_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],sigmarr_nodal[top_Vnodes]]).T)
+          np.savetxt('OUTPUT/bot_sigmarr_nodal_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],sigmarr_nodal[bot_Vnodes]]).T)
+          np.savetxt('OUTPUT/top_sigmarr_elemental_'+str(istep)+'.ascii',np.array([theta_c[top_element],sigmarr_elemental[top_element]]).T)
+          np.savetxt('OUTPUT/bot_sigmarr_elemental_'+str(istep)+'.ascii',np.array([theta_c[bot_element],sigmarr_elemental[bot_element]]).T)
+
     else:
-       taurr_nodal=0
-       tautt_nodal=0
-       taurt_nodal=0
+       sigmaxx_nodal=0     ; sigmazz_nodal=0     ; sigmaxz_nodal=0
+       sigmaxx_elemental=0 ; sigmazz_elemental=0 ; sigmaxz_elemental=0
 
-    sigmaxx_nodal=-q+tauxx_nodal
-    sigmayy_nodal=-q+tauyy_nodal
-    sigmaxy_nodal=   tauxy_nodal
-
-    if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-       sigmarr_nodal,sigmatt_nodal,sigmart_nodal,sigma_polar=\
-       convert_tensor_to_polar_coords(theta_V,sigmaxx_nodal,sigmayy_nodal,sigmaxy_nodal)
-
-    if geometry=='box':
-       np.savetxt('OUTPUT/top_tauyy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],tauyy_nodal[top_nodes]]).T)
-       np.savetxt('OUTPUT/bot_tauyy_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],tauyy_nodal[bot_nodes]]).T)
-       np.savetxt('OUTPUT/top_sigmayy_'+str(istep)+'.ascii',np.array([x_V[top_nodes],sigmayy_nodal[top_nodes]]).T)
-       np.savetxt('OUTPUT/bot_sigmayy_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],sigmayy_nodal[bot_nodes]]).T)
-
-    if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-       np.savetxt('OUTPUT/top_taurr_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],taurr_nodal[top_nodes]]).T)
-       np.savetxt('OUTPUT/bot_taurr_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],taurr_nodal[bot_nodes]]).T)
-       np.savetxt('OUTPUT/top_sigmarr_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],sigmarr_nodal[top_nodes]]).T)
-       np.savetxt('OUTPUT/bot_sigmarr_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],sigmarr_nodal[bot_nodes]]).T)
-       np.savetxt('OUTPUT/toop_taurr_'+str(istep)+'.ascii',np.array([theta_V[toop_nodes],taurr_nodal[toop_nodes]]).T)
-       np.savetxt('OUTPUT/boot_taurr_'+str(istep)+'.ascii',np.array([theta_V[boot_nodes],taurr_nodal[boot_nodes]]).T)
-       np.savetxt('OUTPUT/toop_sigmarr_'+str(istep)+'.ascii',np.array([theta_V[toop_nodes],sigmarr_nodal[toop_nodes]]).T)
-       np.savetxt('OUTPUT/boot_sigmarr_'+str(istep)+'.ascii',np.array([theta_V[boot_nodes],sigmarr_nodal[boot_nodes]]).T)
-
-    print("compute nodal stress: %.3f s" % (clock.time()-start)) ; timings[27]+=clock.time()-start
+    print("compute full stress: %.3f s" % (clock.time()-start)) ; timings[27]+=clock.time()-start
 
     ###########################################################################
     #@@ compute dynamic topography at bottom and surface topo 
     ###########################################################################
     start=clock.time()
 
-    if geometry=='box':
-       avrg_sigmayy=np.average(sigmayy_nodal[top_nodes])
-       dyn_topo_top=(sigmayy_nodal[top_nodes]-avrg_sigmayy)/gy_nodal[top_nodes]/(rho_nodal[top_nodes]-rho_DT_top)
-       np.savetxt('OUTPUT/top_dynamic_topography_'+str(istep)+'.ascii',np.array([x_V[top_nodes],dyn_topo_top]).T)
-       avrg_sigmayy=np.average(sigmayy_nodal[bot_nodes])
-       dyn_topo_bot=(sigmayy_nodal[bot_nodes]-avrg_sigmayy)/gy_nodal[bot_nodes]/(rho_nodal[bot_nodes]-rho_DT_bot)
-       np.savetxt('OUTPUT/bot_dynamic_topography_'+str(istep)+'.ascii',np.array([x_V[bot_nodes],dyn_topo_bot]).T)
+    if solve_Stokes:
+       if geometry=='box':
+          #
+          avrg_sigmazz=np.average(sigmazz_nodal[top_Vnodes])
+          dyn_topo_top=(sigmazz_nodal[top_Vnodes]-avrg_sigmazz)/gz_nodal[top_Vnodes]/(rho_nodal[top_Vnodes]-rho_DT_top)
+          np.savetxt('OUTPUT/top_dynamic_topography_nodal_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],dyn_topo_top]).T)
+          #
+          avrg_sigmazz=np.average(sigmazz_nodal[bot_Vnodes])
+          dyn_topo_bot=(sigmazz_nodal[bot_Vnodes]-avrg_sigmazz)/gz_nodal[bot_Vnodes]/(rho_nodal[bot_Vnodes]-rho_DT_bot)
+          np.savetxt('OUTPUT/bot_dynamic_topography_nodal_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],dyn_topo_bot]).T)
 
-    if geometry=='quarter' or geometry=='half':
-       avrg_sigmarr=np.average(sigmarr_nodal[top_nodes])
-       dyn_topo_top=(sigmarr_nodal[top_nodes]-avrg_sigmarr)/gr_nodal[top_nodes]/(rho_nodal[top_nodes]-rho_DT_top)
-       np.savetxt('OUTPUT/top_dynamic_topography_'+str(istep)+'.ascii',np.array([theta_V[top_nodes],dyn_topo_top]).T)
-       avrg_sigmarr=np.average(sigmarr_nodal[toop_nodes])
-       dyn_topo_toop=(sigmarr_nodal[toop_nodes]-avrg_sigmarr)/gr_nodal[toop_nodes]/(rho_nodal[toop_nodes]-rho_DT_top)
-       np.savetxt('OUTPUT/toop_dynamic_topography_'+str(istep)+'.ascii',np.array([theta_V[toop_nodes],dyn_topo_toop]).T)
-
-       avrg_sigmarr=np.average(sigmarr_nodal[bot_nodes])
-       dyn_topo_bot=(sigmarr_nodal[bot_nodes]-avrg_sigmarr)/gr_nodal[bot_nodes]/(rho_nodal[bot_nodes]-rho_DT_bot)
-       np.savetxt('OUTPUT/bot_dynamic_topography_'+str(istep)+'.ascii',np.array([theta_V[bot_nodes],dyn_topo_bot]).T)
-       avrg_sigmarr=np.average(sigmarr_nodal[boot_nodes])
-       dyn_topo_boot=(sigmarr_nodal[boot_nodes]-avrg_sigmarr)/gr_nodal[boot_nodes]/(rho_nodal[boot_nodes]-rho_DT_bot)
-       np.savetxt('OUTPUT/boot_dynamic_topography_'+str(istep)+'.ascii',np.array([theta_V[boot_nodes],dyn_topo_boot]).T)
+       if geometry=='quarter' or geometry=='half':
+          #
+          avrg_sigmarr=np.average(sigmarr_nodal[top_Vnodes])
+          dyn_topo_top=(sigmarr_nodal[top_Vnodes]-avrg_sigmarr)/gr_nodal[top_Vnodes]/(rho_nodal[top_Vnodes]-rho_DT_top)
+          np.savetxt('OUTPUT/top_dynamic_topography_nodal_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],dyn_topo_top]).T)
+          #
+          avrg_sigmarr=np.average(sigmarr_elemental[top_element])
+          dyn_topo_top=(sigmarr_elemental[top_element]-avrg_sigmarr)/gr_elemental[top_element]/(rho_elemental[top_element]-rho_DT_top)
+          np.savetxt('OUTPUT/top_dynamic_topography_elemental_'+str(istep)+'.ascii',np.array([theta_c[top_element],dyn_topo_top]).T)
+          #
+          avrg_sigmarr=np.average(sigmarr_nodal[bot_Vnodes])
+          dyn_topo_bot=(sigmarr_nodal[bot_Vnodes]-avrg_sigmarr)/gr_nodal[bot_Vnodes]/(rho_nodal[bot_Vnodes]-rho_DT_bot)
+          np.savetxt('OUTPUT/bot_dynamic_topography_nodal_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],dyn_topo_bot]).T)
+          #
+          avrg_sigmarr=np.average(sigmarr_elemental[bot_element])
+          dyn_topo_bot=(sigmarr_elemental[bot_element]-avrg_sigmarr)/gr_elemental[bot_element]/(rho_elemental[bot_element]-rho_DT_bot)
+          np.savetxt('OUTPUT/bot_dynamic_topography_elemental_'+str(istep)+'.ascii',np.array([theta_c[bot_element],dyn_topo_bot]).T)
 
     print("compute dynamic topo: %.3f s" % (clock.time()-start)) ; timings[26]+=clock.time()-start
 
@@ -1553,13 +1745,15 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    dpdx_nodal,dpdy_nodal=\
-    compute_nodal_pressure_gradient(icon_V,q,nn_V,m_V,nel,dNdr_V_n,dNds_V_n,jcbi00n,jcbi01n,jcbi10n,jcbi11n)
+    if solve_Stokes:
+       dpdx_nodal,dpdz_nodal=\
+       compute_nodal_pressure_gradient(icon_V,q,nn_V,m_V,nel,dNdr_V_n,dNdt_V_n,\
+                                       jcbi00n,jcbi01n,jcbi10n,jcbi11n)
 
     print("     -> dpdx_nodal (m,M) %.3e %.3e " %(np.min(dpdx_nodal),np.max(dpdx_nodal)))
-    print("     -> dpdy_nodal (m,M) %.3e %.3e " %(np.min(dpdy_nodal),np.max(dpdy_nodal)))
+    print("     -> dpdz_nodal (m,M) %.3e %.3e " %(np.min(dpdz_nodal),np.max(dpdz_nodal)))
 
-    if debug_ascii: np.savetxt('DEBUG/pressure_gradient.ascii',np.array([x_V,y_V,dpdx_nodal,dpdy_nodal]).T)
+    if debug_ascii: np.savetxt('DEBUG/pressure_gradient.ascii',np.array([x_V,z_V,dpdx_nodal,dpdz_nodal]).T,header='#x,z,dpdx,dpdz')
 
     print("compute nodal pressure gradient: %.3f s" % (clock.time()-start)) ; timings[8]+=clock.time()-start
 
@@ -1568,33 +1762,40 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    match geometry:
-     case 'box' :
-      swarm_x,swarm_y,swarm_u,swarm_v,swarm_active=\
-      advect_particles___box(RKorder,dt,nparticle,swarm_x,swarm_y,swarm_active,\
-                             u,v,Lx,Ly,hx,hy,nelx,icon_V,x_V,y_V)
-     case 'quarter' :
-      swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_u,swarm_v,swarm_active=\
-      advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_y,
-                                 swarm_rad,swarm_theta,swarm_active,u,v,
+    if solve_Stokes:
+       match geometry:
+        case 'box' :
+         swarm_x,swarm_z,swarm_u,swarm_w,swarm_active=\
+         advect_particles___box(RKorder,dt,nparticle,swarm_x,swarm_z,swarm_active,\
+                                u,w,Lx,Lz,hx,hz,nelx,icon_V,x_V,z_V)
+        case 'quarter' :
+         swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_u,swarm_w,swarm_active=\
+         advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_z,
+                                    swarm_rad,swarm_theta,swarm_active,u,w,
+                                    Rinner,Router,hrad,htheta,nelx,icon_V,rad_V,theta_V)
+        case 'half' :
+         swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_u,swarm_w,swarm_active=\
+         advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_z,
+                                 swarm_rad,swarm_theta,swarm_active,u,w,
                                  Rinner,Router,hrad,htheta,nelx,icon_V,rad_V,theta_V)
-     case 'half' :
-      swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_u,swarm_v,swarm_active=\
-      advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_y,
-                              swarm_rad,swarm_theta,swarm_active,u,v,
-                              Rinner,Router,hrad,htheta,nelx,icon_V,rad_V,theta_V)
-     case 'eighth' :
-      swarm_u=np.zeros(nparticle,dtype=np.float64)
-      swarm_v=np.zeros(nparticle,dtype=np.float64)
+        case 'eighth' :
+         swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_u,swarm_w,swarm_active=\
+         advect_particles___eighth(RKorder,dt,nparticle,swarm_x,swarm_z,
+                                   swarm_rad,swarm_theta,swarm_active,u,w,
+                                   Rinner,Router,hrad,htheta,nelx,icon_V,rad_V,theta_V)
+        case _ :
+         exit('advect_particles not implemented for this geometry')
 
-     #case _ :
-     # exit('advect_particles not implemented for this geometry')
+       if debug_ascii: np.savetxt('DEBUG/swarm.ascii',np.array([swarm_x,swarm_z]).T,header='#x,z')
 
-    print("     -> nb inactive particles:",nparticle-np.sum(swarm_active))
-    print("     -> swarm_x (m,M) %.3e %.3e " %(np.min(swarm_x),np.max(swarm_x)))
-    print("     -> swarm_y (m,M) %.3e %.3e " %(np.min(swarm_y),np.max(swarm_y)))
-    print("     -> swarm_u (m,M) %.3e %.3e " %(np.min(swarm_u),np.max(swarm_u)))
-    print("     -> swarm_v (m,M) %.3e %.3e " %(np.min(swarm_v),np.max(swarm_v)))
+       print("     -> nb inactive particles:",nparticle-np.sum(swarm_active))
+       print("     -> swarm_x (m,M) %.3e %.3e " %(np.min(swarm_x),np.max(swarm_x)))
+       print("     -> swarm_z (m,M) %.3e %.3e " %(np.min(swarm_z),np.max(swarm_z)))
+       print("     -> swarm_u (m,M) %.3e %.3e " %(np.min(swarm_u),np.max(swarm_u)))
+       print("     -> swarm_w (m,M) %.3e %.3e " %(np.min(swarm_w),np.max(swarm_w)))
+
+    else:
+       swarm_u=0 ; swarm_w=0 
 
     print("advect particles: %.3f s" % (clock.time()-start)) ; timings[13]+=clock.time()-start
 
@@ -1605,19 +1806,20 @@ for istep in range(0,nstep):
 
     match geometry:
      case 'box' :
-      swarm_r,swarm_s,swarm_iel=locate_particles___box(nparticle,swarm_x,swarm_y,hx,hy,x_V,y_V,icon_V,nelx)
-     case 'quarter' :
-      swarm_r,swarm_s,swarm_iel=locate_particles___quarter(nparticle,swarm_rad,swarm_theta,hrad,htheta,rad_V,theta_V,icon_V,nelx,Rinner)
-     case 'half' :
-      swarm_r,swarm_s,swarm_iel=locate_particles___quarter(nparticle,swarm_rad,swarm_theta,hrad,htheta,rad_V,theta_V,icon_V,nelx,Rinner)
-     case 'eighth' :
-      abc=1
+      swarm_r,swarm_t,swarm_iel=\
+      locate_particles___box(nparticle,swarm_x,swarm_z,hx,hz,x_V,z_V,icon_V,nelx)
+     case 'quarter' | 'half' | 'eighth':
+      swarm_r,swarm_t,swarm_iel=\
+      locate_particles___annulus(nparticle,swarm_rad,swarm_theta,hrad,htheta,rad_V,theta_V,icon_V,nelx,Rinner)
      case _ :
       exit('locate particles not implemented for ths geometry')
 
     print("     -> swarm_r (m,M) %e %e " %(np.min(swarm_r),np.max(swarm_r)))
-    print("     -> swarm_s (m,M) %e %e " %(np.min(swarm_s),np.max(swarm_s)))
+    print("     -> swarm_t (m,M) %e %e " %(np.min(swarm_t),np.max(swarm_t)))
     print("     -> swarm_iel (m,M) %d %d " %(np.min(swarm_iel),np.max(swarm_iel)))
+    
+    if np.min(swarm_r)<-1 or np.max(swarm_r)>1: exit('r value out of bounds')
+    if np.min(swarm_t)<-1 or np.max(swarm_t)>1: exit('t value out of bounds')
 
     print("locate particles: %.3fs" % (clock.time()-start)) ; timings[16]+=clock.time()-start
 
@@ -1625,12 +1827,12 @@ for istep in range(0,nstep):
     #@@ compute strain on particles
     ###########################################################################
 
-    swarm_strain+=np.sqrt(0.5*(swarm_exx**2+swarm_eyy**2)+swarm_exy**2)*dt
+    swarm_strain+=np.sqrt(0.5*(swarm_exx**2+swarm_ezz**2)+swarm_exz**2)*dt
 
     print("     -> swarm_strain (m,M) %e %e " %(np.min(swarm_strain),np.max(swarm_strain)))
 
     ###########################################################################
-    #@@ export min/max coordinates of each material in one single file
+    #@@ output min/max coordinates of each material in one single file
     ###########################################################################
     start=clock.time()
 
@@ -1644,8 +1846,8 @@ for istep in range(0,nstep):
     for i in range(imat,jmat+1):
         xmin=np.min(swarm_x[swarm_mat==i]) ; mats[counter]=xmin ; counter+=1
         xmax=np.max(swarm_x[swarm_mat==i]) ; mats[counter]=xmax ; counter+=1
-        ymin=np.min(swarm_y[swarm_mat==i]) ; mats[counter]=ymin ; counter+=1
-        ymax=np.max(swarm_y[swarm_mat==i]) ; mats[counter]=ymax ; counter+=1
+        zmin=np.min(swarm_z[swarm_mat==i]) ; mats[counter]=zmin ; counter+=1
+        zmax=np.max(swarm_z[swarm_mat==i]) ; mats[counter]=zmax ; counter+=1
 
     mats.tofile(mats_file,sep=' ',format='%.4e ') ; mats_file.write('\n')
     mats_file.flush()
@@ -1675,52 +1877,52 @@ for istep in range(0,nstep):
        pvd_swarm_file.flush()
 
     ###########################################################################
-    #@@ export solution to vtu file
+    #@@ output solution to vtu file
     ###########################################################################
     start=clock.time()
 
     if istep%every_solution_vtu==0 or istep==nstep-1: 
-       export_solution_to_vtu(istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,y_V,\
-                              u,v,q,T,eta_nodal,rho_nodal,exx_nodal,eyy_nodal,\
-                              exy_nodal,e_nodal,divv_nodal,qx_nodal,qy_nodal,rho_elemental,\
-                              sigmaxx_nodal,sigmayy_nodal,sigmaxy_nodal,rad_V,theta_V,\
+       output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,z_V,\
+                              u,w,q,T,eta_nodal,rho_nodal,exx_nodal,ezz_nodal,\
+                              exz_nodal,e_nodal,divv_nodal,qx_nodal,qz_nodal,rho_elemental,\
+                              sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal,rad_V,theta_V,\
                               eta_elemental,nparticle_elemental,area,icon_V,\
-                              bc_fix_V,bc_fix_T,geometry,gx_nodal,gy_nodal,\
-                              err_nodal,ett_nodal,ert_nodal,vr,vt,plith,nx,ny,\
-                              exx_elemental,eyy_elemental,exy_elemental,\
+                              bc_fix_V,bc_fix_T,geometry,gx_nodal,gz_nodal,\
+                              err_nodal,ett_nodal,ert_nodal,vr,vt,plith,\
+                              exx_elemental,ezz_elemental,exz_elemental,\
                               taurr_nodal,tautt_nodal,taurt_nodal)
 
-       print("export solution to vtu file: %.3f s" % (clock.time()-start)) ; timings[10]+=clock.time()-start
+       print("output solution to vtu file: %.3f s" % (clock.time()-start)) ; timings[10]+=clock.time()-start
 
     ########################################################################
-    #@@ export particles to vtu file
+    #@@ output particles to vtu file
     ########################################################################
     start=clock.time()
 
     if istep%every_swarm_vtu==0 or istep==nstep-1: 
-       export_swarm_to_vtu(istep,geometry,nparticle,solve_T,vel_scale,swarm_x,swarm_y,\
-                           swarm_u,swarm_v,swarm_mat,swarm_rho,swarm_eta,swarm_r,swarm_s,\
-                           swarm_paint,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_iel,\
-                           swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain) 
+       output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticle,solve_T,vel_scale,swarm_x,swarm_z,\
+                           swarm_u,swarm_w,swarm_mat,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
+                           swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_iel,\
+                           swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
 
-       print("export particles to vtu file: %.3f s" % (clock.time()-start)) ; timings[20]+=clock.time()-start
+       print("output particles to vtu file: %.3f s" % (clock.time()-start)) ; timings[20]+=clock.time()-start
 
     ########################################################################
-    #@@ export quadrature points to vtu file
+    #@@ output quadrature points to vtu file
     ########################################################################
     start=clock.time()
 
     if istep%every_quadpoints_vtu==0 or istep==nstep-1: 
-       export_quadpoints_to_vtu(istep,nel,nqel,nq,solve_T,xq,yq,rhoq,etaq,Tq,hcondq,hcapaq,dpdxq,dpdyq,gxq,gyq)
+       output_quadpoints_to_vtu(istep,nel,nqel,nq,solve_T,xq,zq,rhoq,etaq,Tq,hcondq,hcapaq,dpdxq,dpdzq,gxq,gzq)
 
-       print("export quad pts to vtu file: %.3f s" % (clock.time()-start)) ; timings[22]+=clock.time()-start
+       print("output quad pts to vtu file: %.3f s" % (clock.time()-start)) ; timings[22]+=clock.time()-start
 
     ########################################################################
     #@@ compute gravitational field above domain 
     # xs[npts],ys: coordinates of satellite
-    # gxI,gyI,gnormI: gravity from internal density distribution
-    # gxDTt,gyDTt,gnormDTt: gravity from dynamic topography at top 
-    # gxDTb,gyDTb,gnormDTb: gravity from dynamic topography at bottom
+    # gxI,gzI,gnormI: gravity from internal density distribution
+    # gxDTt,gzDTt,gnormDTt: gravity from dynamic topography at top 
+    # gxDTb,gzDTb,gnormDTb: gravity from dynamic topography at bottom
     ########################################################################
     start=clock.time()
 
@@ -1728,19 +1930,19 @@ for istep in range(0,nstep):
 
        if istep==0:
           xs=np.zeros(gravity_npts,dtype=np.float64)  
-          ys=np.zeros(gravity_npts,dtype=np.float64)  
+          zs=np.zeros(gravity_npts,dtype=np.float64)  
           gxI=np.zeros((gravity_npts,nstep),dtype=np.float64)  
-          gyI=np.zeros((gravity_npts,nstep),dtype=np.float64)  
+          gzI=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           grI=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gtI=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gnormI=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gnormI_rate=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gxDTt=np.zeros((gravity_npts,nstep),dtype=np.float64)  
-          gyDTt=np.zeros((gravity_npts,nstep),dtype=np.float64)  
+          gzDTt=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gnormDTt=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gnormDTt_rate=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gxDTb=np.zeros((gravity_npts,nstep),dtype=np.float64)  
-          gyDTb=np.zeros((gravity_npts,nstep),dtype=np.float64)  
+          gzDTb=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gnormDTb=np.zeros((gravity_npts,nstep),dtype=np.float64)  
           gnormDTb_rate=np.zeros((gravity_npts,nstep),dtype=np.float64)  
 
@@ -1748,39 +1950,39 @@ for istep in range(0,nstep):
         case 'box' :
          for i in range(0,gravity_npts):
              xs[i]=i*Lx/(gravity_npts-1)
-             ys[i]=Ly+gravity_height
-             gxI[i,istep],gyI[i,istep],gnormI[i,istep]=\
-             compute_gravity_at_point(xs[i],ys[i],nel,xc,yc,rho_elemental,area,gravity_rho_ref)
+             zs[i]=Lz+gravity_height
+             gxI[i,istep],gzI[i,istep],gnormI[i,istep]=\
+             compute_gravity_at_point(xs[i],zs[i],nel,xc,zc,rho_elemental,area,gravity_rho_ref)
 
-             gxDTt[i,istep],gyDTt[i,istep],gnormDTt[i,istep]=\
-             compute_gravity_fromDT_at_point(xs[i],ys[i],Ly,nelx,x_V[top_nodes],\
-                                             rho_nodal[top_nodes],dyn_topo_top,rho_DT_top)
+             gxDTt[i,istep],gzDTt[i,istep],gnormDTt[i,istep]=\
+             compute_gravity_fromDT_at_point(xs[i],zs[i],Lz,nelx,x_V[top_Vnodes],\
+                                             rho_nodal[top_Vnodes],dyn_topo_top,rho_DT_top)
 
-             gxDTb[i,istep],gyDTb[i,istep],gnormDTb[i,istep]=\
-             compute_gravity_fromDT_at_point(xs[i],ys[i],0,nelx,x_V[bot_nodes],\
-                                                rho_nodal[bot_nodes],dyn_topo_bot,rho_DT_bot)
+             gxDTb[i,istep],gzDTb[i,istep],gnormDTb[i,istep]=\
+             compute_gravity_fromDT_at_point(xs[i],zs[i],0,nelx,x_V[bot_Vnodes],\
+                                                rho_nodal[bot_Vnodes],dyn_topo_bot,rho_DT_bot)
 
          np.savetxt('OUTPUT/gravityI_'+str(istep)+'.ascii',\
-                    np.array([xs,ys,gnormI[:,istep],gxI[:,istep],gyI[:,istep]]).T,header='#x,y,g,gx,gy')
+                    np.array([xs,zs,gnormI[:,istep],gxI[:,istep],gzI[:,istep]]).T,header='#x,z,g,gx,gz')
          np.savetxt('OUTPUT/gravityDTt_'+str(istep)+'.ascii',\
-                    np.array([xs,ys,gnormDTt[:,istep],gxDTt[:,istep],gyDTt[:,istep]]).T,header='#x,y,g,gx,gy')
+                    np.array([xs,zs,gnormDTt[:,istep],gxDTt[:,istep],gzDTt[:,istep]]).T,header='#x,z,g,gx,gz')
          np.savetxt('OUTPUT/gravityDTb_'+str(istep)+'.ascii',\
-                    np.array([xs,ys,gnormDTb[:,istep],gxDTb[:,istep],gyDTb[:,istep]]).T,header='#x,y,g,gx,gy')
+                    np.array([xs,zs,gnormDTb[:,istep],gxDTb[:,istep],gzDTb[:,istep]]).T,header='#x,z,g,gx,gz')
 
         case 'quarter' | 'half':
          for i in range(0,gravity_npts):
              xs[i]=(Router+gravity_height)*np.cos(i/(gravity_npts-1)*opening_angle+theta_min)
-             ys[i]=(Router+gravity_height)*np.sin(i/(gravity_npts-1)*opening_angle+theta_min)
-             gxI[i,istep],gyI[i,istep],gnormI[i,istep]=\
-             compute_gravity_at_point(xs[i],ys[i],nel,xc,yc,rho_elemental,area,gravity_rho_ref)
+             zs[i]=(Router+gravity_height)*np.sin(i/(gravity_npts-1)*opening_angle+theta_min)
+             gxI[i,istep],gzI[i,istep],gnormI[i,istep]=\
+             compute_gravity_at_point(xs[i],zs[i],nel,xc,zc,rho_elemental,area,gravity_rho_ref)
 
-         rads=np.sqrt(xs**2+ys**2)
-         thetas=np.pi/2-np.arctan2(xs,ys)
-         grI[:,istep]=gxI[:,istep]*np.cos(thetas)+gyI[:,istep]*np.sin(thetas)
-         gtI[:,istep]=-gxI[:,istep]*np.sin(thetas)+gyI[:,istep]*np.cos(thetas)
+         rads=np.sqrt(xs**2+zs**2)
+         thetas=np.pi/2-np.arctan2(xs,zs)
+         grI[:,istep]=gxI[:,istep]*np.cos(thetas)+gzI[:,istep]*np.sin(thetas)
+         gtI[:,istep]=-gxI[:,istep]*np.sin(thetas)+gzI[:,istep]*np.cos(thetas)
 
          np.savetxt('OUTPUT/gravityI_'+str(istep)+'.ascii',\
-                    np.array([rads,thetas,gnormI[:,istep],grI[:,istep],gtI[:,istep]]).T,header='#r,theta,g,gx,gy')
+                    np.array([rads,thetas,gnormI[:,istep],grI[:,istep],gtI[:,istep]]).T,header='#r,theta,g,gx,gz')
 
         case _ :
          print('gravity calculations not available for this geometry')   
@@ -1803,24 +2005,29 @@ for istep in range(0,nstep):
     ###########################################################################
     start=clock.time()
 
-    steady_state_u=np.linalg.norm(u_mem-u,2)/np.linalg.norm(u,2)<tol_ss
-    steady_state_v=np.linalg.norm(v_mem-v,2)/np.linalg.norm(v,2)<tol_ss
-    steady_state_p=np.linalg.norm(p_mem-p,2)/np.linalg.norm(p,2)<tol_ss
+    if solve_Stokes:
+       steady_state_u=np.linalg.norm(u_mem-u,2)/np.linalg.norm(u,2)<tol_ss
+       steady_state_w=np.linalg.norm(w_mem-w,2)/np.linalg.norm(w,2)<tol_ss
+       steady_state_p=np.linalg.norm(p_mem-p,2)/np.linalg.norm(p,2)<tol_ss
+    else:
+       steady_state_u=False
+       steady_state_w=False
+       steady_state_p=False
 
     if solve_T:
        steady_state_T=np.linalg.norm(T_mem-T,2)/np.linalg.norm(T,2)<tol_ss
-       print('     -> steady state u,v,p,T',steady_state_u,steady_state_v,\
+       print('     -> steady state u,w,p,T',steady_state_u,steady_state_w,\
                                             steady_state_p,steady_state_T)
     else:
        steady_state_T=True
-       print('     -> steady state u,v,p',steady_state_u,steady_state_v,\
+       print('     -> steady state u,w,p',steady_state_u,steady_state_w,\
                                           steady_state_p)
 
-    steady_state=steady_state_u and steady_state_v and\
+    steady_state=steady_state_u and steady_state_w and\
                  steady_state_p and steady_state_T 
 
     u_mem=u.copy()
-    v_mem=v.copy()
+    w_mem=w.copy()
     p_mem=p.copy()
     if solve_T: T_mem=T.copy()
 
@@ -1849,19 +2056,19 @@ for istep in range(0,nstep):
        print("normalise pressure: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[12],timings[12]/(istep+1),timings[12]/duration*100))
        print("advect particles: %8.3f s       (%.3f s per call) | %5.2f percent" % (timings[13],timings[13]/(istep+1),timings[13]/duration*100))
        print("split solution: %8.3f s         (%.3f s per call) | %5.2f percent" % (timings[14],timings[14]/(istep+1),timings[14]/duration*100))
-       print("compute swarm rho,eta: %8.3f s  (%.3f s per call) | %5.2f percent" % (timings[15],timings[15]/(istep+1),timings[15]/duration*100))
+       print("material model on ptcls: %8.3fs (%.3f s per call) | %5.2f percent" % (timings[15],timings[15]/(istep+1),timings[15]/duration*100))
        print("locate particles: %8.3f s       (%.3f s per call) | %5.2f percent" % (timings[16],timings[16]/(istep+1),timings[16]/duration*100))
        print("comp eltal rho,eta: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[17],timings[17]/(istep+1),timings[17]/duration*100))
        print("comp nodal rho,eta: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[18],timings[18]/(istep+1),timings[18]/duration*100))
        print("compute dyn topo: %8.3f s       (%.3f s per call) | %5.2f percent" % (timings[26],timings[26]/(istep+1),timings[26]/duration*100))
        print("comp timestep: %8.3f s          (%.3f s per call) | %5.2f percent" % (timings[19],timings[19]/(istep+1),timings[19]/duration*100))
-       print("export solution to vtu: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[10],timings[10]/(istep+1),timings[10]/duration*100))
-       print("export swarm to vtu: %8.3f s    (%.3f s per call) | %5.2f percent" % (timings[20],timings[20]/(istep+1),timings[20]/duration*100))
-       print("export qpts to vtu: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[22],timings[22]/(istep+1),timings[22]/duration*100))
+       print("output solution to vtu: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[10],timings[10]/(istep+1),timings[10]/duration*100))
+       print("output swarm to vtu: %8.3f s    (%.3f s per call) | %5.2f percent" % (timings[20],timings[20]/(istep+1),timings[20]/duration*100))
+       print("output qpts to vtu: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[22],timings[22]/(istep+1),timings[22]/duration*100))
        print("project fields on qpts: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[21],timings[21]/(istep+1),timings[21]/duration*100))
        print("compute gravity: %8.3f s        (%.3f s per call) | %5.2f percent" % (timings[23],timings[23]/(istep+1),timings[23]/duration*100))
-       print("interp sr & p on ptcls: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[24],timings[24]/(istep+1),timings[24]/duration*100))
-       print("interp T on ptcls: %8.3f s      (%.3f s per call) | %5.2f percent" % (timings[25],timings[25]/(istep+1),timings[25]/duration*100))
+       print("interp sr,p,T on ptcls: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[24],timings[24]/(istep+1),timings[24]/duration*100))
+       #print("interp T on ptcls: %8.3f s      (%.3f s per call) | %5.2f percent" % (timings[25],timings[25]/(istep+1),timings[25]/duration*100))
        print("----------------------------------------------------------------------")
        print("compute time per timestep: %.2f" %(duration/(istep+1)))
        print("----------------------------------------------------------------------")
@@ -1889,21 +2096,21 @@ pvd_swarm_file.write('  </Collection>\n')
 pvd_swarm_file.write('</VTKFile>\n')
 
 ###############################################################################
-# export horizontal and vertical profiles
+# output horizontal and vertical profiles
 ###############################################################################
 start=clock.time()
 
-np.savetxt('OUTPUT/profile_vertical.ascii',np.array([y_V[middleV_nodes],\
-                                              u[middleV_nodes],\
-                                              v[middleV_nodes],\
-                                              q[middleV_nodes],\
-                                              T[middleV_nodes]]).T)
+np.savetxt('OUTPUT/profile_vertical.ascii',np.array([z_V[middleV_nodes],\
+                                                     u[middleV_nodes],\
+                                                     w[middleV_nodes],\
+                                                     q[middleV_nodes],\
+                                                     T[middleV_nodes]]).T)
 
 np.savetxt('OUTPUT/profile_horizontal.ascii',np.array([x_V[middleH_nodes],\
-                                                  u[middleH_nodes],\
-                                                  v[middleH_nodes],\
-                                                  q[middleH_nodes],\
-                                                  T[middleH_nodes]]).T)
+                                                       u[middleH_nodes],\
+                                                       w[middleH_nodes],\
+                                                       q[middleH_nodes],\
+                                                       T[middleH_nodes]]).T)
 
 ###############################################################################
 # close files
@@ -1922,8 +2129,8 @@ if solve_T:
    Tstats_file.close()
    avrg_T_bot_file.close()
    avrg_T_top_file.close()
-   avrg_dTdy_bot_file.close()
-   avrg_dTdy_top_file.close()
+   avrg_dTdz_bot_file.close()
+   avrg_dTdz_top_file.close()
 
 ###############################################################################
 

@@ -1,17 +1,23 @@
 import numpy as np
 from constants import *
-from prem import * 
 
 #-----------------------------------------
 axisymmetric=True
+#straighten_edges=True
+remove_rho_profile=True
+#method_nodal_strain_rate=2
+use_elemental_rho=False
+use_elemental_eta=True
+mapping='Q1'
 
 #geometry='quarter'
 geometry='half'
 
-nely=96
+nelz=20
 
-if geometry=='quarter': nelx=int(3*nely)
-if geometry=='half': nelx=int(6.7*nely)
+if geometry=='quarter': nelx=int(3*nelz)
+#if geometry=='half': nelx=int(6.7*nelz)
+if geometry=='half': nelx=int(6.*nelz)
 
 Rinner=3400e3
 Router=6400e3
@@ -35,8 +41,8 @@ time_scale=year ; time_unit='yr'
 every_solution_vtu=1
 every_swarm_vtu=1
 particle_distribution=1 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
-nparticle_per_dim=6
-averaging='geometric'
+nparticle_per_dim=7
+averaging='arithmetic' #geometric'
 debug_ascii=False
 CFLnb=0.
 end_time=100e6*year
@@ -44,7 +50,7 @@ end_time=100e6*year
 top_free_slip=True
 bot_free_slip=True
 
-gravity_npts=250
+gravity_npts=0
 gravity_height=200e3
 gravity_rho_ref=0
 
@@ -95,23 +101,28 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
+           if bot_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           
+
     return bc_fix_V,bc_val_V
 
 ###############################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
+def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
     swarm_mat[:]=1
     for ip in range(nparticle):
-        if (swarm_x[ip])**2+(swarm_y[ip]-(Router-depth_blob))**2<radius_blob**2:
+        if (swarm_x[ip])**2+(swarm_z[ip]-(Router-depth_blob))**2<radius_blob**2:
            swarm_mat[ip]=2
 
     return swarm_mat
 
 ###############################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_p):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -126,10 +137,10 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swa
 
 ###############################################################################
 
-def gravity_model(x,y):
+def gravity_model(x,z):
     g0=10
-    gx=-x/np.sqrt(x**2+y**2)*g0
-    gy=-y/np.sqrt(x**2+y**2)*g0
-    return gx,gy
+    gx=-x/np.sqrt(x**2+z**2)*g0
+    gz=-z/np.sqrt(x**2+z**2)*g0
+    return gx,gz
 
 ###############################################################################

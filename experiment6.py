@@ -4,7 +4,7 @@ cm=0.01
 year=365.25*3600*24
 
 Lx=1400e3  # half domain!
-Ly=900e3
+Lz=900e3
 eta_ref=1e21
 p_scale=1e6 ; p_unit="MPa"
 vel_scale=cm/year ; vel_unit='cm/yr'
@@ -24,14 +24,14 @@ case='b'
 
 if case=='a':
    nelx=140
-   nely=140
+   nelz=140
    nstep=15
    CFLnb=0.25           
    end_time=2e5*year
 
 if case=='b':
    nelx=140
-   nely=140
+   nelz=140
    nstep=1500
    CFLnb=0.25           
    end_time=20e6*year
@@ -51,17 +51,17 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
         if x_V[i]/Lx>(1-eps):
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if y_V[i]/Ly<eps:
+        if y_V[i]/Lz<eps:
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
            bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-        if y_V[i]/Ly>(1-eps):
+        if y_V[i]/Lz>(1-eps):
            bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
     return bc_fix_V,bc_val_V
 
 ###############################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
+def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     swarm_mat=np.zeros(nparticle,dtype=np.int32)
 
@@ -70,23 +70,23 @@ def particle_layout(nparticle,swarm_x,swarm_y,swarm_rad,swarm_theta,Lx,Ly):
     if case=='a':
 
        for ip in range(0,nparticle):
-           if swarm_y[ip]>600e3:
+           if swarm_z[ip]>600e3:
               swarm_mat[ip]=1 # lithosphere
-           if swarm_y[ip]>700e3+7e3*np.cos(swarm_x[ip]/Lx*np.pi):
+           if swarm_z[ip]>700e3+7e3*np.cos(swarm_x[ip]/Lx*np.pi):
               swarm_mat[ip]=0 # sticky air
 
     if case=='b':
        for ip in range(0,nparticle):
-           if swarm_y[ip]>600e3: swarm_mat[ip]=1 # lithosphere 
-           if swarm_y[ip]>700e3: swarm_mat[ip]=0 # sticky air
-           if (swarm_x[ip]-Lx)**2+(swarm_y[ip]-300e3)**2<50e3**2: 
+           if swarm_z[ip]>600e3: swarm_mat[ip]=1 # lithosphere 
+           if swarm_z[ip]>700e3: swarm_mat[ip]=0 # sticky air
+           if (swarm_x[ip]-Lx)**2+(swarm_z[ip]-300e3)**2<50e3**2: 
               swarm_mat[ip]=3 # plume
 
     return swarm_mat
 
 ###############################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swarm_exx,swarm_eyy,swarm_exy,swarm_T,swarm_p):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -103,10 +103,10 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_y,swarm_rad,swarm_theta,swa
 
 ###############################################################################
 
-def gravity_model(x,y):
+def gravity_model(x,z):
     gx=0
-    gy=-10 
-    return gx,gy
+    gz=-10 
+    return gx,gz
 
 ###############################################################################
 

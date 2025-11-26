@@ -32,7 +32,7 @@ def basis_functions_V_dr(r,s):
     return np.array([dNdr0,dNdr1,dNdr2,dNdr3,dNdr4,dNdr5,dNdr6,dNdr7,dNdr8],dtype=np.float64)
 
 @numba.njit
-def basis_functions_V_ds(r,s):
+def basis_functions_V_dt(r,s):
     dNds0= 0.5*r*(r-1.) * 0.5*(2.*s-1.)
     dNds1= 0.5*r*(r+1.) * 0.5*(2.*s-1.)
     dNds2= 0.5*r*(r+1.) * 0.5*(2.*s+1.)

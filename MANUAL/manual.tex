@@ -1,4 +1,4 @@
-\documentclass[a4paper]{article}
+\documentclass[a4paper,12pt]{article}
 
 \usepackage[cm]{fullpage}
 \usepackage{graphicx}
@@ -10,6 +10,7 @@
 \usepackage{bm}
 \usepackage{url}
 \usepackage{listings}
+\usepackage{tikz}
 \lstset{ 
   language=Python,
   backgroundcolor=\color{white},   % choose the background color; you must add \usepackage{xcolor}; should come as last argument
@@ -22,6 +23,7 @@
   keywordstyle=\color{blue},       % keyword style
 }
 
+\newcommand{\nn}{\nonumber}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -43,6 +45,8 @@
 \includegraphics[width=3cm]{IMAGES/meeuuw}
 \end{center}
 
+\tableofcontents
+
 %==============================================================================
 \section{Foreword}
 
@@ -56,8 +60,12 @@ The code consists of a dozen of Python files.
 Aside from standard Python modules (numpy, scipy, etc ...) the 
 numba\footnote{\url{https://numba.pydata.org/}} package is needed and needs to be installed.
 The reason for the use of this module is as follows: 
-``Numba translates Python functions to optimized machine code at runtime using the industry-standard LLVM compiler library. Numba-compiled numerical algorithms in Python can approach the speeds of C or FORTRAN.
-You don't need to replace the Python interpreter, run a separate compilation step, or even have a C/C++ compiler installed. Just apply one of the Numba decorators to your Python function, and Numba does the rest.'' [Taken from the numba website]
+``Numba translates Python functions to optimized machine code at runtime using 
+the industry-standard LLVM compiler library. Numba-compiled numerical algorithms 
+in Python can approach the speeds of C or FORTRAN.
+You don't need to replace the Python interpreter, run a separate compilation step, 
+or even have a C/C++ compiler installed. Just apply one of the Numba decorators to your 
+Python function, and Numba does the rest.'' [Taken from the numba website]
 
 If numba is not available on your machine, simply delete all occurences of 
 \lstinline{@numba.njit} before the functions.
@@ -66,8 +74,26 @@ If numba is not available on your machine, simply delete all occurences of
 %==============================================================================
 \section{Philosophy}
 
-The code is entirely written in Python. The domain is only 2d, although
-an axisymmetric option has been implemented.
+The code is entirely written in Python. The domain is only 2d, in the $xz$-plane.
+The geometry of the domain is controlled by the \lstinline{geometry}
+parameter which can take four values:
+\begin{itemize}
+\item \lstinline{box}: A Cartesian domain of size \lstinline{Lx,Ly}
+\item \lstinline{half}: 
+Half an annulus, parameterised by an inner radius \lstinline{Rinner}, an
+outer radius \lstinline{Router} and an opening angle $\theta\in[-\pi/2,\pi/2]$
+\item \lstinline{quarter}: Quarter of an annulus, parameterised by an inner radius \lstinline{Rinner}, an
+outer radius \lstinline{Router} and an opening angle $\theta\in[0,\pi/2]$
+\item \lstinline{eighth}: Eighth of an annulus, parameterised by an inner radius \lstinline{Rinner}, an
+outer radius \lstinline{Router} and an opening angle $\theta\in[\pi/4,\pi/2]$
+\end{itemize}
+An axisymmetric option has been implemented for all four geometries\footnote{Only for the Stokes solver!
+no temp eq yet}.
+
+There is no adaptive mesh refinement. The mesh also does not deform (i.e. no ALE-type algorithm).
+The mesh consists of \lstinline{nelx*nelz} elements. In the case of curved domains 
+the topology of the mesh is the same but it is curved to conform to the domain boundaries.
+
 The code is not meant to compete with ASPECT or any similar code. It is 
 meant to be an educational tool, typically for MSc or PhD students in mind. 
 The interface is simple and flexible. 
@@ -132,25 +158,830 @@ model, it is recommended to remove all results by running the following script:
 ./cleandata
 \end{verbatim}
 
-
-
 %==============================================================================
 \section{Numerical methods}
 
+%-----------------------------------
+\subsection{Finite Element Method}
+
 The Stokes equations are discretised by means of the Finite Element Method (FEM).
 As explained in \textcite{thba22} and \textcite{thba22}, there are many 
-so-called element pairs for the velocity and pressure spaces, and we here rely 
+so-called element pairs for the velocity and pressure spaces.  The code relies
 on quadrilateral Taylor-Hood elements only, i.e. $Q_2 \times Q_1$.
 The energy equation relies on $Q_2$ elements for the temperature.
-
 The FEM formulation of these equations is explained in the FieldStone 
 manual\footnote{\url{https://cedrict.github.io/}}.
+
+%-----------------------------------
+\subsection{Particle-In-Cell method}
+
+
+The code relies on the Particle-in-Cell method to track compositional fields.
+All arrays bearing the name \lstinline{swarm_xxxx} are \lstinline{nparticle} long.
+Note that the total number of particles is constant (no addition, no deletion).
+\lstinline{swarm_x}, \lstinline{swarm_z} contain all their Cartesian coordinates, 
+\lstinline{swarm_rad}, \lstinline{swarm_theta} contain all their polar coordinates, 
+\lstinline{swarm_u}, \lstinline{swarm_w} contain all their velocities, 
+\lstinline{swarm_r}, \lstinline{swarm_t} contain all their local coordinates ($r,t\in[-1:1]$),
+\lstinline{swarm_iel} contains their parent element number, etc ...
+The particles are advected by means of either Runge-Kutta 1st, 2nd and 4th order in space
+algorithms (as controlled by the global parameter \lstinline{RKorder})..
+The global parameter \lstinline{nparticle_per_dim} controls the initial number 
+of particles per element and the total number of particles:
+\begin{lstlisting}
+nparticle_per_element=nparticle_per_dim**2
+nparticle=nel*nparticle_per_element
+\end{lstlisting}
+The initial type of spatial distribution of the particles is controlled 
+by the parameter \lstinline{particle_distribution} which can take 4 
+values: 
+\begin{enumerate}
+\item random: \lstinline{nparticle_per_element} particles are generated at random inside the element
+using the local coordinates and an isoparametric mapping; 
+\item regular: the particles are arranged in an \lstinline{nparticle_per_dim} X \lstinline{nparticle_per_dim} array;
+\item Poisson disc sampling\footnote{\url{https://www.jasondavies.com/poisson-disc/}}. At the moment this is only 
+available for the 'box' geometry.
+\item pseudo-random: this is similar to 2, but a small perturbation is added to the positions.
+\end{enumerate}
+
+Fields can be easily added to particles depending on the needs of a given experiment.
+
+The core of the Particle-In-Cell method that is implemented is as follows. 
+At the beginning of each time step the temperature, pressure and strain rate 
+is interpolated on a particle.
+The so-called \lstinline{material_model} is then called and returns the following 
+particle fields:
+\lstinline{swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod}.
+The fields are then projected onto the mesh nodes, the resulting fields belonging 
+to the $Q_1$ space. An arithmetic average is used for the 
+heat capacity, heat conductivity, heat production and density, while the user may choose 
+between and arithmetic, geometric, or harmonic averaging for the viscosity.
+Finally these nodal quantities are interpolated onto the quadrature points and these 
+values will be used to build the FE matrices for the Stokes and/or energy equations.
+
 
 \newpage
 %==============================================================================
 \section{Code structure}
 
 \verbatiminput{structure}
+
+\newpage
+%==============================================================================
+\section{Nomenclature}
+
+All calculations take place in the $x-z$ plane.
+The corresponding reduced/local coordinates are then $r,t$.
+There is a single mesh with \lstinline{nel} elements, 
+but the velocity is in the space $Q_2$ while the pressure is the space $Q_1$.
+There are then \lstinline{(2*nelx+1)*(2*nelz+1)} velocity nodes
+and \lstinline{(nelx+1)*(nelz+1)} pressure nodes.
+All quantities ending in \lstinline{_V} (e.g. \lstinline{nn_V}, \lstinline{m_V}, \lstinline{x_V,y_V})
+are related to/defined on the velocity nodes while those ending in 
+\lstinline{_P} (e.g. \lstinline{nn_P}, \lstinline{m_P}, \lstinline{x_P,y_P})
+are related to/defined on the pressure nodes. 
+
+\begin{center}
+\includegraphics[width=7cm]{IMAGES/q2q1setup} % borrowed from stone 18
+\end{center}
+
+
+The internal numbering of the velocity nodes is as follows:
+
+\input{tikz/tikz_q22d}
+
+while the numbering of the pressure nodes is as follows:
+
+\input{tikz/tikz_q12d}
+
+For the spherical coordinates we adopt the following notations for the angles
+$\theta$ and $\phi$:
+
+\begin{center}
+\includegraphics[width=3cm]{IMAGES/sphcoord}
+\end{center}
+
+
+
+\begin{itemize}
+\item \lstinline{exx,ezz,exz}: strain rate tensor ${\bm \varepsilon}(\vec\upnu)$
+\item \lstinline{dxx,dzz,dxz}: deviatoric strain rate tensor ${\bm \varepsilon}^d(\vec\upnu)$
+\item \lstinline{tauxx,tauzz,tauxz}: deviatoric stress ${\bm \tau}$
+\item \lstinline{sigmaxx,sigmazz,sigmaxz}: full stress tensor ${\bm \sigma}$
+\item \lstinline{T}: temperature array
+\item \lstinline{p}: pressure field (on Q1 mesh)
+\item \lstinline{q}: pressure field (on Q2 mesh)
+\item \lstinline{u,w}:  velocity components arrays
+\item \lstinline{vrms}: root mean square velocity $\upnu_{rms}$
+\item \lstinline{nelx,nelz}: number of elements in each direction
+\item \lstinline{nnx,nnz}: number of V nodes in each direction
+\item \lstinline{nel}: number of elements
+\item \lstinline{nn_V}: number of velocity nodes
+\item \lstinline{nn_P}: number of pressure nodes
+\item \lstinline{ndof_V_el}: number of V dofs per element (=18)
+\item \lstinline{Nfem_V}: number of velocity degrees of freedom
+\item \lstinline{Nfem_P}: number of pressure degrees of freedom
+\item \lstinline{Nfem_T}: number of temperature degrees of freedom
+\item \lstinline{Nfem}: total number of degrees of freedom (Stokes eqs) 
+\item \lstinline{m_V}: number of velocity nodes per element (=9)
+\item \lstinline{m_P}: number of pressure nodes per element (=4)
+\item \lstinline{m_T}: number of temperature nodes per element (=9)
+\item \lstinline{hx,hz}: size of an element
+\item \lstinline{x_V,y_V}: coordinates arrays of velocity nodes
+\item \lstinline{x_P,y_P}: coordinates arrays of pressure nodes
+\item \lstinline{icon_V}: connectivity array for velocity nodes
+\item \lstinline{icon_P}: connectivity array for pressure nodes
+\item \lstinline{bc_fix_V, bc_val_V}: boundary conditions arrays for velocity
+\item \lstinline{bc_fix_T, bc_val_T}: boundary conditions arrays for temperature
+\item \lstinline{N_V, dNdr_V, dNdt_V, dNdx_V, dNdz_V}: velocity basis functions and derivatives
+\item \lstinline{N_P}: pressure basis functions
+\item \lstinline{qx_nodal, qz_nodal}: nodal heat flux component
+\item \lstinline{II_V, JJ_V, VV_V}: arrays to store Stokes FEM matrix
+\item \lstinline{II_T, JJ_T, VV_T}: arrays to store energy FEM matrix
+\item \lstinline{r_V, s_V}: arrays of size \lstinline{m_V} containing red coords of V nodes
+\item \lstinline{rad_V, theta_V}: polar coordinates of V nodes, i.e. $\theta_V\in[-\pi/2,\pi/2]$
+\item \lstinline{rad_P, theta_P}: polar coordinates of P nodes
+
+\end{itemize}
+
+\newpage
+%==============================================================================
+\section{Conversions between coordinate systems}
+
+{\color{red} I need to rewrite the entire code in the xz plane, not xy plane!}
+
+%-------------------
+\subsection{vectors}
+
+\subsubsection{Polar coordinates (2d)}
+
+The equations and the code are formulated in Cartesian coordinates. 
+However, when an annulus-like geometry is used one may wish to look at 
+certain quantities expressed in polar coordinates.
+For example, the velocity $\vec\upnu=(u,w)$ is then given by
+\begin{align}
+\upnu_r &=  u \cos\theta + w \sin\theta \\
+\upnu_\theta &= -u \sin\theta + w \cos\theta
+\end{align}
+
+\subsubsection{Spherical coordinates (3d)}
+
+The velocity in spherical coordinates is given by
+\begin{eqnarray}
+v_r      &=&  u \sin \theta  \cos \phi  + v \sin\theta \sin \phi + w \cos\theta \\
+v_\theta &=&  u \cos\theta\cos\phi + v \cos\theta\sin\phi -w \sin\theta   \\
+v_\phi   &=& -u \sin\phi  + v \cos\phi  
+\end{eqnarray}
+We will be using these expressions only when the axisymmetric mode is activated, 
+since in fact the problem is in fact 3d.
+Because of the symmetry we expect $v_\phi=0$ and $\phi=0$ sine we compute in the $xz$ plane,
+so that in the end we have the following expression: 
+\begin{eqnarray}
+v_r      &=&  u \sin \theta  + w \cos\theta \\
+v_\theta &=&  u \cos\theta  -w \sin\theta   
+\end{eqnarray}
+One thing to be aware of, is the fact that the $\theta_{sph}$ angle of spherical harmonics
+is measured from the vertical axis, while the theta angle $\theta_p$ is measured from the horizontal 
+axis in polar coordinates, i.e. $\theta_{sph}=\frac{\pi}{2}-\theta_{pol}$ in the 
+$x>0$ half-plane where calculations take place. 
+\begin{center}
+\includegraphics[width=3cm,angle=-90]{IMAGES/coords}
+\end{center}
+The \lstinline{theta_V} quantity in the code corresponds to the polar coordinates angle $\theta_p$.
+
+Then
+\begin{eqnarray}
+v_r      
+&=&  u \sin (\frac{\pi}{2}-\theta_p)  + w \cos (\frac{\pi}{2}-   \theta_p) 
+=  u \cos \theta_p  + w \sin\theta_p \\
+v_\theta 
+&=&  u \cos(\frac{\pi}{2}-\theta_p)  -w \sin(\frac{\pi}{2}-\theta_p   ) 
+=  u \sin \theta_p  -w \cos \theta_p   
+\end{eqnarray}
+
+This translates as follows:
+\begin{lstlisting}
+if geometry=='quarter' or geometry=='half' or geometry=='eighth':
+   if axisymmetric:
+      vr=u*np.cos(theta_V)+v*np.sin(theta_V)
+      vt=u*np.sin(theta_V)-v*np.cos(theta_V)
+   else:
+      vr=u*np.cos(theta_V)+v*np.sin(theta_V)
+      vt=-u*np.sin(theta_V)+v*np.cos(theta_V)
+\end{lstlisting}
+
+
+%-------------------
+\subsection{tensors}
+
+%................................
+\subsubsection{Polar coordinates}
+
+\begin{eqnarray}
+{\bm T}_{\rm polar}
+&=&
+\left(\begin{array}{cc}
+T_{rr}       & T_{r\theta}     \\ 
+T_{\theta r} & T_{\theta\theta}
+\end{array}\right) \nn\\ 
+&=&
+\left(\begin{array}{cc}
+ \cos \theta&\sin \theta \\
+-\sin \theta&\cos \theta \\
+\end{array}\right)
+\cdot
+\left(\begin{array}{cc}
+T_{xx} & T_{xy}  \\
+T_{yx} & T_{yy} 
+\end{array}\right)
+\cdot
+\left(\begin{array}{cc}
+\cos \theta & -\sin \theta \\
+\sin \theta &  \cos \theta \\
+\end{array}\right) 
+\nn\\
+&=&
+\left(\begin{array}{cc}
+ \cos \theta&\sin \theta \\
+-\sin \theta&\cos \theta \\
+\end{array}\right)
+\cdot
+\left(
+\begin{array}{cc}
+T_{xx} \cos\theta  + T_{xy} \sin\theta & -T_{xx} \sin\theta + T_{xy} \cos\theta \\ 
+T_{yx} \cos\theta  + T_{yy} \sin\theta & -T_{yx} \sin\theta + T_{yy} \cos\theta 
+\end{array}
+\right) \nn\\
+&=& 
+\left(\begin{array}{ccc}
+T_{xx} c^2_\theta  + T_{xy} s_\theta c_\theta 
++T_{yx} s_\theta c_\theta  + T_{yy} s^2_\theta & 
+-T_{xx} s_\theta c_\theta + T_{xy} c^2_\theta
+-T_{yx} s^2_\theta + T_{yy} s_\theta c_\theta &
+ \\ \\
+-T_{xx} s_\theta c_\theta  - T_{xy} s^2_\theta 
++ T_{yx} c^2_\theta  + T_{yy} s_\theta c_\theta &  
+T_{xx} s^2_\theta - T_{xy} s_\theta c_\theta 
+-T_{yx} s_\theta c_\theta + T_{yy} c^2_\theta
+\end{array}
+\right) \nn\\
+&=& 
+\left(\begin{array}{cc}
+T_{xx} c^2_\theta  + 2T_{xy} s_\theta c_\theta + T_{yy} s^2_\theta & 
+(T_{yy}-T_{xx}) s_\theta c_\theta + T_{xy} (c^2_\theta - s^2_\theta)   \\ 
+\\
+(T_{yy}-T_{xx}) s_\theta c_\theta  + T_{xy} (c^2_\theta -s^2_\theta )  &  
+T_{xx} s^2_\theta - 2T_{xy} s_\theta c_\theta + T_{yy} c^2_\theta  
+\end{array}
+\right) \nn
+\end{eqnarray}
+where we have assumed that the tensor ${\bm T}$ is symmetric at some point.
+Note also that the trace of ${\bm T}_{\rm polar}$ is 
+\[
+Tr[{\bm T}_{\rm polar}] = T_{xx} c^2_\theta  + 2T_{xy} s_\theta c_\theta + T_{yy} s^2_\theta
++ T_{xx} s^2_\theta - 2T_{xy} s_\theta c_\theta + T_{yy} c^2_\theta 
+= T_{xx} + T_{zz}
+\]
+Indeed, the trace of a tensor is an invariant.
+
+Finally we can also use $\sin 2x = 2 \sin x \cos x$ and $\cos 2x = \cos^2 x -\sin^2 x$ 
+to arrive at
+\begin{eqnarray}
+{\bm T}_{\rm polar}
+&=&
+\left(\begin{array}{cc}
+T_{rr}       & T_{r\theta}     \\ 
+T_{\theta r} & T_{\theta\theta}
+\end{array}\right) \nn\\
+&=& 
+\left(\begin{array}{cc}
+T_{xx} \cos^2 \theta  + T_{xy} \sin 2\theta + T_{yy} \sin^2 \theta & 
+\frac12(T_{yy}-T_{xx}) \sin 2\theta  + T_{xy} \cos 2\theta    \\ 
+\\
+\frac12 (T_{yy}-T_{xx}) \sin 2\theta  + T_{xy} \cos 2\theta   &  
+T_{xx} \sin^2 \theta - T_{xy} \sin 2\theta + T_{yy} \cos^2 \theta  
+\end{array}
+\right) \nn
+\end{eqnarray}
+or,
+\begin{eqnarray}
+T_{rr} &=& T_{xx} \cos^2 \theta  + T_{xy} \sin 2\theta + T_{yy} \sin^2 \theta \\ 
+T_{\theta\theta} &=& T_{xx} \sin^2 \theta - T_{xy} \sin 2\theta + T_{yy} \cos^2 \theta \\
+T_{r\theta} &=& \frac12(T_{yy}-T_{xx}) \sin 2\theta  + T_{xy} \cos 2\theta 
+\end{eqnarray}
+
+
+This translates as follows {\color{red} modify code !}:
+\begin{lstlisting}
+def convert_tensor_to_polar_coords(theta,Txx,Tyy,Txy):
+Trr=Txx*(np.cos(theta))**2 +2*Txy*np.sin(theta)*np.cos(theta) +Tyy*(np.sin(theta))**2
+Ttt=Txx*(np.sin(theta))**2 -2*Txy*np.sin(theta)*np.cos(theta) +Tyy*(np.cos(theta))**2
+Trt=(Tyy-Txx)*np.sin(theta)*np.cos(theta)+Txy*((np.cos(theta))**2-(np.sin(theta))**2)
+return Trr,Ttt,Trt
+\end{lstlisting}
+
+
+\newpage
+%....................................
+\subsubsection{Spherical coordinates}
+
+In order to compute the dynamic topography we will need $\sigma_{rr}$, 
+which in fact will require $\dot{\varepsilon}_{rr}$. This means that 
+having obtained the strain rate tensor in Cartesian coordinates we must 
+rewrite it in spherical coordinates with the following conventions:
+
+\begin{center}
+\includegraphics[width=3cm]{IMAGES/sphcoord}
+\end{center}
+
+We have {\color{red} FIND SOURCE!!}
+\begin{eqnarray}
+{\bm T}_{\rm spherical}&=&
+\left(
+\begin{array}{ccc}
+T_{rr}       & T_{r\theta}      & T_{r\phi} \\
+T_{\theta r} & T_{\theta\theta} & T_{\theta\phi} \\
+T_{\phi r}   & T_{\phi \theta}  & T_{\phi\phi}
+\end{array}
+\right) \nn\\
+&=&
+\left(
+\begin{array}{ccc}
+\sin\theta \cos\phi & \sin\theta \sin\phi & \cos\theta \\
+\cos\theta \cos\phi & \cos\theta \sin\phi & -\sin\theta \\
+-\sin\phi & \cos\phi & 0 
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{ccc}
+T_{xx} & T_{xy} & T_{xz} \\
+T_{yx} & T_{yy} & T_{yz} \\
+T_{zx} & T_{zy} & T_{zz} 
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{ccc}
+\sin\theta\cos\phi & \cos\theta\cos\phi & -\sin\phi \\
+\sin\theta\sin\phi & \cos\theta\sin\phi & \cos\phi \\
+\cos\theta & -\sin\theta & 0
+\end{array}
+\right) 
+\nn
+\end{eqnarray}
+In our case, calculations take place in the 
+$(x,z)$-plane so we have $\phi=0$ and the equation above 
+becomes
+\[
+\left(
+\begin{array}{ccc}
+T_{rr}       & T_{r\theta}      & T_{r\phi} \\
+T_{\theta r} & T_{\theta\theta} & T_{\theta\phi} \\
+T_{\phi r}   & T_{\phi \theta}  & T_{\phi\phi}
+\end{array}
+\right)
+=
+\left(
+\begin{array}{ccc}
+\sin\theta  & 0 & \cos\theta \\
+\cos\theta  & 0 & -\sin\theta \\
+0 & 1 & 0 
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{ccc}
+T_{xx} & T_{xy} & T_{xz} \\
+T_{yx} & T_{yy} & T_{yz} \\
+T_{zx} & T_{zy} & T_{zz} 
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{ccc}
+\sin\theta & \cos\theta & 0 \\
+0 & 0 & 1 \\
+\cos\theta & -\sin\theta & 0
+\end{array}
+\right)
+\]
+We define $c_\theta=\cos\theta$, $s_\theta=\sin\theta$ so that 
+the following calculations fit on the page:
+\begin{eqnarray}
+&&\left(
+\begin{array}{ccc}
+T_{rr}       & T_{r\theta}      & T_{r\phi} \\
+T_{\theta r} & T_{\theta\theta} & T_{\theta\phi} \\
+T_{\phi r}   & T_{\phi \theta}  & T_{\phi\phi}
+\end{array}
+\right) \nn\\
+&=&
+\left(
+\begin{array}{ccc}
+s_\theta  & 0 & c_\theta \\
+c_\theta  & 0 & -s_\theta \\
+0 & 1 & 0 
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{ccc}
+T_{xx} & T_{xy} & T_{xz} \\
+T_{yx} & T_{yy} & T_{yz} \\
+T_{zx} & T_{zy} & T_{zz} 
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{ccc}
+s_\theta & c_\theta & 0 \\
+0 & 0 & 1 \\
+c_\theta & -s_\theta & 0
+\end{array}
+\right)
+\nn\\
+&=&
+\left(
+\begin{array}{ccc}
+s_\theta  & 0 & c_\theta \\
+c_\theta  & 0 & -s_\theta \\
+0 & 1 & 0 
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{ccc}
+T_{xx} s_\theta  + T_{xz}c_\theta & T_{xx} c_\theta  - T_{xz}s_\theta  & T_{xy} \\
+T_{yx} s_\theta  + T_{yz}c_\theta & T_{yx} c_\theta  - T_{yz}s_\theta  & T_{yy} \\
+T_{zx} s_\theta  + T_{zz}c_\theta & T_{zx} c_\theta  - T_{zz}s_\theta  & T_{zy} 
+\end{array}
+\right)
+\nn\\
+&=&
+\left(
+\begin{array}{ccc}
+T_{xx} s^2_\theta  + T_{xz}s_\theta c_\theta + T_{zx} s_\theta c_\theta  + T_{zz}c^2_\theta &
+T_{xx} s_\theta c_\theta  - T_{xz}s^2_\theta      +    T_{zx} c^2_\theta  - T_{zz}s_\theta  c_\theta &
+T_{xy} s_\theta  + T_{zy} c_\theta 
+\\
+T_{xx} s_\theta c_\theta + T_{xz}c^2_\theta - T_{zx} s^2_\theta  - T_{zz}s_\theta c_\theta &
+T_{xx} c^2_\theta  - T_{xz}s_\theta c_\theta - T_{zx} s_\theta c_\theta  + T_{zz}s^2_\theta & 
+T_{xy} c_\theta  - T_{zy}  s_\theta 
+\\ 
+T_{yx} s_\theta  + T_{yz}c_\theta & T_{yx} c_\theta  - T_{yz}s_\theta  & T_{yy}
+\end{array}
+\right) \nn
+\end{eqnarray}
+
+Using 
+the fact that ${\bm T}$ is a symmetric tensor:
+\begin{equation}
+\left(
+\begin{array}{ccc}
+T_{rr}       & T_{r\theta}      & T_{r\phi} \\
+T_{\theta r} & T_{\theta\theta} & T_{\theta\phi} \\
+T_{\phi r}   & T_{\phi \theta}  & T_{\phi\phi}
+\end{array}
+\right)
+=
+\left(
+\begin{array}{ccc}
+T_{xx} s^2_\theta  + 2 T_{xz}s_\theta c_\theta   + T_{zz}c^2_\theta &
+(T_{xx}-T_{zz}) s_\theta c_\theta  + T_{xz} ( c^2_\theta -s^2_\theta  )   &
+T_{xy} s_\theta  + T_{zy} c_\theta 
+\\
+(T_{xx} -T_{zz} )s_\theta c_\theta + T_{xz} (c^2_\theta - s^2_\theta )  &
+T_{xx} c^2_\theta  - 2T_{xz}s_\theta c_\theta   + T_{zz}s^2_\theta & 
+T_{xy} c_\theta  - T_{zy}  s_\theta 
+\\ 
+T_{yx} s_\theta  + T_{yz}c_\theta & T_{yx} c_\theta  - T_{yz}s_\theta  & T_{yy}
+\end{array}
+\right) 
+\end{equation}
+Note that the trace of this tensor is equal to $T_{xx}+T_{yy}+T_{zz}$ (which is an invariant).
+
+As before we can also use $\sin 2x = 2 \sin x \cos x$ and $\cos 2x = \cos^2 x -\sin^2 x$ 
+to simplify the expressions above:
+\begin{equation}
+\left(
+\begin{array}{ccc}
+T_{rr}       & T_{r\theta}      & T_{r\phi} \\
+T_{\theta r} & T_{\theta\theta} & T_{\theta\phi} \\
+T_{\phi r}   & T_{\phi \theta}  & T_{\phi\phi}
+\end{array}
+\right)
+=
+\left(
+\begin{array}{ccc}
+T_{xx} s^2_\theta  +  T_{xz} \sin 2\theta   + T_{zz}c^2_\theta &
+\frac12(T_{xx}-T_{zz}) \sin 2\theta  +T_{xz} \cos 2\theta    &
+T_{xy} s_\theta  + T_{zy} c_\theta 
+\\
+\frac12 (T_{xx} -T_{zz} ) \sin 2\theta  + T_{xz} \cos 2 \theta   &
+T_{xx} c^2_\theta  - T_{xz} \sin 2\theta  + T_{zz}s^2_\theta & 
+T_{xy} c_\theta  - T_{zy}  s_\theta 
+\\ 
+T_{yx} s_\theta  + T_{yz}c_\theta & T_{yx} c_\theta  - T_{yz}s_\theta  & T_{yy}
+\end{array}
+\right) 
+\end{equation}
+or,
+\begin{eqnarray}
+T_{rr} &=& T_{xx} \sin^2 \theta  +  T_{xz} \sin 2\theta   + T_{zz} \cos^2 \theta \\
+T_{\theta\theta} &=& T_{xx} c^2_\theta  - T_{xz} \sin 2\theta  + T_{zz} \sin^2 \theta \\
+T_{r\theta} &=& \frac12(T_{xx}-T_{zz}) \sin 2\theta  +T_{xz} \cos 2\theta
+\end{eqnarray}
+which translates as follows in the code {\color{red} modify code}:
+\begin{lstlisting}
+def convert_tensor_to_spherical_coords(theta_polar,Txx,Tzz,Txz):
+    theta_sph=np.pi/2-theta_polar
+    sin_theta=np.sin(theta_sph)
+    cos_theta=np.cos(theta_sph)
+    Trr=Txx*sin_theta**2 +2*Txz*sin_theta*cos_theta +Tzz*cos_theta**2
+    Ttt=Txx*cos_theta**2 -2*Txz*sin_theta*cos_theta +Tzz*sin_theta**2
+    Trt=(Txx-Tzz)*sin_theta*cos_theta +Txz*(cos_theta**2-sin_theta**2)
+\end{lstlisting}
+
+
+FLAPS:
+\begin{verbatim}
+err1[i]=exx1[i]*np.sin(theta[i])**2+2*exz1[i]*np.sin(theta[i])*np.cos(theta[i])+ezz1[i]*np.cos(theta[i])**2
+ett1[i]=exx1[i]*np.cos(theta[i])**2-2*exz1[i]*np.sin(theta[i])*np.cos(theta[i])+ezz1[i]*np.sin(theta[i])**2
+ert1[i]=(exx1[i]-ezz1[i])*np.sin(theta[i])*np.cos(theta[i])+exz1[i]*(-np.sin(theta[i])**2+np.cos(theta[i])**2)
+\end{verbatim}
+
+Remark: We could arrive at $T_{xx}$ also by stating that $T_{rr} = \vec{n} \cdot {\bm T} \cdot \vec{n}$,
+where $\vec{n}=(\sin\theta \cos\phi, \sin\theta\sin\phi,\cos\theta)$ is the normal to the sphere surface.
+Since we are computing in the $xz$-plane then $\phi=0$ and then 
+$\vec{n}=(\sin\theta , 0 ,\cos\theta)$. The calculation above will yield the 
+same expression for $T_{rr}$ as before.
+
+
+
+
+
+\newpage
+As mentioned before we assume that deformation takes place in the $x,z$-plane, so that 
+derivatives with respect to $y$ and $v_y$ are automatically zero:
+\[
+\dot{\bm\varepsilon}_{\tiny Cart}
+=
+\left(
+\begin{array}{ccc}
+\dot\varepsilon_{xx} & 0 & \dot{\varepsilon}_{xz} \\
+0 & \dot{\varepsilon}_{yy}  & 0 \\
+\dot{\varepsilon}_{xz} & 0 & \dot\varepsilon_{zz}
+\end{array}
+\right)
+\]
+so 
+\begin{eqnarray}
+\dot{\bm \varepsilon}_{\tiny Sph}=
+\left(
+\begin{array}{ccc}
+\dot\varepsilon_{rr}       & \dot\varepsilon_{r\theta}      & \dot\varepsilon_{r\phi} \\
+\dot\varepsilon_{\theta r} & \dot\varepsilon_{\theta\theta} & \dot\varepsilon_{\theta\phi} \\
+\dot\varepsilon_{\phi r}   & \dot\varepsilon_{\phi \theta}  & \dot\varepsilon_{\phi\phi}
+\end{array}
+\right)
+&=&
+\left(
+\begin{array}{ccc}
+s_\theta  & 0 & c_\theta \\
+c_\theta  & 0 & -s_\theta \\
+0 & 1 & 0 
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{ccc}
+\dot\varepsilon_{xx} & 0 & \dot{\varepsilon}_{xz} \\
+0 & \dot{\varepsilon}_{yy}  & 0 \\
+\dot{\varepsilon}_{xz} & 0 & \dot\varepsilon_{zz}
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{ccc}
+s_\theta & c_\theta & 0 \\
+0 & 0 & 1 \\
+c_\theta & -s_\theta & 0
+\end{array}
+\right)  \nonumber\\
+&=&
+\left(
+\begin{array}{ccc}
+s_\theta  & 0 & c_\theta \\
+c_\theta  & 0 & -s_\theta \\
+0 & 1 & 0 
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{ccc}
+\dot\varepsilon_{xx} s_\theta + 
+\dot\varepsilon_{xz} c_\theta  & 
+\dot\varepsilon_{xx} c_\theta - 
+\dot\varepsilon_{xz} s_\theta  &
+0 \\
+0 & 0 & \dot{\varepsilon}_{yy}  
+\\
+\dot\varepsilon_{xz} s_\theta + 
+\dot\varepsilon_{zz} c_\theta  &
+\dot\varepsilon_{xz} c_\theta - 
+\dot\varepsilon_{zz} s_\theta  &
+0 
+\end{array}
+\right)  \nonumber\\
+&=&
+\left(
+\begin{array}{ccc}
+\dot\varepsilon_{xx} s_\theta^2 + 
+2 \dot\varepsilon_{xz} c_\theta  s_\theta +
+\dot\varepsilon_{zz} c_\theta ^2  
+& 
+\dot\varepsilon_{xx} c_\theta s_\theta - 
+\dot\varepsilon_{xz} s_\theta^2  +
+\dot\varepsilon_{xz} c_\theta^2 - 
+\dot\varepsilon_{zz} s_\theta c_\theta 
+& 0 \\ \\
+\dot\varepsilon_{xx} s_\theta c_\theta+ 
+\dot\varepsilon_{xz} c_\theta^2  -
+\dot\varepsilon_{xz} s_\theta^2 -
+\dot\varepsilon_{zz} c_\theta s_\theta 
+&
+\dot\varepsilon_{xx} c_\theta^2 - 
+2\dot\varepsilon_{xz} s_\theta c_\theta +
+\dot\varepsilon_{zz} s_\theta^2  
+& 0 
+\\ \\
+0 & 0 & \dot{\varepsilon}_{yy} 
+\end{array}
+\right)  \nonumber
+\end{eqnarray}
+
+
+
+\newpage
+%==============================================================================
+\section{Pressure normalisation}
+
+When normal velocities are prescribed on all sides of the domain
+the computed pressure is not unique (nullspace of size 1). 
+One then typically arbitrarily enforce and additional condition
+on the pressure field (in a postprocessing step), typically 'average surface pressure is zero'
+or 'volume average is zero'. 
+
+In what follows we make the assumption that all elements are identical, 
+i.e. no mesh stretching. 
+
+%-----------------------------------------
+\subsection{Plane strain - volume average}
+
+In this case the volume average is simply:
+\[
+<p> = \frac{\iint p \; dV}{\iint\; dV} = \frac{\sum_e \iint_{\Omega_e} p \; dV }{\sum_e \iint_{\Omega_e} \; dV}
+\]
+which simply translates as follows: 
+\begin{lstlisting}
+pressure_avrg=0
+for iel in range(0,nel):
+    for iq in range(0,nqel):
+        pressure_avrg+=np.dot(N_P[iq,:],p[icon_P[:,iel]])*JxWq[iel,iq]
+pressure_avrg/=volume
+\end{lstlisting}
+This works equally well for Cartesian and Annulus domains.
+
+
+
+
+%-----------------------------------------
+\subsection{Plane strain - surface average}
+
+Let us assume that the surface in question is the top surface.
+\begin{equation}
+<p> = \frac{\int p \; dS}{\int\; dS} = \frac{\sum_{e,s} \int p \; dS }{\sum_{e,s} \int \; dS}
+\label{eq:normp}
+\end{equation}
+where the sum of elements only only runs on those elements touching the surface.
+
+
+
+
+\subsubsection{Cartesian geometry}
+If the geometry is Cartesian this sum is trivial and runs over the \lstinline{nelx} elements
+at the top of the domain.
+The integral over the top edge can be approximated by a 1-point quadrature\footnote{Pressure is $Q_1$}
+so that 
+\[
+\int_{edge} p \; dS %= \int_{x_3}^{x_2} \frac12 (p_2 + p_3) dx 
+= \frac{x_2-x_3}{2} (p_2 + p_3)
+= \frac{h_x}{2} (p_2 + p_3)
+\]
+since the dof layout of the pressure grid is as follows
+\begin{verbatim}
+3--2
+|  |
+0--1
+\end{verbatim}
+In the end we see that the denominator in Eq.~\eqref{eq:normp} is equal to $L_x$ and then
+\[
+<p> 
+= \frac{1}{L_x} \sum_{e,s} \frac{h_x}{2} (p_{e,2} + p_{e,3}) 
+= \frac{1}{nelx} \sum_{e,s} \frac12 (p_{e,2} + p_{e,3}) 
+\]
+
+\subsubsection{Annulus geometry}
+
+We here consider a half-annulus for simplicity.
+The approach is similar, except that the edge length can be seen as being $R_{outer} h_\theta$ long, 
+where $h_\theta$ is the angular opening of the element, so that 
+\[
+\int_{edge} p \; dS %= \int_{\theta_3}^{\theta_2} \frac12 (p_2 + p_3) R d\theta
+= \frac12 (p_2 + p_3) R_{outer} (\theta_2-\theta_3)
+\]
+Then in the end, since the denominator in Eq.~\eqref{eq:normp} is equal to $\pi R_{outer}$
+\[
+<p>= \frac{1}{\pi R_{outer}} \sum_{e,s} \frac{R_{outer}}{2} (p_{e,2} + p_{e,3})  (\theta_{e,2}-\theta_{e,3})
+= \frac{1}{\pi} \sum_{e,s} \frac12 (p_{e,2} + p_{e,3})  (\theta_{e,2}-\theta_{e,3})
+\]
+
+
+
+
+
+
+%------------------------
+\subsection{Axisymmetric}
+
+\subsubsection{Cartesian geometry}
+
+Although technically possible, the axisymmetric approximation 
+is not implemented for Cartesian geometries.
+
+\subsubsection{Annulus geometry}
+
+In spherical coordinates, the surface element is $dS=R_{outer}^2 \sin \theta_s \; d\theta_s d\phi$ 
+(we here use the subscript 's' to indicate that this is the $\theta$ angle of the spherical coordinates).
+
+\[
+<p> 
+= \frac{\iint p(\theta_s,\phi) dS }{\iint dS}
+= \frac{\iint p(\theta_s,\phi) R_{outer}^2 \sin \theta_s d\theta_s d\phi}{\iint R_{outer}^2 \sin \theta_s d\theta_s d\phi}
+\]
+and since $p$ is independent of $\phi$ then 
+\[
+<p> 
+%= \frac{R_{outer}^2  2\pi  \int_0^\pi p(\theta_s)  \sin \theta_s d\theta_s} {4\pi R_{outer}^2}
+= \frac{ 2\pi R_{outer}^2 \int_0^\pi p(\theta_s)  \sin \theta_s d\theta_s} {4\pi R_{outer}^2}
+=\frac{  \int_0^\pi p(\theta_s)  \sin \theta_s d\theta_s} {2}
+\]
+The integral over $\theta_s$ can be simplified by using the average pressure 
+along the edge and the angle of the edge middle point:
+\[
+\int_0^\pi p(\theta_s) \sin\theta_s d\theta_s 
+= \sum_{e,s} \int_{\theta_{s,e,3}}^{\theta_{s,e,2}} p(\theta_s) \sin\theta_s d\theta_s
+\simeq \sum_{e,s} \frac12(p_{e,2}+p_{3,e}) \sin \frac{\theta_{s,e,2}+\theta_{s,e,3} }{2} (\theta_{s,e,2} -\theta_{s,e,3} )
+\]
+Remember that the sum runs over all elements ('e') at the surface ('s').
+In the end
+\[
+<p> = \frac12 \sum_{e,s}  \frac12(p_{e,2}+p_{3,e}) \sin \frac{\theta_{s,e,2}+\theta_{s,e,3} }{2} (\theta_{s,e,2} -\theta_{s,e,3} )
+\]
+Note again that this is valid for $\theta_s$, not $\theta_p$, so that we will need to convert to $\theta_s$ in the 
+code:
+\[
+\frac{\theta_{s,e,2}+\theta_{s,e,3} }{2} 
+= \frac12 ( \frac{\pi}{2} - \theta_{p,e,2} + \frac{\pi}{2} - \theta_{p,e,3}  )
+= \frac{\pi}{2} - \frac{1}{2} ( \theta_{p,e,2} +  \theta_{p,e,3}  )
+\]
+and 
+\[
+\theta_{s,e,2} -\theta_{s,e,3} 
+= \frac{\pi}{2} - \theta_{p,e,2} - \frac{\pi}{2} + \theta_{p,e,3}
+= \theta_{p,e,3} - \theta_{p,e,2}
+\]
+
+
+%\begin{lstlisting}
+%poffset/=4*np.pi*R2**2
+%\end{lstlisting}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 \newpage
@@ -418,6 +1249,11 @@ and widely used in geodynamic modelling studies, as
 they allow for simpler equations and more easily obtained solutions.
 \end{displayquote}
 
+
+%==============================================================================
+\section{Computing the lithostatic pressure}
+
+
 %==============================================================================
 \section{Initial adiabatic temperature profile}
 
@@ -427,6 +1263,151 @@ they allow for simpler equations and more easily obtained solutions.
 %==============================================================================
 \section{Dynamic topography}
 
+
+%==============================================================================
+%\section{Computing the gravity field}
+
+
+\newpage
+\section{Notes}
+%-----------------------------
+\subsection{Plane strain case}
+
+\begin{lstlisting}
+ggx=0.
+ggy=0.
+for iel in range(0,nel):
+    xx=xs-xc[iel]
+    yy=ys-yc[iel]
+    rr=np.sqrt(xx**2+yy**2)
+    ggx+=Ggrav*(rho[iel]-rho_ref)*vol[iel]*xx/rr**3
+    ggy+=Ggrav*(rho[iel]-rho_ref)*vol[iel]*yy/rr**3
+gnorm=np.sqrt(ggx**2+ggy**2)
+\end{lstlisting}
+
+
+%-----------------------------
+\subsection{Axisymmetric case}
+
+Although the FEM calculations take place in the $xz$-plane, we need to think 
+of the system as a 3d one, i.e. the half annulus mass distribution is repeated
+from $\phi=0$ to $\phi=2\pi$. Each element we consider must be seen as a torus 
+whose cross section is the element under consideration.
+
+Let us assume that the satellite is at position $(x_s,y_s,z_s)$.
+Let us for now isolate a single element $e$ of surface $S_e$ and $\phi-$angular 
+opening $\delta\phi$, and density $\rho_e$ with 
+its center of mass at position $(x_e,y_e,z_e))$.
+The gravity that the element mass exerts on the satellite is a vector with components
+\begin{align}
+g_x (x_s,y_s,z_s,e) &= {\cal G} \frac{S_e \rho_e \delta\phi}{[(x_s-x_e)^2+(y_s-y_e)^2+(z_s-z_e)^2]^{3/2}} (x_s-x_e)\\
+g_y (x_s,y_s,z_s,e) &= {\cal G} \frac{S_e \rho_e \delta\phi}{[(x_s-x_e)^2+(y_s-y_e)^2+(z_s-z_e)^2]^{3/2}} (y_s-y_e)\\
+g_z (x_s,y_s,z_s,e) &= {\cal G} \frac{S_e \rho_e \delta\phi}{[(x_s-x_e)^2+(y_s-y_e)^2+(z_s-z_e)^2]^{3/2}} (z_s-z_e)
+\end{align}
+
+
+\begin{center}
+\includegraphics[width=5cm]{IMAGES/sphcoord}
+\end{center}
+
+We can rewrite the position of the element center in spherical coordinates ollows:
+\begin{eqnarray}
+x_e &=& r_e \sin \theta_e \cos \phi_e \\
+y_e &=& r_e \sin\theta_e \sin\phi_e \\
+z_e &=& r_e \cos\theta_e 
+\end{eqnarray}
+In this case $\theta\in[0:\pi]$ and $\phi\in]-\pi:\pi]$ and we have the following relationships:
+Let us focus on $g_x$ for now.
+\begin{align}
+g_x (x_s,y_s,z_s,e) 
+&= {\cal G} \frac{S_e \rho_e \delta\phi}{[(x_s-x_e)^2+(y_s-y_e)^2+(z_s-z_e)^2]^{3/2}} (x_s-x_e) \nonumber\\
+&= {\cal G} \frac{S_e \rho_e \delta\phi}{[
+(x_s-r_e \sin \theta_e \cos \phi_e)^2+
+(y_s-r_e \sin\theta_e \sin\phi_e)^2+
+(z_s-r_e \cos\theta_e)^2]^{3/2}} (x_s-r_e \sin \theta_e \cos \phi_e) \nonumber
+\end{align}
+At this stage we must acknowledge that inside the torus $r_e$ and $\theta_e$ are constant 
+and only the $\phi_e$ value changes. Since the position of the satellite is assumed 
+to be fixed for now then the last term of the denominator $(z_s-r_e \cos\theta_e)$ is then a constant.
+Likewise, since the domain is a half-annulus and we only consider the center of mass of element
+then we have $r_e>0$  and $\theta_e>0$ and $\theta_e<\pi$ so that $r_e \sin\theta_e >0$.
+We can then define:
+\[
+x_s' = \frac{x_s}{r_e \sin\theta_e} \qquad
+y_s' = \frac{y_s}{r_e \sin\theta_e} \qquad
+z_s' = \frac{z_s}{r_e \sin\theta_e} 
+\]
+
+We can then write:
+\begin{align}
+g_x (x_s,y_s,z_s,e) 
+&= \int_0^{2\pi} \frac{\cal G}{r_e\sin\theta_e} \frac{S_e \rho_e }{[
+(x'_s- \cos \phi)^2+
+(y'_s- \sin\phi)^2+
+(z'_s- \tan^{-1} \theta_e)^2]^{3/2}} 
+(x'_s- \cos \phi)   d\phi \nonumber
+\end{align}
+We then find ourselves having to compute and integral of the form:
+\[
+\int_0^{2\pi} \frac{a -\cos\phi}{[(a-\cos\phi)^2 + (b-\sin\phi)^2 +c^2 ]^{3/2}} d\phi
+\]
+
+\newpage
+
+In \cite{budt14} we find
+
+``We employ a temperature- and depth-dependent rheology of
+the non-dimensional form:
+\[
+\eta(T,z) = \eta_r(z) \exp (A(0.5-T))
+\]
+where $\eta_r(z)=1$ for $z<663$km and $\eta_r(z)=0.1225z-51.2$ for
+$663 \le z \le 2867$km. 
+$\eta$ and $z$ are the non-dimensional viscosity and dimensional depth respectively.
+[...] it leads to a weak upper mantle, a $30\times$ viscosity step at the boundary 
+between the upper and lower mantle, and a $10\times$ linear increase with depth to the base of
+the mantle. The non-dimensional activation coefficient is chosen
+to be $A=9.2103$, which leads to a temperature-induced viscosity contrast of $10^4$.
+''
+
+This is a beautiful example of reviewing/editing failure. The above equation 
+is clearly formulated for dimensionless quantities, but the $\eta_r(z)=0.1225z-51.2$
+only makes sense if $z$ is expressed in km. 
+Likewise the value 2867km is surprisingly off with regards to the agreed upon 
+cmb depth of about 2890km. Finally the real outer radius of the domain is never specified, 
+and neither are the temperature boundary conditions.
+
+At 663km depth we find $\eta_r(z)=0.1225*663-51.2=30$ 
+and at 2867km depth we find $\eta_r(z)=0.1225*2867-51.2=300$, so this adds 
+up with respect to the text.
+
+In the end, if we want to use this rheology in an Earth-dimensioned model
+we will need to use
+\[
+\eta(T,z) = \eta_0 \eta_r(z) \exp (A(0.5-T))
+\]
+where $\eta_0\sim 10^{21}$ .
+
+
+\section{TO DO}
+
+- which is the correct way of computing DT? remove average stress, or removing average pressure only?
+
+- test
+
+- vrms in axisymmetry
+
+- check dev strain rate in axisymm 
+
+- rename xc, zc, rad\_c,... consistently
+ 
+- top\_element vs top\_nodeS
+
+- when element is empty , stop AND create vtu file 
+
+- run schmeling subduction - 
+
+- if ss detected make sure vtus are produced 
 
 
 
