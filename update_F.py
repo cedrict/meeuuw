@@ -1,5 +1,5 @@
 import numpy as np
-
+from experiment4 import T_solidus,T_liquidus,fff
 
 ###############################################################################
 # ---------------------> T

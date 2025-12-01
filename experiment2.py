@@ -13,16 +13,19 @@ time_scale=year ; time_unit='yr'
 end_time=50e6*year
 every_solution_vtu=1
 every_swarm_vtu=1
-RKorder=2
+RKorder=1
 averaging='arithmetic'
 debug_ascii=False
 nparticle_per_dim=7
 use_elemental_eta=True
+use_elemental_rho=True
+particle_distribution=0 # 0: random, 1: reg
+#remove_rho_profile=True
 
-nelz=64
-nelx=int(Lx/Lz*nelz)
-CFLnb=0.25
-nstep=500
+nelz=80
+nelx=int(Lx/Lz*nelz*1.25)
+CFLnb=0.5
+nstep=200
 
 ###############################################################################
 

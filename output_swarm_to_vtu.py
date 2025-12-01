@@ -7,7 +7,7 @@ def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticl
                         swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_iel,\
                         swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst):
 
-       debug_swarm=True
+       debug_swarm=False
 
        filename='OUTPUT/swarm_{:04d}.vtu'.format(istep)
        vtufile=open(filename,"w")
@@ -17,9 +17,9 @@ def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticl
        #####
        vtufile.write("<Points> \n")
        #--
-       swarm_y=np.zeros(nparticle,dtype=np.float64) 
+       swarm_X=np.zeros(nparticle,dtype=np.float64) 
        vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Format='ascii'> \n")
-       coords=np.array([swarm_x,swarm_y,swarm_z]).T
+       coords=np.array([swarm_x,swarm_X,swarm_z]).T
        coords.tofile(vtufile,sep=' ')
 
        vtufile.write("</DataArray>\n")
@@ -29,8 +29,8 @@ def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticl
        vtufile.write("<PointData Scalars='scalars'>\n")
        #--
        if debug_swarm and solve_Stokes:
-          vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='velocity' Format='ascii'> \n")
-          coords=np.array([swarm_u,swarm_z,swarm_w]).T
+          vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Velocity' Format='ascii'> \n")
+          coords=np.array([swarm_u,swarm_X,swarm_w]).T
           coords.tofile(vtufile,sep=' ')
           vtufile.write("</DataArray>\n")
           #--

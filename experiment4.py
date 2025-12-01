@@ -27,17 +27,17 @@ Tbottom=3000+TKelvin
 Ttop=0+TKelvin
 every_solution_vtu=1
 every_swarm_vtu=1
-debug_ascii=False
+debug_ascii=True
 nparticle_per_dim=6
 
 use_melting=True
-potential_T=1700. #K
-top_thermal_boundary_thickness=100km
-bot_thermal_boundary_thickness=100km
+adiabatic_surface_temperature=1700. #K
+top_tbl_thickness=100e3
+bot_tbl_thickness=100e3
 
 
 rho0=3300
-alphaT=2e-5
+alpha=2e-5
 T0=TKelvin
 hcond0=5
 hcapa0=1250
@@ -54,25 +54,43 @@ eta_max=6e24
 print('kappa=',hcond0/hcapa0/rho0 )
 
 if geometry=='box':
-   print('Ra=', (Tbottom-Ttop)*rho0*9.81*alphaT*Lz**3 / eta0 / (hcond0/hcapa0/rho0))
+   print('Ra=', (Tbottom-Ttop)*rho0*9.81*alpha*Lz**3 / eta0 / (hcond0/hcapa0/rho0))
 if geometry=='quarter':
-   print('Ra=', (Tbottom-Ttop)*rho0*9.81*alphaT*(Router-Rinner)**3 / eta0 / (hcond0/hcapa0/rho0))
+   print('Ra=', (Tbottom-Ttop)*rho0*9.81*alpha*(Router-Rinner)**3 / eta0 / (hcond0/hcapa0/rho0))
 
 nstep=2
 CFLnb=0.2         
 
 ###############################################################################
 
+def adiabatic_temperature(Tpotential,alpha,g,hcapa,d,\
+                          top_tbl_thickness,bot_tbl_thickness,\
+                          Ttop,Tbottom,total_depth):
+
+    dA=top_tbl_thickness             ; TA=Tpotential*np.exp(alpha*g*dA/hcapa)
+    dB=total_depth-bot_tbl_thickness ; TB=Tpotential*np.exp(alpha*g*dB/hcapa)
+
+    if d<=dA:
+       T=d/dA*(TA-Ttop)+Ttop
+    elif d<=dB:
+       T=Tpotential*np.exp(alpha*g*d/hcapa)
+    else:
+       T=(d-dB)/top_tbl_thickness*(-TB+Tbottom)+TB
+
+    return T 
+
+
+
 def initial_temperature(x,z,rad,theta,nn_V):
 
     T=np.zeros(nn_V,dtype=np.float64)
 
     for i in range(0,nn_V):
-        T[i]=adiabat(z,potential_T,g0,Cp,....) + \  #(Tbottom+Ttop)/2\
-             +11*np.cos(3.33*np.pi*x[i]/Lx)*np.sin(1*np.pi*z[i]/Lz)\
+        T[i]=adiabatic_temperature(adiabatic_surface_temperature,alpha,g0,hcapa0,Lz-z[i],
+                                   top_tbl_thickness,bot_tbl_thickness,Ttop,Tbottom,Lz)
+        T[i]+=11*np.cos(3.33*np.pi*x[i]/Lx)*np.sin(1*np.pi*z[i]/Lz)\
              +12*np.cos(5.55*np.pi*x[i]/Lx)*np.sin(3*np.pi*z[i]/Lz)**2\
              +13*np.cos(7.77*np.pi*x[i]/Lx)*np.sin(5*np.pi*z[i]/Lz)**3
-
     return T
 
 ###############################################################################
@@ -179,7 +197,7 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
     swarm_hcapa=np.zeros(nparticle,dtype=np.float64)
     swarm_hprod=np.zeros(nparticle,dtype=np.float64)
 
-    swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-T0))
+    swarm_rho[:]=rho0*(1-alpha*(swarm_T[:]-T0))
     swarm_hcond[:]=hcond0
     swarm_hcapa[:]=hcapa0
 

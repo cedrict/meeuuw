@@ -18,9 +18,7 @@ def convert_tensor_to_polar_coords(theta,Txx,Tzz,Txz):
 
     Trt=(Tzz-Txx)*np.sin(theta)*np.cos(theta) +Txz*((np.cos(theta))**2-(np.sin(theta))**2)
 
-    e=np.sqrt(0.5*(Trr**2+Ttt**2)+Trt**2)
-
-    return Trr,Ttt,Trt,e
+    return Trr,Ttt,Trt
 
 ###############################################################################
 
@@ -42,8 +40,6 @@ def convert_tensor_to_spherical_coords(theta_polar,Txx,Tzz,Txz):
     Ttt=Txx*cos_theta**2 -Txz*sin_twotheta +Tzz*sin_theta**2
     Trt=0.5*(Txx-Tzz)*sin_twotheta +Txz*cos_twotheta
 
-    e=np.sqrt(0.5*(Trr**2+Ttt**2)+Trt**2)
-
-    return Trr,Ttt,Trt,e
+    return Trr,Ttt,Trt
 
 ###############################################################################

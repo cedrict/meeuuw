@@ -452,8 +452,6 @@ def advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_z,
 
 ###############################################################################
 
-# iel inside or out ?
-
 @numba.njit
 def project_particles_on_elements(nel,nparticle,swarm_rho,swarm_eta,swarm_iel,averaging):
     """
@@ -502,7 +500,8 @@ def project_particles_on_elements(nel,nparticle,swarm_rho,swarm_eta,swarm_iel,av
 ###############################################################################
 
 @numba.njit
-def project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_phi,icon,swarm_iel,averaging):
+def project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_phi,icon,swarm_iel,
+                                    swarm_r,swarm_t,averaging):
     """
     Args:
        nel: number of elements
@@ -513,23 +512,33 @@ def project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_phi,icon,swarm_iel,
        swarm_iel: cell index of all particles
        averaging: arithmetic, geometric or harmonic
     Returns:
+       phi_nodal: field phi on V nodes 
     """
 
     phi_nodal=np.zeros(nn_V,dtype=np.float64) 
     count_nodal=np.zeros(nn_V,dtype=np.float64) 
+    N=np.zeros(4,dtype=np.float64) 
 
     if averaging=='arithmetic':
        for ip in range(0,nparticle):
+           N[0]=0.25*(1-swarm_r[ip])*(1-swarm_t[ip])
+           N[1]=0.25*(1+swarm_r[ip])*(1-swarm_t[ip])
+           N[2]=0.25*(1+swarm_r[ip])*(1+swarm_t[ip])
+           N[3]=0.25*(1-swarm_r[ip])*(1+swarm_t[ip])
            iel=swarm_iel[ip]
            for k in (0,1,2,3):
-               phi_nodal[icon[k,iel]]+=swarm_phi[ip]
-               count_nodal[icon[k,iel]]+=1
+               phi_nodal[icon[k,iel]]+=swarm_phi[ip] * N[k]
+               count_nodal[icon[k,iel]]+=1 * N[k]
        for i in range(0,nn_V):
            if count_nodal[i]!=0:
               phi_nodal[i]/=count_nodal[i]
 
     elif averaging=='geometric':
        for ip in range(0,nparticle):
+           N[0]=0.25*(1-swarm_r[ip])*(1-swarm_t[ip])
+           N[1]=0.25*(1+swarm_r[ip])*(1-swarm_t[ip])
+           N[2]=0.25*(1+swarm_r[ip])*(1+swarm_t[ip])
+           N[3]=0.25*(1-swarm_r[ip])*(1+swarm_t[ip])
            iel=swarm_iel[ip]
            for k in (0,1,2,3):
                phi_nodal[icon[k,iel]]+=np.log10(swarm_phi[ip])
@@ -540,6 +549,10 @@ def project_particle_field_on_nodes(nel,nn_V,nparticle,swarm_phi,icon,swarm_iel,
 
     elif averaging=='harmonic':
        for ip in range(0,nparticle):
+           N[0]=0.25*(1-swarm_r[ip])*(1-swarm_t[ip])
+           N[1]=0.25*(1+swarm_r[ip])*(1-swarm_t[ip])
+           N[2]=0.25*(1+swarm_r[ip])*(1+swarm_t[ip])
+           N[3]=0.25*(1-swarm_r[ip])*(1+swarm_t[ip])
            iel=swarm_iel[ip]
            for k in (0,1,2,3):
                phi_nodal[icon[k,iel]]+=1./swarm_phi[ip]

@@ -3,7 +3,7 @@ from toolbox import *
 
 ###############################################################################
 
-def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,TKelvin,x_V,z_V,u,w,q,T,
+def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel_unit,TKelvin,x_V,z_V,u,w,q,T,
                            eta_nodal,rho_nodal,exx_nodal,ezz_nodal,exz_nodal,e_nodal,divv_nodal,qx_nodal,qz_nodal,
                            rho_elemental,sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal,rad_V,theta_V,
                            eta_elemental,nparticle_elemental,area,icon_V,bc_fix_V,bc_fix_T,geometry,
@@ -27,7 +27,7 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,TKe
        #####
        vtufile.write("<PointData Scalars='scalars'>\n")
        #--
-       vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Velocity' Format='ascii'> \n")
+       vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Velocity ("+vel_unit+")' Format='ascii'> \n")
        for i in range(0,nn_V):
            vtufile.write("%.4e %.1e %.4e \n" %(u[i]/vel_scale,0.,w[i]/vel_scale))
        vtufile.write("</DataArray>\n")
@@ -181,7 +181,6 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,TKe
           eta_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
        #--
-       print(min(rho_nodal),max(rho_nodal))
        vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
        rho_nodal.tofile(vtufile,sep=' ',format='%.5e')
        vtufile.write("</DataArray>\n")
