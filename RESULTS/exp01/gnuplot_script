@@ -1,0 +1,9 @@
+set term pdf
+set grid
+
+set xlabel 'time'
+set ylabel 'v_{rms}'
+
+set output 'vrms.pdf'
+plot[][]\
+'vrms.ascii' w lp ps .2 
