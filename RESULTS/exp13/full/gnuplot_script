@@ -1,0 +1,58 @@
+#
+set term pdf enhanced font "Times,12pt"
+set grid
+
+eta1=1e21
+drho=8
+
+set xlabel 'h_x=h_y'
+set ylabel '|v_b| {/Symbol h}_1/({/Symbol r}_2-{/Symbol r}_1)'
+
+set output 'vel.pdf'
+plot[][]\
+'measurements_exp13.ascii' u (512e3/$9):($6*eta1/drho) w lp
+
+###################################################
+
+cm=0.01
+year=365.25*3600*24
+
+set key outside
+
+set ylabel 'z (m)'
+
+set xlabel 'u (cm/year)'
+set output 'profile_vertical_u.pdf'
+plot[][:512e3]\
+'profile_vertical_16.ascii'  u ($2/cm*year):1 w l t 'nelx=16',\
+'profile_vertical_24.ascii'  u ($2/cm*year):1 w l t 'nelx=24',\
+'profile_vertical_32.ascii'  u ($2/cm*year):1 w l t 'nelx=32',\
+'profile_vertical_48.ascii'  u ($2/cm*year):1 w l t 'nelx=48',\
+'profile_vertical_64.ascii'  u ($2/cm*year):1 w l t 'nelx=64',\
+'profile_vertical_80.ascii'  u ($2/cm*year):1 w l t 'nelx=80',\
+'profile_vertical_96.ascii'  u ($2/cm*year):1 w l t 'nelx=96',\
+'profile_vertical_128.ascii' u ($2/cm*year):1 w l t 'nelx=128'
+
+set xlabel 'w (cm/year)'
+set output 'profile_vertical_w.pdf'
+plot[][:512e3]\
+'profile_vertical_16.ascii'  u ($3/cm*year):1 w l t 'nelx=16',\
+'profile_vertical_24.ascii'  u ($3/cm*year):1 w l t 'nelx=24',\
+'profile_vertical_32.ascii'  u ($3/cm*year):1 w l t 'nelx=32',\
+'profile_vertical_48.ascii'  u ($3/cm*year):1 w l t 'nelx=48',\
+'profile_vertical_64.ascii'  u ($3/cm*year):1 w l t 'nelx=64',\
+'profile_vertical_80.ascii'  u ($3/cm*year):1 w l t 'nelx=80',\
+'profile_vertical_96.ascii'  u ($3/cm*year):1 w l t 'nelx=96',\
+'profile_vertical_128.ascii' u ($3/cm*year):1 w l t 'nelx=128'
+
+set xlabel 'q (Pa)'
+set output 'profile_vertical_q.pdf'
+plot[][:512e3]\
+'profile_vertical_16.ascii'  u 4:1 w l t 'nelx=16',\
+'profile_vertical_24.ascii'  u 4:1 w l t 'nelx=24',\
+'profile_vertical_32.ascii'  u 4:1 w l t 'nelx=32',\
+'profile_vertical_48.ascii'  u 4:1 w l t 'nelx=48',\
+'profile_vertical_64.ascii'  u 4:1 w l t 'nelx=64',\
+'profile_vertical_80.ascii'  u 4:1 w l t 'nelx=80',\
+'profile_vertical_96.ascii'  u 4:1 w l t 'nelx=96',\
+'profile_vertical_128.ascii' u 4:1 w l t 'nelx=128'

@@ -1,0 +1,63 @@
+\section{Experiment 13: Sinking block benchmark}
+
+This simple benchmark provides challenging numerical experiments 
+dealing with large viscosity variations within the simulation
+domain. It appears in \textcite{gery10} (2010) and consists of a bulk of fluid 1 ($\rho_1,\eta_1$)
+in which a block of fluid 2 $(\rho_2,\eta_2)$ falls under its own 
+weight. The domain is a square of size $L_x=L_y=512~\si{\km}$ and the 
+block is initially centred at point ($x=256~\si{\km}$, $y=384~\si{\km}$) with size
+$L_b\times L_b = 128~\si{\km}\times 128~\si{\km}$.
+
+Free slip boundary conditions are imposed on all sides of the domain.
+In all experiments the density of the surrounding fluid is $\rho_1=3200~\si{\kg\per\cubic\meter}$.
+The velocity $v_b$ of the falling block is measured in its centre (note that due to symmetry
+the horizontal component should be zero).
+
+As explained in \textcite{thie11} (2011), following physical intuition, one expects
+the velocity $v_b$ of the block to (a) decrease when the viscosity
+of the surrounding medium $\eta_1$ increases; (b) increase with the
+density contrast $\rho_2-\rho_1$.
+The quantity $v_b \eta_1/(\rho_2-\rho_1)$ is therefore monitored and shown hereunder as a function of
+the viscosity ratio.
+We also then plot $p^\star=p/(\delta \rho g L_b)$ measured in the block center
+as function of $\eta_1/\eta_2$.
+
+
+\begin{center}
+\includegraphics[width=8cm]{exp13/full/vel.pdf}\\
+\includegraphics[width=5.5cm]{exp13/full/profile_vertical_u.pdf}
+\includegraphics[width=5.5cm]{exp13/full/profile_vertical_w.pdf}
+\includegraphics[width=5.5cm]{exp13/full/profile_vertical_q.pdf}\\
+Results obtained with $\delta\rho=8$ and $\eta_2=1e22$ at $t=0$
+\end{center}
+
+If we now set \lstinline{remove_rho_profile=True}:
+
+\begin{center}
+\includegraphics[width=8cm]{exp13/reduced/vel.pdf}\\
+\includegraphics[width=5.5cm]{exp13/reduced/profile_vertical_u.pdf}
+\includegraphics[width=5.5cm]{exp13/reduced/profile_vertical_w.pdf}
+\includegraphics[width=5.5cm]{exp13/reduced/profile_vertical_q.pdf}\\
+Results obtained with $\delta\rho=8$ and $\eta_2=1e22$ at $t=0$
+\end{center}
+
+Results make sense and are what we expect: the velocity field is the same, 
+while the lithostatic pressure field has been removed so that the 
+pressure profile showcases more visible variation.
+
+\begin{center}
+\includegraphics[width=5.5cm]{exp13/reduced/vel.png}
+\includegraphics[width=5.5cm]{exp13/reduced/press}
+\end{center}
+
+
+\begin{center}
+\includegraphics[width=5.5cm]{exp13/reduced/eta.0000.png}
+\includegraphics[width=5.5cm]{exp13/reduced/paint.0000.png}\\
+\includegraphics[width=5.5cm]{exp13/reduced/eta.0025.png}
+\includegraphics[width=5.5cm]{exp13/reduced/paint.0025.png}\\
+\includegraphics[width=5.5cm]{exp13/reduced/eta.0050.png}
+\includegraphics[width=5.5cm]{exp13/reduced/paint.0050.png}\\
+\includegraphics[width=5.5cm]{exp13/reduced/eta.0075.png}
+\includegraphics[width=5.5cm]{exp13/reduced/paint.0075.png}\\
+\end{center}
