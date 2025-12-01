@@ -1,2 +1,30 @@
-
 \section{Experiment 1: Rayleigh-Taylor experiment (van Keken et al, 1997)} 
+
+This numerical experiment was first presented in \textcite{vaks97} (1997). It is detailed 
+in Section~\ref{MMM-ss:vaks97}. It consists of an isothermal Rayleigh-Taylor instability 
+in a two-dimensional box of size $L_x=0.9142$ and $L_y=1$. Two Newtonian fluids are present 
+in the box. The buoyant fluid layer is placed at the bottom of the box and the interface 
+between both fluids is given by $y(x)=0.2+0.02\cos \left( \frac{\pi x}{L_x} \right)$.
+The bottom fluid is parametrised by its mass density $\rho_1=1000$ and its viscosity $\eta_1=1,10,100$, 
+while the layer above is parametrised by $\rho_2=1010$ and $\eta_2=100$ (the entire
+experiment is built with dimensionless quantities).
+
+No-slip boundary conditions are applied at the bottom and at the top of the box 
+while free-slip boundary conditions are applied on the sides. 
+
+In the original benchmark the system is run over 2000 units of dimensionless time and the 
+timing and position of various upwellings/downwellings is monitored. 
+
+\begin{center}
+\includegraphics[width=8cm]{exp01/vrms.pdf}
+\end{center}
+
+\begin{center}
+\includegraphics[width=6cm]{exp01/mat.0000.png}
+\includegraphics[width=6cm]{exp01/mat.0020.png}
+\includegraphics[width=6cm]{exp01/mat.0040.png}
+\includegraphics[width=6cm]{exp01/mat.0060.png}
+\includegraphics[width=6cm]{exp01/mat.0080.png}
+\includegraphics[width=6cm]{exp01/mat.0099.png}
+\end{center}
+
