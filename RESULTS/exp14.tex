@@ -1,0 +1,61 @@
+\section{Slab detachment a la Schmalholz (2011)}
+
+As in \textcite{schm11} (2011), the computational domain is $1000~\si{km} \times 660~\si{km}$.
+No-slip boundary conditions are imposed on the sides of the system while free-slip
+boundary conditions are imposed at the top and bottom.
+Two materials are present in the domain: the lithosphere (mat.1) and the mantle (mat.2).
+The overriding plate (mat.1) is $80~\si{km}$ thick and is placed at the top of the domain.
+An already subducted slab (mat.1) of $250~\si{km}$ length hangs vertically under this plate.
+The mantle occupies the rest of the domain.
+
+The mantle has a constant viscosity $\eta_0=10^{21}~\si{\pascal\second}$
+and a density $\rho=3150~\si{kg\per\cubic\metre}$.
+The slab has a density $\rho=3300~\si{\kg\per\cubic\metre}$
+and is characterised by a power-law flow law so that
+its effective viscosity depends on the second invariant of the strainrate
+${\cal I}_2$ as follows:
+
+\begin{eqnarray}
+\eta_{eff}
+&=&\frac{1}{2} A^{-1/n_s} [{\cal I}_2(\dot{\bm \varepsilon})]^{1/n_s-1}  \\
+&=&\frac{1}{2} [(2 \times 4.75\!\times\! 10^{11})^{-n_s}]^{-1/n_s} [{\cal I}_2(\dot{\bm \varepsilon})]   ^{1/n_s-1} \\
+&=&4.75\!\times\! 10^{11} [{\cal I}_2(\dot{\bm \varepsilon})]^{1/n_s-1}  \\
+&=& \eta_0 [{\cal I}_2(\dot{\bm \varepsilon})]^{1/n_s-1} 
+\end{eqnarray}
+with
+$n_s=4$ and $A=(2 \times 4.75\!\times\! 10^{11})^{-n_s}$, or $\eta_0=4.75\times 10^{11}$.
+
+
+The mantle rheology can also be characterised by a power-law flow law with
+$n_m=3$ and $A=(2 \times 4.54\!\times\! 10^{10})^{-n_m}$.
+
+%--------------------------
+\subsection{Linear case (icase=0)}
+
+\begin{center}
+\includegraphics[width=8cm]{exp14/case0/rho}
+\includegraphics[width=8cm]{exp14/case0/eta}
+\end{center}
+
+
+%-------------------------------------------------
+\subsection{Linear mantle - nonlinear lithosphere (icase=1)}
+
+\begin{center}
+\includegraphics[width=8cm]{exp14/case1/rho}
+\includegraphics[width=8cm]{exp14/case1/eta}
+\end{center}
+
+%-------------------------------------------------
+\subsection{Noninear mantle and lithosphere (icase=2)}
+
+\begin{center}
+\includegraphics[width=5.3cm]{exp14/case2/eta}
+\includegraphics[width=5.3cm]{exp14/case2/vel}
+\includegraphics[width=5.3cm]{exp14/case2/sr}
+\end{center}
+
+
+
+
+

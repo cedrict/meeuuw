@@ -55,9 +55,10 @@ from set_default_parameters import *
 # experiment 11: rising plume 
 # experiment 12: hollow earth gravity benchmark 
 # experiment 13: sinking block benchmark
+# experiment 14: slab detachment (Schmalholz 2011)
 ###############################################################################
 
-experiment=13
+experiment=14
 
 if int(len(sys.argv)==8):
    experiment = int(sys.argv[1])
@@ -77,6 +78,7 @@ match(experiment):
      case 11: from experiment11 import *
      case 12: from experiment12 import *
      case 13: from experiment13 import *
+     case 14: from experiment14 import *
      case _ : exit('setup - unknown experiment')  
 
 if int(len(sys.argv)==8): # override these parameters
@@ -218,16 +220,11 @@ print('remove_rho_profile=',remove_rho_profile)
 print('nelx,nelz=',nelx,nelz)
 print('Lx,Lz=',Lx,Lz)
 print('hx,hz=',hx,hz)
-print('nn_V=',nn_V)
-print('nn_P=',nn_P)
-print('nel=',nel)
-print('Nfem_V=',Nfem_V)
-print('Nfem_P=',Nfem_P)
-print('Nfem=',Nfem)
+print('nn_V=',nn_V,'| nn_P=',nn_P,'| nel=',nel)
+print('Nfem_V=',Nfem_V,'| Nfem_P=',Nfem_P,'| Nfem=',Nfem)
 print('nqperdim=',nqperdim)
 print('CFLnb=',CFLnb)
-print('debug_ascii:',debug_ascii)
-print('debug_nan:',debug_nan)
+print('debug_ascii:',debug_ascii,'| debug_nan:',debug_nan)
 print('solve_T:',solve_T)
 print('tol_ss=',tol_ss)
 print('end_time=',end_time/time_scale,time_unit)
@@ -243,8 +240,7 @@ print('every_quadpoints_vtu',every_quadpoints_vtu)
 print('rho_DT_top',rho_DT_top)
 print('rho_DT_bot',rho_DT_bot)
 print('gravity_npts=',gravity_npts)  
-print('top_free_slip=',top_free_slip)
-print('bot_free_slip=',bot_free_slip)
+print('top_free_slip=',top_free_slip,'| bot_free_slip=',bot_free_slip)
 if geometry=='quarter' or geometry=='half' or geometry=='eighth':
    print('Rinner,Router=',Rinner,Router)
    print('hrad=',hrad)
@@ -1275,7 +1271,7 @@ for istep in range(0,nstep):
     dt1=min(dt1,1.25*dt1_mem) # limiter
     dt2=min(dt2,1.25*dt2_mem) # limiter
 
-    dt=np.min([dt1,dt2])
+    dt=np.min([dt1,dt2,dt_max])
 
     geological_time+=dt
 
@@ -2056,7 +2052,7 @@ for istep in range(0,nstep):
 
     ###########################################################################
 
-    if geometry=='box':
+    if geometry=='box' and nsamplepoints>0:
        sample_solution_box(nn_V,x_V,z_V,u,w,q,T,nsamplepoints,xsamplepoints,zsamplepoints,Lx,Lz,nelx,nelz)
 
     ###########################################################################

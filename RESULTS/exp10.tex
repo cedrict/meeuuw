@@ -21,63 +21,76 @@ The average density profile is computed and removed as follows:
             counter+=1
 \end{lstlisting}
 
+\begin{center}
+\includegraphics[width=5.5cm]{exp10/rho}
+\includegraphics[width=5.5cm]{exp10/vel}\\
+\includegraphics[width=5.5cm]{exp10/press}
+\includegraphics[width=5.5cm]{exp10/e}
+\end{center}
+
+
 %------------------------------------
 \subsection{Plane strain formulation}
 
-\begin{center}
-\includegraphics[width=5.5cm]{exp10/ps/top_err}
-\includegraphics[width=5.5cm]{exp10/ps_fix/top_err}\\
-\includegraphics[width=5.5cm]{exp10/ps_rhoprofile/top_err}
-\includegraphics[width=5.5cm]{exp10/ps_fix_rhoprofile/top_err}\\
-\includegraphics[width=10cm]{exp10/ps_top_err}
-\end{center}
 
 \begin{center}
-\includegraphics[width=5.5cm]{exp10/ps/top_q}
-\includegraphics[width=5.5cm]{exp10/ps_fix/top_q} \\
-\includegraphics[width=5.5cm]{exp10/ps_rhoprofile/top_q}
-\includegraphics[width=5.5cm]{exp10/ps_fix_rhoprofile/top_q}\\
-\includegraphics[width=10cm]{exp10/ps_top_q}
-\end{center}
-
-\begin{center}
-\includegraphics[width=10cm]{exp10/ps_top_dynamic_topography.pdf}
+\includegraphics[width=5.5cm]{exp10/ps_top_err.pdf}
+\includegraphics[width=5.5cm]{exp10/ps_top_q.pdf}
+\includegraphics[width=5.5cm]{exp10/ps_top_dynamic_topography.pdf}\\
+\includegraphics[width=5.5cm]{exp10/ps_top_err_res.pdf}
+\includegraphics[width=5.5cm]{exp10/ps_top_q_res.pdf}
+\includegraphics[width=5.5cm]{exp10/ps_top_dynamic_topography_res.pdf}\\
+\includegraphics[width=5.5cm]{exp10/ps_bot_err.pdf}
+\includegraphics[width=5.5cm]{exp10/ps_bot_q.pdf}
+\includegraphics[width=5.5cm]{exp10/ps_bot_dynamic_topography.pdf}\\
+\includegraphics[width=5.5cm]{exp10/ps_bot_err_res.pdf}
+\includegraphics[width=5.5cm]{exp10/ps_bot_q_res.pdf}
+\includegraphics[width=5.5cm]{exp10/ps_bot_dynamic_topography_res.pdf}\\
 \end{center}
 
 
+Aspect results:
+
+\begin{center}
+\includegraphics[width=5.5cm]{exp10/2d/aspect/solution/rho}
+\includegraphics[width=5.5cm]{exp10/2d/aspect/solution/press}
+\includegraphics[width=5.5cm]{exp10/2d/aspect/solution/e}
+\includegraphics[width=5.5cm]{exp10/2d/aspect/solution/vel}
+\includegraphics[width=5.5cm]{exp10/2d/aspect/solution/vr}
+\includegraphics[width=5.5cm]{exp10/2d/aspect/solution/vt}
+\end{center}
 
 
-
-Conclusion: $Q_1$ mapping deteriorates the solution and 
-removing the computed average density profile does not 
-do anything.
 
 %------------------------------------
 \subsection{Axisymmetric formulation}
 
 \begin{center}
-\includegraphics[width=5.5cm]{exp10/axi/top_err}
-\includegraphics[width=5.5cm]{exp10/axi_fix/top_err}\\
-\includegraphics[width=5.5cm]{exp10/axi_rhoprofile/top_err}
-\includegraphics[width=5.5cm]{exp10/axi_fix_rhoprofile/top_err}
-\includegraphics[width=10cm]{exp10/axi_top_err}
+\includegraphics[width=5.5cm]{exp10/axi_top_err.pdf}
+\includegraphics[width=5.5cm]{exp10/axi_top_q.pdf}
+\includegraphics[width=5.5cm]{exp10/axi_top_dynamic_topography.pdf}\\
+\includegraphics[width=5.5cm]{exp10/axi_top_err_res.pdf}
+\includegraphics[width=5.5cm]{exp10/axi_top_q_res.pdf}
+\includegraphics[width=5.5cm]{exp10/axi_top_dynamic_topography_res.pdf}\\
+\includegraphics[width=5.5cm]{exp10/axi_bot_err.pdf}
+\includegraphics[width=5.5cm]{exp10/axi_bot_q.pdf}
+\includegraphics[width=5.5cm]{exp10/axi_bot_dynamic_topography.pdf}\\
+\includegraphics[width=5.5cm]{exp10/axi_bot_err_res.pdf}
+\includegraphics[width=5.5cm]{exp10/axi_bot_q_res.pdf}
+\includegraphics[width=5.5cm]{exp10/axi_bot_dynamic_topography_res.pdf}\\
 \end{center}
 
 
-\begin{center}
-\includegraphics[width=5.5cm]{exp10/axi/top_q}
-\includegraphics[width=5.5cm]{exp10/axi_fix/top_q}\\
-\includegraphics[width=5.5cm]{exp10/axi_rhoprofile/top_q}
-\includegraphics[width=5.5cm]{exp10/axi_fix_rhoprofile/top_q}
-\includegraphics[width=10cm]{exp10/axi_top_q}
-\end{center}
-
-\begin{center}
-\includegraphics[width=10cm]{exp10/axi_top_dynamic_topography.pdf}
-\end{center}
 
 Conclusion:
 $Q_2$ mapping is the worst. $Q_1$ mapping improves results greatly and so does 
 removing the computed average density profile.
 In the end the best results are obtained when both are combined.
+
+
+
+\begin{center}
+\includegraphics[width=8cm]{exp10/aspect/dynamic_topography_top.pdf}
+\includegraphics[width=8cm]{exp10/aspect/dynamic_topography_bot.pdf}\\
+\end{center}
 

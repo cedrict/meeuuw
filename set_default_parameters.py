@@ -1,4 +1,4 @@
-CFLnb=0.5
+CFLnb=0.25
 tol_ss=-1e-8
 pressure_normalisation='surface'
 every_Nu=1000000
@@ -19,6 +19,8 @@ use_melting=False
 nsamplepoints=0
 xsamplepoints=[]
 zsamplepoints=[]
+dt_max=1e30
+
 
 #######################################
 # finite elements
@@ -55,7 +57,7 @@ straighten_edges=False
 
 particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 RKorder=2
-nparticle_per_dim=5
+nparticle_per_dim=7
 averaging='geometric'
 use_elemental_rho=True
 use_elemental_eta=True

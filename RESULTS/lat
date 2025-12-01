@@ -1,1 +1,2 @@
 pdflatex results.tex
+biber --output-safechars results 

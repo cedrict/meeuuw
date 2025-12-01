@@ -1,1 +1,68 @@
 \section{Experiment 6: Free surface experiments (Crameri et al, 2012)}
+
+\begin{center}
+\includegraphics[width=12cm]{exp06/crsg12a}
+\end{center}
+
+Since both setups are symmetric with respect to the $x=1400~\si{\kilo\meter}$ line
+only the left half will be modeled and free slip boundary conditions 
+are prescribed on the right boundary.
+
+
+
+%---------------------------------------------------
+\subsection{case 1: relaxation of cosine topography}
+
+
+In both cases, the model box spans 2800 km by 700-1100 km 
+(greater model height is necessary in codes employing sticky air on top). 
+For both cases, the initial condition is
+specified by a mantle of 600 km thickness, overlain by a cosine
+shaped, 93–107- km-thick lithosphere in Case 1, whereas it is 100-km-thick 
+lithosphere in Case 2. 
+The sticky air layer has a thickness varying between 10 and 400 km. The lithosphere is a highly viscous,
+dense medium ($\rho_L = 3300$ kg/m3 , $\eta_L = 10^{23}$ Pa s). The underlying
+ambient mantle has a density of $\rho_M = 3300$ kg/m3 and a viscosity
+of $\eta_M = 10^{21}$ Pa s.
+
+\begin{center}
+\includegraphics[width=7cm]{exp06/case1/eta}
+\includegraphics[width=7cm]{exp06/case1/rho}\\
+\includegraphics[width=7cm]{exp06/case1/vel}
+\includegraphics[width=7cm]{exp06/case1/press}
+\end{center}
+
+%--------------------------
+\subsection{case 2: plume}
+
+
+For Case 2, we employ a plume with a radius of
+$r_P = 50$ km, a density of $\rho_P = 3200$ kg/m3 and a viscosity of 
+$\eta_P = 1020$ Pa s. 
+The plume centre is initially located 1400 km away from
+the side boundaries and 300 km above the bottom in the middle of
+the mantle layer. The sticky air layer on the top has a density of 
+$\rho_{st} =0$ kg/m3 and a viscosity of $\eta_{st} = 10^{18}-10^{20}$ Pa s 
+and is bordered by a free-slip top boundary condition.
+
+\begin{lstlisting}
+for ip in range(0,nparticle):
+    if swarm_z[ip]>600e3: swarm_mat[ip]=1 # lithosphere 
+    if swarm_z[ip]>700e3: swarm_mat[ip]=0 # sticky air
+    if (swarm_x[ip]-Lx)**2+(swarm_z[ip]-300e3)**2<50e3**2: swarm_mat[ip]=3 # plume
+\end{lstlisting}
+
+\begin{center}
+\includegraphics[width=7cm]{exp06/case2/eta}
+\includegraphics[width=7cm]{exp06/case2/rho}\\
+\includegraphics[width=7cm]{exp06/case2/vel}
+\includegraphics[width=7cm]{exp06/case2/press}
+\end{center}
+
+
+{\color{red} the model seems to showcase drunken sailor oscillations...}
+
+
+\begin{center}
+\includegraphics[width=12cm]{exp06/crsg12b}
+\end{center}
