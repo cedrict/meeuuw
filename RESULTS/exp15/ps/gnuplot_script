@@ -1,0 +1,25 @@
+set term pdf
+set grid
+set pointsize .2
+set key outside
+
+set xlabel 'nelx=nelz'
+set ylabel 'v_{sphere}'
+set output 'v_sphere.pdf'
+plot[][]\
+'measurements_exp15.ascii' u 10:6 w lp notitle
+
+
+set xlabel 'x'
+set ylabel 'w'
+
+set output 'w.pdf'
+plot[][]\
+'profile_horizontal_16.ascii' u 1:3 w lp t 'nelx=16',\
+'profile_horizontal_32.ascii' u 1:3 w lp t 'nelx=32',\
+'profile_horizontal_48.ascii' u 1:3 w lp t 'nelx=48',\
+'profile_horizontal_64.ascii' u 1:3 w lp t 'nelx=64',\
+'profile_horizontal_80.ascii' u 1:3 w lp t 'nelx=80',\
+'profile_horizontal_96.ascii' u 1:3 w lp t 'nelx=96',\
+'profile_horizontal_128.ascii' u 1:3 w lp t 'nelx=128',\
+'profile_horizontal_192.ascii' u 1:3 w lp t 'nelx=192'

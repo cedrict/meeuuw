@@ -1,0 +1,19 @@
+#! /bin/bash
+
+#   nelx  = int(sys.argv[2])
+#   nelz  = int(sys.argv[3])
+#   nstep = int(sys.argv[4])
+#   axisymmetric=(int(sys.argv[5])==1)
+#   remove_rho_profile=(int(sys.argv[6])==1)
+#   straighten_edges=(int(sys.argv[7])==1)
+
+e=15
+nstep=1
+axi=1
+
+for n  in 16 32 48 64 80 96 128 160 192; do
+    #echo resolution: $n
+    python3 meeuuw.py $e $n $n $nstep $axi 0 0 | grep sample >> measurements_exp15.ascii
+    mv OUTPUT/profile_horizontal.ascii OUTPUT/profile_horizontal_${n}.ascii
+
+done
