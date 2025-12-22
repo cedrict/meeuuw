@@ -1,1 +1,95 @@
 \section{Experiment 0: Convection in 2d box (Blankenbach et al, 1989)}
+
+
+Results are compared with those obtained with ASPECT at the same 
+resolution and with the same CFL number of 0.25.
+
+In this case the Particle-in-Cell technique is not needed: 
+there is only a single material/fluid inside the domain 
+so that we need not track the movement of the fluid, only 
+the time evolution of temperature which is carried by the nodes of the mesh.
+I have therefore implemented a special 'mode' that bypasses particles (\lstinline{KRorder=-1}).
+At startup a particle is placed at the location of every 
+quadrature point (typically 9 per element) and no averaging is carried out.
+The material model is called at every particle, and the returned values (i.e.
+$\rho$, $\eta$, $k$, $C_p$, $H$) are directly assigned to the underlying 
+quadrature point. Also, particles are then never advected.
+
+On their own the following experiments validate a great portion 
+of the code (FE matrices for the Stokes and energy equations, 
+derivatives calculations, root mean square calculations, etc ...)
+
+%---------------------------------------------------
+\subsection{case 1a}
+
+Steady convection with constant viscosity in a square box with $\Ranb=10^4$.
+
+\begin{center}
+\includegraphics[width=8cm]{exp00/case1a/vrms.pdf}
+\includegraphics[width=8cm]{exp00/case1a/vrms_zoom.pdf}\\
+\includegraphics[width=8cm]{exp00/case1a/Nu.pdf}
+\includegraphics[width=8cm]{exp00/case1a/Nu_zoom.pdf}
+\end{center}
+
+%---------------------------------------------------
+\subsection{case 1b}
+
+Steady convection with constant viscosity in a square box with $\Ranb=10^5$.
+
+\begin{center}
+\includegraphics[width=8cm]{exp00/case1b/vrms.pdf}
+\includegraphics[width=8cm]{exp00/case1b/vrms_zoom.pdf}\\
+\includegraphics[width=8cm]{exp00/case1b/Nu.pdf}
+\includegraphics[width=8cm]{exp00/case1b/Nu_zoom.pdf}
+\end{center}
+
+%---------------------------------------------------
+\subsection{case 1c}
+
+Steady convection with constant viscosity in a square box with $\Ranb=10^6$.
+
+\begin{center}
+\includegraphics[width=8cm]{exp00/case1c/vrms.pdf}
+\includegraphics[width=8cm]{exp00/case1c/vrms_zoom.pdf}\\
+\includegraphics[width=8cm]{exp00/case1c/Nu.pdf}
+\includegraphics[width=8cm]{exp00/case1c/Nu_zoom.pdf}
+\end{center}
+
+
+%---------------------------------------------------
+\subsection{case 2a}
+
+Viscosity is given by 
+\[
+\eta=\eta_0 \exp \left( -\frac{b T}{\Delta T} + \frac{c(1-z)}{h}  \right)
+\]
+with $h=1$, $\Delta T=1$, $b=\ln 1000 \simeq 6.907755279$, $c=0$.
+In practice it translates to $\eta(T)=\exp(-6.907755279 \cdot T)$.
+
+\begin{center}
+\includegraphics[width=8cm]{exp00/case2a/vrms.pdf}
+\includegraphics[width=8cm]{exp00/case2a/vrms_zoom.pdf}\\
+\includegraphics[width=8cm]{exp00/case2a/Nu.pdf}
+\includegraphics[width=8cm]{exp00/case2a/Nu_zoom.pdf}
+\end{center}
+
+
+
+
+
+%---------------------------------------------------
+\subsection{case 2b}
+
+Same as 2a but $L_x/L_z=2.5$, $b=\ln 16384 \simeq 9.704060528$
+and $c=\ln 64 \simeq 4.158883083$.
+In practice it translates to $\eta(T)=\exp(-9.704060528 \cdot T+4.158883083\cdot (1-z))$.
+
+
+%---------------------------------------------------
+\subsection{case 3}
+
+Time-dependent convection with constant viscosity and internal heating.
+
+
+
+

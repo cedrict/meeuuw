@@ -1,0 +1,64 @@
+
+\section{Subduction initiation from Matsumoto and Tomoda (1983)}
+
+In this very early computational geodynamics paper, the authors are interested in predicting the future process of crustal and lithospheric movement at the gigantic fracture zone in the Northeastern Pacific by means of numerical simulation of contact between two kinds of viscous fluid of different density. They then formulate the incompressible isothermal linear Stokes equations with a stream function approach and the resulting equation is solved by means of the Finite Difference method and the Marker and Cell (MAC) method.
+
+The domain is a 2D Cartesian box of size $L_x \times L_y=(400~\text{ km},180~\text{ km})$.
+There are three fluids in the domain: water ($\rho_w=1030~\text{ kg m}^{-3}$, $\eta_w=10^{-3}~\text{ Pa s}$),
+lithosphere ($\rho_l=3300~\text{ kg m}^{-3}$, $\eta_l$) and 
+asthenosphere ($\rho_a=3200~\text{ kg m}^{-3}$, $\eta_a$).
+Note that although the water viscosity is correct, this is probably not 
+the value that was used by the authors since it would most likely lead to
+numerical errors. We thus set $\eta_w=10^{19}~\text{ Pa s}$ 
+(we can then speak of 'sticky water').
+Note that the choice of adequate viscosity for sticky air/water layers
+is discussed in depth in \cite{crsg12}.
+Also, all viscosities in the paper are expressed in Poise with $1~\text{ Poise}=0.1~\text{ Pa s}$.
+
+
+The setup is shown here under: 
+\begin{center}
+\includegraphics[width=10cm]{exp16/setup}\\
+$D_w= 10~\text{ km}$,
+$D_l= 50~\text{ km}$,
+$d_w=8~\text{ km}$,
+$d_l=10~\text{ km}$. These values
+represent the easternmost part of the Mendocino
+Fracture Zone.
+Taken from \cite{mato83}
+\end{center}
+
+
+%| Case                 | $\eta_l~(\text{ Pa s})$      | $\eta_a~(\text{ Pa s})$       | domain size  (km)|
+%1 | $10^{22}$ | $10^{21}$ | $400\times 180$ |
+%2 | $10^{22}$ | $10^{20}$ | $400\times 180$ |
+%3 | $10^{22}$ | $10^{19}$ | $400\times 180$ |
+%4 | $10^{23}$ | $10^{21}$ | $400\times 180$ |
+%5 | $10^{22}$ | $10^{20}$ | $800\times 140$ |
+%6 | $10^{22}$ | $10^{19}$ | $800\times 140$ |
+
+
+Rather interestingly the model is built in such a way that the
+lithostatic pressure is uniform at the bottom of the domain.
+Models are run for 50 Myr.
+Boundary conditions are free-slip on all sides of the domain.
+Unfortunately the authors do not specify the mesh resolution that was used
+but {numref}`fig:subduction-initiation-results1` gives us an idea.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+See stone 67, 118, and ASPECT \url{https://aspect-documentation.readthedocs.io/en/latest/user/cookbooks/cookbooks/subduction_initiation/doc/subduction_initiation.html}
+
+

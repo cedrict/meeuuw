@@ -1,0 +1,95 @@
+\section{experiment 15: Stokes sphere in a cylinder, axisymmetric formulation}
+
+The domain is $L_x=0.5$, $L_y=0.5$ with $\vec{g}=-\vec{e}_z$.
+The sphere has radius $R_s=0.123456789$, density $\rho_S=1.01$, and viscosity $\eta_s=1000$,
+while the fluid in the cylinder has density $\rho_f=1$ and viscosity $\eta_f=1$.
+
+the boundary conditions are: 
+free slip on the left (the axis of symmetry), top and bottom, and no slip on the right (the
+wall of the cylinder). 
+
+The Stokes sphere velocity is given by
+\[
+\upnu_{Stokes} = \frac{2}{9} \frac{\delta \rho}{\eta_f} R_s^2 g = \frac29 \frac{0.01}{1} 0.123456789^2 \cdot 1
+\]
+which yields $\upnu_S\simeq 3.387 \cdot 10^{-5}$. However,
+this is for a sphere in an infinite domain. When placed in a
+cylinder, the influence of the walls will slow the sphere down.
+Two corrections have been proposed, by Habermann and by Faxen.
+
+We start by writing the drag force
+\[
+F_H = 6 \pi \eta_f R \upnu_{sphere}\;  \gamma\left(\frac{r}{R}\right) 
+\]
+In the case of the Stokes sphere in an infinite medium then $\gamma =1$ and equating
+$F_H$ with the buoyancy force $4/3 \pi R^3 \delta\rho g$ yields the above velocity.
+Habermann gives a coefficient $\gamma$ such that
+\[
+\gamma\left(\frac{r}{R}\right)  = 
+\frac{1-0.75857 \left(\frac{r}{R}\right)^5}{1+f_H\left(\frac{r}{R}\right)}
+\]
+with
+\[
+f_H\left(\frac{r}{R}\right) 
+= -2.1050\left(\frac{r}{R}\right)+ 2.0865\left(\frac{r}{R}\right)^3
+- 1.7068\left(\frac{r}{R}\right)^5 + 0.72603\left(\frac{r}{R}\right)^6 
+\]
+Faxen gives a coefficient $\gamma$ such that
+\[
+\gamma\left(\frac{r}{R}\right) = \frac{1}{1 + f_F\left(\frac{r}{R}\right)} 
+\]
+with
+\[
+f_F\left(\frac{r}{R}\right) 
+= -2.10444 \left(\frac{r}{R}\right) 
++ 2.08877\left(\frac{r}{R}\right)^3 
+- 0.94813\left(\frac{r}{R}\right)^5 
+- 1.372\left(\frac{r}{R}\right)^6 
++ 3.87\left(\frac{r}{R}\right)^8 
+- 4.19\left(\frac{r}{R}\right)^{10}
+\]
+In all three cases we have
+\[
+\upnu_{sphere} = \frac{2}{9} \frac{\delta \rho}{\eta_f} R_s^2 g \frac{1}{\gamma(\frac{r}{R})}
+\]
+Note that the Habermann \& Faxen expressions are copy-pasted from the GALE manual and
+are extremely comparable in value. I did not verify these.
+Please check Lindgren (1999) \cite{lind99} to do so. They are
+about half the value of the Stokes velocity in this case. 
+
+
+%------------------------------
+\subsection{Plane strain}
+
+\begin{center}
+\includegraphics[width=6cm]{exp15/ps/rho}
+\includegraphics[width=6cm]{exp15/ps/eta}\\
+\includegraphics[width=6cm]{exp15/ps/vel}
+\includegraphics[width=6cm]{exp15/ps/press}
+\end{center}
+
+\begin{center}
+\includegraphics[width=8cm]{exp15/ps/v_sphere.pdf}
+\includegraphics[width=8cm]{exp15/ps/w.pdf}
+\end{center}
+
+
+%------------------------------
+\subsection{Axisymmetric}
+
+\begin{center}
+\includegraphics[width=5.6cm]{exp15/axi/vel}
+\includegraphics[width=5.6cm]{exp15/axi/press}\\
+\includegraphics[width=5.6cm]{exp15/axi/sr}
+\includegraphics[width=5.6cm]{exp15/axi/divv}
+\end{center}
+
+Since the vertical extent of the domain is likely to 
+influence the sphere velocity we run the script
+for another value of $L_z$ and for a 10x larger 
+sphere viscosity.
+
+\begin{center}
+\includegraphics[width=8cm]{exp15/axi/v_sphere.pdf}
+\includegraphics[width=8cm]{exp15/axi/w.pdf}
+\end{center}

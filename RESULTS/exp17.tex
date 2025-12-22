@@ -1,0 +1,70 @@
+\section{experiment 17: stokes sphere in mantle}
+
+Domain is $512 \times 512$km. Top quarter of the domain is air. Sphere is placed in the middle 
+of the domain and has a radius $R=64$km. Free slip on all sides. $g=9.81$.
+
+\begin{lstlisting}
+mask=(swarm_mat==1) ; swarm_eta[mask]=1e18 ; swarm_rho[mask]=1    #air
+mask=(swarm_mat==2) ; swarm_eta[mask]=1e21 ; swarm_rho[mask]=3200 #asthenosphere
+mask=(swarm_mat==3) ; swarm_eta[mask]=1e22 ; swarm_rho[mask]=3300 #sphere
+\end{lstlisting}
+
+\noindent Density and viscosity must be projected from particles onto quadrature points. 
+There are essentially 3 routes:
+\begin{itemize}
+\item ptcls $\rightarrow$ nodes $\rightarrow$ qpts ($\rho$ and $\eta$ are bilinear fields inside the element)
+\item pctls $\rightarrow$ elements $\rightarrow$ qpts (all qpts have the same $\rho$ and $\eta$ value)
+\item ptcls $\rightarrow$ least-square over each element $\rightarrow$ qpts ($\rho$ and $\eta$ are linear fields inside the element) WIP
+\end{itemize}
+On top of it, there are 4 different types of nodal projection ({\color{red} I need to describe these}), 
+and for viscosity there are 3 averagings (arithmetic, geometric, harmonic).
+In what follows I only explore harmonic averaging, constant resolution $32\times 32$, 
+with $7^2=49$ particles per element. Regular distribution.
+
+
+\begin{center}
+\includegraphics[width=6cm]{exp17/rho.png}
+\includegraphics[width=6cm]{exp17/eta.png}
+\end{center} 
+
+
+\begin{center}
+\includegraphics[width=8cm]{exp17/rho_n.pdf}
+\includegraphics[width=8cm]{exp17/eta_n.pdf}
+\end{center} 
+
+\begin{center}
+\includegraphics[width=12cm]{exp17/w.pdf}
+\end{center} 
+
+Conclusion: rho needs to be elemental 
+
+%---------------------------------------------------
+\subsection*{air density replaced my mantle density}
+
+\begin{center}
+\includegraphics[width=7cm]{exp17/isodense/rho_n.pdf}
+\includegraphics[width=7cm]{exp17/isodense/eta_n.pdf}
+\end{center} 
+
+\begin{center}
+\includegraphics[width=11cm]{exp17/isodense/w.pdf}
+\end{center} 
+
+%---------------------------------------
+\subsection*{air viscosity replaced my mantle viscosity}
+
+\begin{center}
+\includegraphics[width=7cm]{exp17/isoviscous/rho_n.pdf}
+\includegraphics[width=7cm]{exp17/isoviscous/eta_n.pdf}
+\end{center} 
+
+\begin{center}
+\includegraphics[width=11cm]{exp17/isoviscous/w.pdf}
+\end{center} 
+
+
+
+
+
+
