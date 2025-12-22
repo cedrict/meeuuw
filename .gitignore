@@ -213,6 +213,7 @@ __marimo__/
 *.bbl
 *.bcf
 *.xml
+*.toc
 opla*
 timings.pdf
 structure
@@ -221,5 +222,6 @@ structure
 
 RESULTS/*.toc
 RESULTS/*.pdf
+RESULTS/*.out
 
 GARBAGE/

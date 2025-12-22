@@ -43,3 +43,21 @@ def convert_tensor_to_spherical_coords(theta_polar,Txx,Tzz,Txz):
     return Trr,Ttt,Trt
 
 ###############################################################################
+
+def inspect_element(iel,m_V,icon_V,x_V,z_V,rho_n,eta_n,nq_per_element,xq,zq,rhoq,etaq):
+    for k in range(0,m_V):
+        knode=icon_V[k,iel]
+        print(x_V[knode],z_V[knode],eta_n[knode],rho_n[knode])
+    for iq in range(0,nq_per_element):
+        print(xq[iel,iq],zq[iel,iq],etaq[iel,iq],rhoq[iel,iq])
+
+               
+
+
+
+
+
+
+
+
+

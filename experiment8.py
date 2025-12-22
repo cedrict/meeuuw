@@ -1,7 +1,7 @@
 import numpy as np
 from constants import *
 
-#-----------------------------------------
+###################################################################################################
 
 axisymmetric=True
 
@@ -51,12 +51,10 @@ gravity_rho_ref=0
 blob='half_ball'
 #blob='banaan'
 
-###############################################################################
+###################################################################################################
 
 def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
                                  hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
-
-    eps=1e-8
 
     bc_fix_V=np.zeros(Nfem_V,dtype=bool) # boundary condition, yes/no
     bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
@@ -82,7 +80,7 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
 
     return bc_fix_V,bc_val_V
 
-###############################################################################
+###################################################################################################
 
 def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
@@ -116,9 +114,10 @@ def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     return swarm_mat
 
-###############################################################################
+###################################################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
+                   swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -132,7 +131,7 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swa
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
-###############################################################################
+###################################################################################################
 
 def gravity_model(x,z):
     g0=10
@@ -140,7 +139,4 @@ def gravity_model(x,z):
     gz=-z/np.sqrt(x**2+z**2)*g0
     return gx,gz
 
-###############################################################################
-
-
-
+###################################################################################################

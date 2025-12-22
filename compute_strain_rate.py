@@ -73,7 +73,7 @@ def compute_nodal_strain_rate(icon_V,u,v,nn_V,m_V,nel,dNdr_V_n,dNds_V_n,jcbi00n,
 ###################################################################################################
 
 ##@numba.njit
-def compute_nodal_strain_rate2(bignb,II,JJ,m_T,nqel,icon_V,u,v,nn_V,nel,JxWq,N_V,dNdr_V,dNds_V,\
+def compute_nodal_strain_rate2(bignb,II,JJ,m_T,nq_per_element,icon_V,u,v,nn_V,nel,JxWq,N_V,dNdr_V,dNds_V,\
                                jcbi00q,jcbi01q,jcbi10q,jcbi11q):
 
     VV_T=np.zeros(bignb,dtype=np.float64)    
@@ -88,7 +88,7 @@ def compute_nodal_strain_rate2(bignb,II,JJ,m_T,nqel,icon_V,u,v,nn_V,nel,JxWq,N_V
         byy_el=np.zeros(m_T,dtype=np.float64)
         bxy_el=np.zeros(m_T,dtype=np.float64)
 
-        for iq in range(0,nqel):
+        for iq in range(0,nq_per_element):
             dNdx=jcbi00q[iel,iq]*dNdr_V[iq,:]+jcbi01q[iel,iq]*dNds_V[iq,:]
             dNdy=jcbi10q[iel,iq]*dNdr_V[iq,:]+jcbi11q[iel,iq]*dNds_V[iq,:]
             N=N_V[iq,:]

@@ -1,6 +1,8 @@
 import numpy as np
 from constants import *
 
+###################################################################################################
+
 nelz=32
 
 geometry='box'
@@ -9,6 +11,7 @@ if geometry=='box':
    Lz=2900e3
    Lx=2*Lz
    nelx=int(Lx/Lz*nelz)
+
 if geometry=='quarter':
    Rinner=3480e3
    Router=6370e3
@@ -27,14 +30,11 @@ Tbottom=3000+TKelvin
 Ttop=0+TKelvin
 every_solution_vtu=1
 every_swarm_vtu=1
-debug_ascii=True
-nparticle_per_dim=6
 
 use_melting=True
 adiabatic_surface_temperature=1700. #K
 top_tbl_thickness=100e3
 bot_tbl_thickness=100e3
-
 
 rho0=3300
 alpha=2e-5
@@ -58,10 +58,15 @@ if geometry=='box':
 if geometry=='quarter':
    print('Ra=', (Tbottom-Ttop)*rho0*9.81*alpha*(Router-Rinner)**3 / eta0 / (hcond0/hcapa0/rho0))
 
-nstep=2
-CFLnb=0.2         
+nstep=2000
 
-###############################################################################
+###################################################################################################
+# top
+# dA
+#  \
+#   \
+# dB
+#bottom 
 
 def adiabatic_temperature(Tpotential,alpha,g,hcapa,d,\
                           top_tbl_thickness,bot_tbl_thickness,\
@@ -75,11 +80,11 @@ def adiabatic_temperature(Tpotential,alpha,g,hcapa,d,\
     elif d<=dB:
        T=Tpotential*np.exp(alpha*g*d/hcapa)
     else:
-       T=(d-dB)/top_tbl_thickness*(-TB+Tbottom)+TB
+       T=(d-dB)/top_tbl_thickness*(Tbottom-TB)+TB
 
     return T 
 
-
+###################################################################################################
 
 def initial_temperature(x,z,rad,theta,nn_V):
 
@@ -93,13 +98,11 @@ def initial_temperature(x,z,rad,theta,nn_V):
              +13*np.cos(7.77*np.pi*x[i]/Lx)*np.sin(5*np.pi*z[i]/Lz)**3
     return T
 
-###############################################################################
+###################################################################################################
 # free slip on all sides
 
 def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
                                  hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
-
-    eps=1e-8
 
     bc_fix_V=np.zeros(Nfem_V,dtype=bool) # boundary condition, yes/no
     bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
@@ -144,11 +147,9 @@ def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
 
     return bc_fix_V,bc_val_V
 
-###############################################################################
+###################################################################################################
 
 def assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V):
-
-    eps=1e-8
 
     bc_fix_T=np.zeros(Nfem_T,dtype=bool)  
     bc_val_T=np.zeros(Nfem_T,dtype=np.float64) 
@@ -232,15 +233,15 @@ def T_solidus(P):
     T_sol=1388 + 100e-9*P
     return T_sol
 
-###############################################################################
+###################################################################################################
 
 def T_liquidus(P):
     T_liq=1988 + 100e-9*P
     return T_liq
 
-###############################################################################
+###################################################################################################
 
 def fff(x):
     return x 
 
-###############################################################################
+###################################################################################################

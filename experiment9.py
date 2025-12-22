@@ -1,7 +1,7 @@
 import numpy as np
 from constants import *
 
-#-----------------------------------------
+###################################################################################################
 axisymmetric=True
 
 #geometry='quarter'
@@ -61,12 +61,10 @@ gravity_npts=250
 gravity_height=200e3
 gravity_rho_ref=0
 
-###############################################################################
+###################################################################################################
 
-def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
+def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
                                  hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
-
-    eps=1e-8
 
     bc_fix_V=np.zeros(Nfem_V,dtype=bool) # boundary condition, yes/no
     bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
@@ -75,7 +73,7 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
        for i in range(0,nn_V):
            if x_V[i]/Rinner<eps:
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-           if y_V[i]/Rinner<eps:
+           if z_V[i]/Rinner<eps:
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
            if bot_nodes[i] and right_nodes[i]:
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
@@ -110,7 +108,7 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
 
     return bc_fix_V,bc_val_V
 
-###############################################################################
+###################################################################################################
 
 def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
@@ -132,9 +130,10 @@ def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     return swarm_mat
 
-###############################################################################
+###################################################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
+                   swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -142,15 +141,15 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swa
     swarm_hcapa=0
     swarm_hprod=0
 
-    mask=(swarm_mat==1) ; swarm_eta[mask]=eta_crust       ; swarm_rho[mask]=rho_crust#-3050
-    mask=(swarm_mat==2) ; swarm_eta[mask]=eta_lithosphere ; swarm_rho[mask]=rho_lithosphere#-3050
-    mask=(swarm_mat==3) ; swarm_eta[mask]=eta_uppermantle ; swarm_rho[mask]=rho_uppermantle#-3050
-    mask=(swarm_mat==4) ; swarm_eta[mask]=eta_lowermantle ; swarm_rho[mask]=rho_lowermantle# -3050
-    mask=(swarm_mat==5) ; swarm_eta[mask]=eta_blob        ; swarm_rho[mask]=rho_blob#-3050
+    mask=(swarm_mat==1) ; swarm_eta[mask]=eta_crust       ; swarm_rho[mask]=rho_crust
+    mask=(swarm_mat==2) ; swarm_eta[mask]=eta_lithosphere ; swarm_rho[mask]=rho_lithosphere
+    mask=(swarm_mat==3) ; swarm_eta[mask]=eta_uppermantle ; swarm_rho[mask]=rho_uppermantle
+    mask=(swarm_mat==4) ; swarm_eta[mask]=eta_lowermantle ; swarm_rho[mask]=rho_lowermantle
+    mask=(swarm_mat==5) ; swarm_eta[mask]=eta_blob        ; swarm_rho[mask]=rho_blob
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
-###############################################################################
+###################################################################################################
 
 def gravity_model(x,z):
     g0=3.72 #https://en.wikipedia.org/wiki/Mars
@@ -158,7 +157,4 @@ def gravity_model(x,z):
     gz=-z/np.sqrt(x**2+z**2)*g0
     return gx,gz
 
-###############################################################################
-
-
-
+###################################################################################################

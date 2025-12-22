@@ -1,6 +1,7 @@
 import numpy as np
 from constants import *
 
+###################################################################################################
 
 Lx=1400e3  # half domain!
 Lz=900e3
@@ -16,15 +17,15 @@ averaging='harmonic'
 #a: cosine perturbation
 #b: plume
 
-case='a'
+icase='a'
 
-if case=='a':
+if icase=='a':
    nelx=140
    nelz=90
    nstep=15
    end_time=2e5*year
 
-if case=='b':
+if icase=='b':
    nelx=140
    nelz=100
    nstep=1500
@@ -34,8 +35,6 @@ if case=='b':
 
 def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
                                  hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
-
-    eps=1e-8
 
     bc_fix_V=np.zeros(Nfem_V,dtype=bool) # boundary condition, yes/no
     bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
@@ -61,7 +60,7 @@ def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     swarm_mat[:]=2 # mantle 
 
-    if case=='a':
+    if icase=='a':
 
        for ip in range(0,nparticle):
            if swarm_z[ip]>600e3:
@@ -69,7 +68,7 @@ def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
            if swarm_z[ip]>700e3+7e3*np.cos(swarm_x[ip]/Lx*np.pi):
               swarm_mat[ip]=0 # sticky air
 
-    if case=='b':
+    if icase=='b':
        for ip in range(0,nparticle):
            if swarm_z[ip]>600e3: swarm_mat[ip]=1 # lithosphere 
            if swarm_z[ip]>700e3: swarm_mat[ip]=0 # sticky air

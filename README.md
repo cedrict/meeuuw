@@ -31,12 +31,11 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - solid phase transition
 - melt generation and transport
 - C matrix for compressible case
-- compute sr or dev sr ?
 - look at stsh04 (similar to trha98b)
-- paint stripes adapt to aspect ratio
 - what stress to use for DT?
 - higher order mapping?
 - heat production term
+- 
 
 ## Nomenclature
 
@@ -85,10 +84,10 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 
 ### Gauss quadrature 
 
-- nqel: number of quadrature points per element 
+- nq_per_element: number of quadrature points per element 
 - nq: total number of quadrature points in the domain
-- xq(nel,nqel),yq(nel,nqel): coordinate arrays of quadrature points
-- uq(nel,nqel),vq(nel,nqel): velocity components on quadrature points
+- xq(nel,nq_per_element),yq(nel,nq_per_element): coordinate arrays of quadrature points
+- uq(nel,nq_per_element),vq(nel,nq_per_element): velocity components on quadrature points
 - rhoq: density on quadrature points
 - etaq: viscosity on quadrature points
 - exxq, eyyq, exyq: strain rate components on quadrature points

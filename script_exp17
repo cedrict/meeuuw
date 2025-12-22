@@ -1,0 +1,31 @@
+#! /bin/bash
+
+
+echo ee
+python3 meeuuw.py --particle_rho_projection 1 --particle_eta_projection 1 --averaging 3 > opla_ee
+mv OUTPUT/solution_0000.vtu OUTPUT/solution_ee.vtu
+mv OUTPUT/profile_vertical.ascii OUTPUT/profile_vertical_ee.ascii
+
+echo ne
+python3 meeuuw.py --particle_rho_projection 2 --particle_eta_projection 1 --nodal_projection_type 2 --averaging 3 > opla_ne
+mv OUTPUT/solution_0000.vtu OUTPUT/solution_ne.vtu
+mv OUTPUT/profile_vertical.ascii OUTPUT/profile_vertical_ne.ascii
+
+echo en
+python3 meeuuw.py --particle_rho_projection 1 --particle_eta_projection 2 --nodal_projection_type 2 --averaging 3 > opla_en
+mv OUTPUT/solution_0000.vtu OUTPUT/solution_en.vtu
+mv OUTPUT/profile_vertical.ascii OUTPUT/profile_vertical_en.ascii
+
+echo ls-ls
+python3 meeuuw.py --particle_rho_projection 3 --particle_eta_projection 3 --averaging 3 > opla_lsls
+mv OUTPUT/solution_0000.vtu OUTPUT/solution_lsls.vtu
+mv OUTPUT/profile_vertical.ascii OUTPUT/profile_vertical_lsls.ascii
+
+#nodal-nodal
+for npt  in 1 2 3 4; do
+    echo $npt
+    python3 meeuuw.py --particle_rho_projection 2 --particle_eta_projection 2 --nodal_projection_type $npt --averaging 3 > opla_npt${npt}
+    mv OUTPUT/solution_0000.vtu OUTPUT/solution_npt_${npt}.vtu
+    mv OUTPUT/profile_vertical.ascii OUTPUT/profile_vertical_npt${npt}.ascii
+done
+

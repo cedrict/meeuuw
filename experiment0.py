@@ -13,15 +13,11 @@ rho0=1
 every_Nu=1
 end_time=0.25
 every_solution_vtu=10
-every_swarm_vtu=10
+every_swarm_vtu=100
 RKorder=-1
-particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
-averaging='geometric'
-debug_ascii=True
-nparticle_per_dim=6
-nstep=1000
+nstep=10
 
-###############################################################################
+###################################################################################################
 
 icase='1a'
  
@@ -34,13 +30,13 @@ match(icase):
    case '1b':
       Lx=1
       Ra=1e5
-      nelx=100
-      nelz=50
+      nelx=64
+      nelz=64
    case '1c':
       Lx=1
       Ra=1e6
       nelx=64
-      nelz=32
+      nelz=64
    case '2a':
       Lx=1
       Ra=1e4
@@ -52,10 +48,9 @@ match(icase):
       nelx=80
       nelz=32
 
-###############################################################################
+###################################################################################################
 
 def viscosity(x,z,T):
-
     match(icase):
        case '1a':
           eta=1
@@ -69,7 +64,7 @@ def viscosity(x,z,T):
           eta=np.exp(-9.704060528*T+4.158883083*(1-z))
     return eta
 
-###############################################################################
+###################################################################################################
 
 def initial_temperature(x,z,rad,theta,nn_V):
 
@@ -86,7 +81,7 @@ def initial_temperature(x,z,rad,theta,nn_V):
                 +0.1*np.cos(2*theta[i])*np.sin(np.pi*(rad[i]-Rinner)/(Router-Rinner))
     return T
 
-###############################################################################
+###################################################################################################
 # free slip on all sides
 
 def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
@@ -125,7 +120,7 @@ def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
 
     return bc_fix_V,bc_val_V
 
-###############################################################################
+###################################################################################################
 
 def assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V):
     
@@ -150,7 +145,7 @@ def assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V):
 
     return bc_fix_T,bc_val_T
 
-###############################################################################
+###################################################################################################
 
 def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
@@ -160,9 +155,10 @@ def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     return swarm_mat
 
-###############################################################################
+###################################################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
+                   swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -181,7 +177,7 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swa
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
-###############################################################################
+###################################################################################################
 
 def gravity_model(x,z):
 
@@ -196,4 +192,4 @@ def gravity_model(x,z):
 
     return gx,gz
 
-###############################################################################
+###################################################################################################

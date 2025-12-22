@@ -1,7 +1,8 @@
 import numpy as np
 from constants import *
 
-#-----------------------------------------
+###################################################################################################
+
 solve_T=True
 geometry='eighth'
 
@@ -24,8 +25,6 @@ hcapa0=1250
 Tsurface=1250+TKelvin
 Tbottom=2250+TKelvin
 
-CFLnb=0.5
-
 nstep=100
 eta_ref=1e22
 p_scale=1e6 ; p_unit="MPa"
@@ -43,12 +42,10 @@ bot_free_slip=True
 
 print('Ra=', (Tbottom-Tsurface)*rho0*g0*alpha*(Router-Rinner)**3 / eta_mantle / (hcond0/hcapa0/rho0))
 
-###############################################################################
+###################################################################################################
 
 def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
                                  hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
-
-    eps=1e-8
 
     bc_fix_V=np.zeros(Nfem_V,dtype=bool) # boundary condition, yes/no
     bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
@@ -77,7 +74,7 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
 
     return bc_fix_V,bc_val_V
 
-###############################################################################
+###################################################################################################
 
 def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
@@ -86,7 +83,7 @@ def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     return swarm_mat
 
-###############################################################################
+###################################################################################################
 
 def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
                    swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
@@ -105,16 +102,16 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
-###############################################################################
+###################################################################################################
 
 def gravity_model(x,z):
     gx=-x/np.sqrt(x**2+z**2)*g0
     gz=-z/np.sqrt(x**2+z**2)*g0
     return gx,gz
 
-###############################################################################
+###################################################################################################
 
-def initial_temperature(x,y,rad,theta,nn_V):
+def initial_temperature(x,z,rad,theta,nn_V):
 
     T=np.zeros(nn_V,dtype=np.float64)
 
@@ -125,9 +122,9 @@ def initial_temperature(x,y,rad,theta,nn_V):
 
     return T
 
-###############################################################################
+###################################################################################################
 
-def assign_boundary_conditions_T(x_V,y_V,rad_V,theta_V,Nfem_T,nn_V):
+def assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V):
 
     eps=1e-8
 
@@ -144,4 +141,4 @@ def assign_boundary_conditions_T(x_V,y_V,rad_V,theta_V,Nfem_T,nn_V):
 
     return bc_fix_T,bc_val_T
 
-###############################################################################
+###################################################################################################

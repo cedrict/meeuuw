@@ -13,14 +13,13 @@ p_scale=1 ; p_unit=' '
 solve_T=False
 solve_Stokes=True
 remove_rho_profile=False
-nstep=1
-nqperdim=3
+##nstep=1
+nq_per_dim=3
 use_melting=False
 nsamplepoints=0
-xsamplepoints=[]
-zsamplepoints=[]
+xsamplepoints=[0]
+zsamplepoints=[0]
 dt_max=1e30
-
 
 #######################################
 # finite elements
@@ -30,6 +29,7 @@ mapping='Q2'
 top_free_slip=False
 bot_free_slip=False
 method_nodal_strain_rate=1
+compute_plith=False
 
 #######################################
 # debug pparameters 
@@ -54,13 +54,13 @@ straighten_edges=False
 #######################################
 # particle in cell parameters
 #######################################
-
-particle_distribution=0 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
-RKorder=2
+particle_distribution=0  # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
+RKorder=2                # 1,2,4
 nparticle_per_dim=7
-averaging='geometric'
-use_elemental_rho=True
-use_elemental_eta=True
+averaging='harmonic'     # viscosity averaging
+nodal_projection_type=2  # 
+particle_rho_projection='elemental'
+particle_eta_projection='elemental'
 
 #######################################
 # gravity & dyn topo parameters

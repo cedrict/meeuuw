@@ -1,8 +1,8 @@
 
 import numpy as np
+from constants import *
 
-cm=0.01
-year=365.25*3600*24
+###################################################################################################
 
 Lx=3000e3
 Lz=750e3
@@ -13,21 +13,17 @@ time_scale=year ; time_unit='yr'
 end_time=50e6*year
 every_solution_vtu=1
 every_swarm_vtu=1
-RKorder=1
 averaging='arithmetic'
 debug_ascii=False
 nparticle_per_dim=7
-use_elemental_eta=True
-use_elemental_rho=True
 particle_distribution=0 # 0: random, 1: reg
 #remove_rho_profile=True
 
 nelz=80
 nelx=int(Lx/Lz*nelz*1.25)
-CFLnb=0.5
 nstep=200
 
-###############################################################################
+###################################################################################################
 
 def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
@@ -46,13 +42,11 @@ def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
     return swarm_mat
 
-###############################################################################
+###################################################################################################
 # free slip on all sides
 
-def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
+def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
                                  hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
-
-    eps=1e-8
 
     bc_fix_V=np.zeros(Nfem_V,dtype=bool) # boundary condition, yes/no
     bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
@@ -62,16 +56,17 @@ def assign_boundary_conditions_V(x_V,y_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
         if x_V[i]/Lx>(1-eps):
            bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if y_V[i]/Lz<eps:
+        if z_V[i]/Lz<eps:
            bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-        if y_V[i]/Lz>(1-eps):
+        if z_V[i]/Lz>(1-eps):
            bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
     return bc_fix_V,bc_val_V
 
-###############################################################################
+###################################################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
+def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
+                   swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
     swarm_eta=np.zeros(nparticle,dtype=np.float64)
@@ -85,11 +80,9 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,swa
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
-###############################################################################
+###################################################################################################
 
 def gravity_model(x,z):
-    gx=0
-    gz=-9.81
-    return gx,gz
+    return 0.,-9.81 
 
-###############################################################################
+###################################################################################################

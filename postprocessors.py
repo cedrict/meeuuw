@@ -5,7 +5,7 @@ from basis_functions import *
 ###############################################################################
 
 @numba.njit
-def global_quantities(nel,nqel,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,volume,JxWq,gxq,gzq):
+def global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,volume,JxWq,gxq,gzq):
 
     TM=0  # Total mass
     EK=0  # Kinetic Energy
@@ -16,7 +16,7 @@ def global_quantities(nel,nqel,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,vo
     vrms=0 # root mean square velocity
 
     for iel in range(0,nel):
-        for iq in range(0,nqel):
+        for iq in range(0,nq_per_element):
             TM+=rhoq[iel,iq]                                                        *JxWq[iel,iq]
             EK+=0.5*rhoq[iel,iq]*(uq[iel,iq]**2+wq[iel,iq]**2)                      *JxWq[iel,iq]
             WAG-=rhoq[iel,iq]*(uq[iel,iq]*gxq[iel,iq]+wq[iel,iq]*gzq[iel,iq])       *JxWq[iel,iq]
@@ -33,7 +33,7 @@ def global_quantities(nel,nqel,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,vo
 ###############################################################################
 
 def compute_Nu(Lx,Lz,nel,top_element,bottom_element,icon_V,T,dTdy_nodal,\
-               nqperdim,qcoords,qweights,hx):
+               nq_per_dim,qcoords,qweights,hx):
 
     avrg_T_top=0    ; avrg_dTdy_top=0    
     avrg_T_bottom=0 ; avrg_dTdy_bottom=0 
@@ -45,7 +45,7 @@ def compute_Nu(Lx,Lz,nel,top_element,bottom_element,icon_V,T,dTdy_nodal,\
         if top_element[iel]: 
            sq=+1
            ny=+1
-           for iq in range(0,nqperdim):
+           for iq in range(0,nq_per_dim):
                rq=qcoords[iq]
                N=basis_functions_V(rq,sq)
                Tq=np.dot(N,T[icon_V[:,iel]])
@@ -58,7 +58,7 @@ def compute_Nu(Lx,Lz,nel,top_element,bottom_element,icon_V,T,dTdy_nodal,\
         if bottom_element[iel]: 
            sq=-1
            ny=-1
-           for iq in range(0,nqperdim):
+           for iq in range(0,nq_per_dim):
                rq=qcoords[iq]
                N=basis_functions_V(rq,sq)
                Tq=np.dot(N,T[icon_V[:,iel]])

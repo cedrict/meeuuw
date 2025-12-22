@@ -3,21 +3,20 @@ from constants import *
 
 ###################################################################################################
 
-nelx=192
-nelz=192
+nelx=64
+nelz=64
 
 Lx=0.5
-Lz=1
+Lz=1.0
 
 CFLnb=0.
-nstep=1
 eta_ref=1
 every_solution_vtu=1
 every_swarm_vtu=1
 
 nsamplepoints=1
 xsamplepoints=np.array([0.0],dtype=np.float64)
-zsamplepoints=np.array([0.5],dtype=np.float64)
+zsamplepoints=np.array([Lz/2.],dtype=np.float64)
 
 axisymmetric=True
 
@@ -67,7 +66,7 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
     swarm_hprod=0
 
     mask=(swarm_mat==1) ; swarm_eta[mask]=1    ; swarm_rho[mask]=1
-    mask=(swarm_mat==2) ; swarm_eta[mask]=1000 ; swarm_rho[mask]=1.01
+    mask=(swarm_mat==2) ; swarm_eta[mask]=10000 ; swarm_rho[mask]=1.01
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 

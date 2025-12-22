@@ -5,10 +5,11 @@ from toolbox import *
 
 def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel_unit,TKelvin,x_V,z_V,u,w,q,T,
                            eta_nodal,rho_nodal,exx_nodal,ezz_nodal,exz_nodal,e_nodal,divv_nodal,qx_nodal,qz_nodal,
-                           rho_elemental,sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal,rad_V,theta_V,
+                           rho_elemental,exx_e,ezz_e,exz_e,divv_e,sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal,rad_V,theta_V,
                            eta_elemental,nparticle_elemental,area,icon_V,bc_fix_V,bc_fix_T,geometry,
                            gx_nodal,gz_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt,plith,
-                           exx_el,ezz_el,exz_el,taurr_nodal,tautt_nodal,taurt_nodal):
+                           exx_el,ezz_el,exz_el,taurr_nodal,tautt_nodal,taurt_nodal,
+                           particle_rho_projection,particle_eta_projection,ls_rho_a,ls_eta_a):
 
        debug_sol=False
 
@@ -177,13 +178,20 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
           vtufile.write("</DataArray>\n")
        #--
        if solve_Stokes:
-          vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")
+          if particle_eta_projection=='nodal':
+             vtufile.write("<DataArray type='Float32' Name='Viscosity (*)' Format='ascii'> \n")
+          else:
+             vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")
           eta_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
        #--
-       vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
+       if particle_rho_projection=='nodal':
+          vtufile.write("<DataArray type='Float32' Name='Density(*)' Format='ascii'> \n")
+       else:
+          vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
        rho_nodal.tofile(vtufile,sep=' ',format='%.5e')
        vtufile.write("</DataArray>\n")
+
        #--
        if solve_T:
           vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Heat flux' Format='ascii'> \n")
@@ -196,15 +204,53 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
        vtufile.write("<CellData Scalars='scalars'>\n")
        #--
        if solve_Stokes:
-          vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")
+          vtufile.write("<DataArray type='Float32' Name='div(v)' Format='ascii'> \n")
+          divv_e.tofile(vtufile,sep=' ',format='%.5e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
+          exx_e.tofile(vtufile,sep=' ',format='%.5e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='ezz' Format='ascii'> \n")
+          ezz_e.tofile(vtufile,sep=' ',format='%.5e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='exz' Format='ascii'> \n")
+          exz_e.tofile(vtufile,sep=' ',format='%.5e')
+          vtufile.write("</DataArray>\n")
+          #--
+
+
+
+       #--
+       if solve_Stokes:
+          if particle_rho_projection=='elemental':
+             vtufile.write("<DataArray type='Float32' Name='Viscosity (*)' Format='ascii'> \n")
+          else:
+             vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")
           for iel in range (0,nel):
               vtufile.write("%.3e\n" % (eta_elemental[iel]))
           vtufile.write("</DataArray>\n")
        #--
-       vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
-       for iel in range (0,nel):
-           vtufile.write("%.4e\n" % (rho_elemental[iel]))
+       if particle_rho_projection=='elemental':
+          vtufile.write("<DataArray type='Float32' Name='Density (*)' Format='ascii'> \n")
+       else:
+          vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
+       rho_elemental.tofile(vtufile,sep=' ',format='%.5e')
        vtufile.write("</DataArray>\n")
+
+       #--
+       if particle_rho_projection=='least_squares':
+          vtufile.write("<DataArray type='Float32' Name='Density (*)' Format='ascii'> \n")
+          ls_rho_a.tofile(vtufile,sep=' ',format='%.5e')
+          vtufile.write("</DataArray>\n")
+       #--
+       if particle_eta_projection=='least_squares':
+          vtufile.write("<DataArray type='Float32' Name='Viscosity (*)' Format='ascii'> \n")
+          ls_eta_a.tofile(vtufile,sep=' ',format='%.5e')
+          vtufile.write("</DataArray>\n")
+
        #--
        vtufile.write("<DataArray type='Int32' Name='nb particles' Format='ascii'> \n")
        for iel in range (0,nel):

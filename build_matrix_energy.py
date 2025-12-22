@@ -6,8 +6,8 @@ import numba
 ###############################################################################
 
 @numba.njit
-def build_matrix_energy(bignb,nel,nqel,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,vq,\
-                        hcondq,hcapaq,exxq,eyyq,exyq,dpdxq,dpdyq,JxWq,N_V,dNdr_V,dNds_V,\
+def build_matrix_energy(bignb,nel,nqel,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,wq,\
+                        hcondq,hcapaq,exxq,ezzq,exzq,dpdxq,dpdzq,JxWq,N_V,dNdr_V,dNds_V,\
                         jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
                         bc_fix_T,bc_val_T,dt,formulation,rho0):
 
@@ -33,7 +33,7 @@ def build_matrix_energy(bignb,nel,nqel,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,vq,\
             N=N_V[iq,:]
 
             velq[0,0]=uq[iel,iq]
-            velq[0,1]=vq[iel,iq]
+            velq[0,1]=wq[iel,iq]
 
             dNdx=jcbi00q[iel,iq]*dNdr_V[iq,:]+jcbi01q[iel,iq]*dNds_V[iq,:]
             dNdy=jcbi10q[iel,iq]*dNdr_V[iq,:]+jcbi11q[iel,iq]*dNds_V[iq,:]
@@ -49,10 +49,10 @@ def build_matrix_energy(bignb,nel,nqel,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,vq,\
 
             #if formulation=='EBA':
                #viscous dissipation
-               #b_el[:]+=N[:]*JxWq[iq]*2*etaq[iel,iq]*\
-               #         (exxq[iel,iq]**2+eyyq[iel,iq]**2+2*exyq[iel,iq]**2) 
+            #   b_el[:]+=N[:]*JxWq[iq]*2*etaq[iel,iq]*\
+            #            (2./3.*(exxq[iel,iq]**2+ezzq[iel,iq]**2)-exxq[iel,iq]*ezzq[iel,iq]/3+2*exzq[iel,iq]**2)
                #adiabatic heating
-               #b_el[:]+=N[:]*JxWq[iq]*alphaT*Tq*(velq[0,0]*dpdxq[iel,iq]+velq[0,1]*dpdyq[iel,iq])  
+            #   b_el[:]+=N[:]*JxWq[iq]*alphaTq[iel,iq]*Tq*(velq[0,0]*dpdxq[iel,iq]+velq[0,1]*dpdzq[iel,iq])  
 
         #end for
 

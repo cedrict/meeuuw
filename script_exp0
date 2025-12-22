@@ -1,15 +1,14 @@
 #! /bin/bash
 
-e=0
 
-nstep=5
-
-for n  in 16 24 32 ; do
+for n in 16 24 32 48 64 ; do
 
     echo resolution: $n
 
-    python3 meeuuw.py $e $n $n $nstep > screen_${n}.txt
+    python3 meeuuw.py --e 0 --nelx $n --nelz $n --nstep 400  > opla_${n}.txt
     mkdir OUTPUT_${n}
-    mv OUTPUT/* OUTPUT_${n}/ 
+    mv OUTPUT/vrms* OUTPUT_${n}/ 
+    mv OUTPUT/Nu* OUTPUT_${n}/ 
+    mv OUTPUT/profile_vertical.ascii OUTPUT_${n}/ 
 
 done

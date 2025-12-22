@@ -2,8 +2,8 @@ import numpy as np
 
 ###############################################################################
 
-def output_quadpoints_to_vtu(istep,nel,nqel,nq,solve_T,xq,yq,rhoq,etaq,Tq,\
-                             hcondq,hcapaq,dpdxq,dpdyq,gxq,gyq):
+def output_quadpoints_to_vtu(istep,nel,nq_per_element,nq,solve_T,xq,zq,rhoq,etaq,Tq,\
+                             hcondq,hcapaq,dpdxq,dpdzq,gxq,gzq):
 
        filename='OUTPUT/quadpoints_{:04d}.vtu'.format(istep)
        vtufile=open(filename,"w")
@@ -15,8 +15,8 @@ def output_quadpoints_to_vtu(istep,nel,nqel,nq,solve_T,xq,yq,rhoq,etaq,Tq,\
        #--
        vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Format='ascii'> \n")
        for iel in range(nel):
-           for iq in range(0,nqel):
-               vtufile.write("%.3e %.3e %.1e \n" %(xq[iel,iq],yq[iel,iq],0.))
+           for iq in range(0,nq_per_element):
+               vtufile.write("%.4e %.1e %.4e \n" %(xq[iel,iq],0.,zq[iel,iq]))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("</Points> \n")
@@ -25,44 +25,44 @@ def output_quadpoints_to_vtu(istep,nel,nqel,nq,solve_T,xq,yq,rhoq,etaq,Tq,\
        #--
        vtufile.write("<DataArray type='Float32' Name='Density' Format='binary'> \n")
        for iel in range(nel):
-           for iq in range(0,nqel):
+           for iq in range(0,nq_per_element):
                vtufile.write("%.5e \n" %(rhoq[iel,iq]))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='binary'> \n")
        for iel in range(nel):
-           for iq in range(0,nqel):
+           for iq in range(0,nq_per_element):
                vtufile.write("%.5e \n" %(etaq[iel,iq]))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Pressure gradient' Format='binary'> \n")
        for iel in range(nel):
-           for iq in range(0,nqel):
-               vtufile.write("%.3e %.3e %.1e \n" %(dpdxq[iel,iq],dpdyq[iel,iq],0.))
+           for iq in range(0,nq_per_element):
+               vtufile.write("%.3e %.1e %.3e \n" %(dpdxq[iel,iq],0.,dpdzq[iel,iq]))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Gravity vector' Format='binary'> \n")
        for iel in range(nel):
-           for iq in range(0,nqel):
-               vtufile.write("%.3e %.3e %.1e \n" %(gxq[iel,iq],gyq[iel,iq],0.))
+           for iq in range(0,nq_per_element):
+               vtufile.write("%.3e %.1e %.3e \n" %(gxq[iel,iq],0.,gzq[iel,iq]))
        vtufile.write("</DataArray>\n")
        #--
        if solve_T:
           vtufile.write("<DataArray type='Float32' Name='Temperature' Format='binary'> \n")
           for iel in range(nel):
-              for iq in range(0,nqel):
+              for iq in range(0,nq_per_element):
                   vtufile.write("%.5e \n" %(Tq[iel,iq]))
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='Heat conductivity' Format='binary'> \n")
           for iel in range(nel):
-              for iq in range(0,nqel):
+              for iq in range(0,nq_per_element):
                   vtufile.write("%.5e \n" %(hcondq[iel,iq]))
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='Heat capacity' Format='binary'> \n")
           for iel in range(nel):
-              for iq in range(0,nqel):
+              for iq in range(0,nq_per_element):
                   vtufile.write("%.5e \n" %(hcapaq[iel,iq]))
           vtufile.write("</DataArray>\n")
        #--
