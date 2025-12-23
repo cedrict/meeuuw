@@ -1,0 +1,38 @@
+#
+set term pdf enhanced font "Times,12pt"
+set grid
+set pointsize .2
+
+set xlabel 'z (m)'
+set ylabel 'w (m/s) at x=L_x/2'
+
+set key top left
+set output 'w.pdf'
+plot[:512e3][-2e-9:1.5e-9]\
+'profile_vertical_ee.ascii' u 1:3 w lp ps .4 t'elemental rho \& eta',\
+'profile_vertical_ne.ascii' u 1:3 w lp ps .5 t'nodal rho, elemental eta',\
+'profile_vertical_en.ascii' u 1:3 w lp t'elemental rho, nodal eta',\
+'profile_vertical_npt1.ascii' u 1:3 w lp t'nodal rho \& eta, nodal projection type=1',\
+'profile_vertical_npt2.ascii' u 1:3 w lp t'nodal rho \& eta, nodal projection type=2',\
+'profile_vertical_npt3.ascii' u 1:3 w lp t'nodal rho \& eta, nodal projection type=3',\
+'profile_vertical_npt4.ascii' u 1:3 w lp t'nodal rho \& eta, nodal projection type=4',\
+
+
+set ylabel 'rho at x=L_x/2'
+
+set key bottom left
+set output 'rho_n.pdf'
+plot[:512e3][-50:]\
+'profile_vertical_npt1.ascii' u 1:6 w lp t'nodal projection type=1',\
+'profile_vertical_npt2.ascii' u 1:6 w lp t'nodal projection type=2',\
+'profile_vertical_npt3.ascii' u 1:6 w lp t'nodal projection type=3',\
+'profile_vertical_npt4.ascii' u 1:6 w lp t'nodal projection type=4' 
+
+set ylabel 'eta at x=L_x/2'
+set log y
+set output 'eta_n.pdf'
+plot[:512e3][8e17:2e22]\
+'profile_vertical_npt1.ascii' u 1:7 w lp t'nodal projection type=1',\
+'profile_vertical_npt2.ascii' u 1:7 w lp t'nodal projection type=2',\
+'profile_vertical_npt3.ascii' u 1:7 w lp t'nodal projection type=3',\
+'profile_vertical_npt4.ascii' u 1:7 w lp t'nodal projection type=4' 
