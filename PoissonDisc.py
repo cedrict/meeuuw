@@ -1,3 +1,7 @@
+###################################################################################################
+# MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
+###################################################################################################
+
 import numpy as np
 
 # this is 99% taken from https://scipython.com/blog/poisson-disc-sampling-in-python/

@@ -1,16 +1,20 @@
+###################################################################################################
+# MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
+###################################################################################################
+
 import numpy as np
 
 ###################################################################################################
 # Eq 14 of ensg82
 
-def compute_normals(geometry,nel,nn_V,nqel,m_V,icon_V,dNdr_V,dNds_V,\
+def compute_normals(geometry,nel,nn_V,nq_per_element,m_V,icon_V,dNdr_V,dNds_V,\
                     JxWq,hull_nodes,jcbi00q,jcbi01q,jcbi10q,jcbi11q):
 
     nx=np.zeros(nn_V,dtype=np.float64)
     ny=np.zeros(nn_V,dtype=np.float64)
 
     for iel in range(0,nel):
-        for iq in range(0,nqel):
+        for iq in range(0,nq_per_element):
             dNdx=jcbi00q[iel,iq]*dNdr_V[iq,:]+jcbi01q[iel,iq]*dNds_V[iq,:]
             dNdy=jcbi10q[iel,iq]*dNdr_V[iq,:]+jcbi11q[iel,iq]*dNds_V[iq,:]
             for i in range(0,m_V):

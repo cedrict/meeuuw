@@ -1,12 +1,5 @@
 #! /bin/bash
 
-#   nelx  = int(sys.argv[2])
-#   nelz  = int(sys.argv[3])
-#   nstep = int(sys.argv[4])
-#   axisymmetric=(int(sys.argv[5])==1)
-#   remove_rho_profile=(int(sys.argv[6])==1)
-#   straighten_edges=(int(sys.argv[7])==1)
-
 e=13
 nstep=1
 

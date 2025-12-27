@@ -1,15 +1,19 @@
+###################################################################################################
+# MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
+###################################################################################################
+
 import numpy as np
 import numba
 
-###############################################################################
+###################################################################################################
 # local numbering of nodes
 # 3--6--2
 # 7  8  5
 # 0--4--1
-###############################################################################
+###################################################################################################
 
 @numba.njit
-def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon_V,icon_P,\
+def build_matrix_stokes(bignb,nel,nq_per_element,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon_V,icon_P,\
                         rhoq,etaq,JxWq,local_to_globalV,gxq,gyq,N_V,N_P,dNdr_V,dNds_V,\
                         jcbi00q,jcbi01q,jcbi10q,jcbi11q,eta_ref,L_ref,bc_fix_V,bc_val_V,\
                         bot_element,top_element,bot_free_slip,top_free_slip,geometry,theta_V,
@@ -39,7 +43,7 @@ def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon
         h_el=np.zeros((m_P),dtype=np.float64)
 
         if axisymmetric:
-           for iq in range(0,nqel):
+           for iq in range(0,nq_per_element):
                dNdx=jcbi00q[iel,iq]*dNdr_V[iq,:]+jcbi01q[iel,iq]*dNds_V[iq,:]
                dNdy=jcbi10q[iel,iq]*dNdr_V[iq,:]+jcbi11q[iel,iq]*dNds_V[iq,:]
                coeffq=2*np.pi*xq[iel,iq]
@@ -59,7 +63,7 @@ def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon
                G_el-=B.T.dot(N_mat)*JxWq[iel,iq]*coeffq
            # end for iq
         else:
-           for iq in range(0,nqel):
+           for iq in range(0,nq_per_element):
                dNdx=jcbi00q[iel,iq]*dNdr_V[iq,:]+jcbi01q[iel,iq]*dNds_V[iq,:]
                dNdy=jcbi10q[iel,iq]*dNdr_V[iq,:]+jcbi11q[iel,iq]*dNds_V[iq,:]
                for i in range(0,m_V):
@@ -149,4 +153,4 @@ def build_matrix_stokes(bignb,nel,nqel,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof_V_el,icon
 
     return VV_V,rhs
 
-###############################################################################
+###################################################################################################

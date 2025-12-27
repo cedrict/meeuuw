@@ -1,11 +1,15 @@
+###################################################################################################
+# MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
+###################################################################################################
+
 import numpy as np
 import numba
 
-###############################################################################
+###################################################################################################
 # boundary conditions are hard wired to be p=0 at the top boundary.
 
 @numba.njit
-def build_matrix_plith(bignb,nel,nqel,m_T,Nfem_T,icon_V,rhoq,gxq,gyq,JxWq,\
+def build_matrix_plith(bignb,nel,nq_per_element,m_T,Nfem_T,icon_V,rhoq,gxq,gyq,JxWq,\
                        N_V,dNdr_V,dNds_V,jcbi00q,jcbi01q,jcbi10q,jcbi11q,top_nodes):
                         
     VV_T=np.zeros(bignb,dtype=np.float64)    
@@ -16,7 +20,7 @@ def build_matrix_plith(bignb,nel,nqel,m_T,Nfem_T,icon_V,rhoq,gxq,gyq,JxWq,\
     for iel in range(0,nel):
         b_el=np.zeros(m_T,dtype=np.float64)
         A_el=np.zeros((m_T,m_T),dtype=np.float64)
-        for iq in range(0,nqel):
+        for iq in range(0,nq_per_element):
             dNdx=jcbi00q[iel,iq]*dNdr_V[iq,:]+jcbi01q[iel,iq]*dNds_V[iq,:]
             dNdy=jcbi10q[iel,iq]*dNdr_V[iq,:]+jcbi11q[iel,iq]*dNds_V[iq,:]
             B[0,:]=dNdx
@@ -48,4 +52,4 @@ def build_matrix_plith(bignb,nel,nqel,m_T,Nfem_T,icon_V,rhoq,gxq,gyq,JxWq,\
 
     return VV_T,rhs
 
-###############################################################################
+###################################################################################################

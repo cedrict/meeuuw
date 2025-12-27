@@ -1,11 +1,15 @@
+###################################################################################################
+# MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
+###################################################################################################
+
 import numpy as np
 import numba
 from basis_functions import basis_functions_V
 
-###############################################################################
+###################################################################################################
 # these functions are used in the Runge-Kutta algorithm advection. As such 
 # they need to locate the particle before interpolating the velocity onto it.
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def interpolate_vel_on_pt___box(xp,zp,u,w,hx,hz,nelx,icon,x_V,z_V):
@@ -54,7 +58,7 @@ def interpolate_vel_on_pt___annulus(xp,yp,u,w,hrad,htheta,nelx,icon,rad_V,theta_
     wp=np.dot(N,w[icon[:,iel]])
     return up,wp,iel
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def interpolate_field_on_particle(rp,tp,iel,phi,icon):
@@ -87,7 +91,7 @@ def interpolate_field_on_particles(nparticle,swarm_r,swarm_t,swarm_iel,phi,icon)
         swarm_field[ip]=np.dot(N,phi[icon[:,swarm_iel[ip]]])
     return swarm_field
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def locate_particles___box(nparticle,swarm_x,swarm_z,hx,hz,x_V,z_V,icon,nelx):
@@ -113,7 +117,7 @@ def locate_particles___box(nparticle,swarm_x,swarm_z,hx,hz,x_V,z_V,icon,nelx):
         swarm_iel[ip]=iel
     return swarm_r,swarm_t,swarm_iel
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def locate_particles___annulus(nparticle,swarm_rad,swarm_theta,hrad,htheta,rad_V,theta_V,icon,nelx,Rinner):
@@ -143,7 +147,7 @@ def locate_particles___annulus(nparticle,swarm_rad,swarm_theta,hrad,htheta,rad_V
 
     return swarm_r,swarm_t,swarm_iel
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def advect_particles___box(RKorder,dt,nparticle,swarm_x,swarm_z,swarm_active,u,w,\
@@ -249,7 +253,7 @@ def advect_particles___box(RKorder,dt,nparticle,swarm_x,swarm_z,swarm_active,u,w
 
     return swarm_x,swarm_z,swarm_u,swarm_w,swarm_active
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def advect_particles___eighth(RKorder,dt,nparticle,swarm_x,swarm_z,
@@ -282,7 +286,7 @@ def advect_particles___eighth(RKorder,dt,nparticle,swarm_x,swarm_z,
 
     return swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_u,swarm_w,swarm_active
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_z,
@@ -366,7 +370,7 @@ def advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_z,
 
     return swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_u,swarm_w,swarm_active
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_z,
@@ -450,7 +454,7 @@ def advect_particles___half(RKorder,dt,nparticle,swarm_x,swarm_z,
 
     return swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_u,swarm_w,swarm_active
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def project_particles_on_elements(nel,nparticle,swarm_rho,swarm_eta,swarm_iel,averaging):
@@ -869,13 +873,13 @@ def limiter(c_0, c_1, c_2, S = 0, L=1, h=1):
     return c_1, c_2
 
 ###################################################################################################
-# least square process
+# least square process P1
 # for each element I loop over the particles in it and build the corresponding A matrix and b rhs. 
 # The solution consists of the coefficients a,b,c for viscosity, d,e,f for density, for each elt. 
 ###################################################################################################
 
 @numba.njit
-def compute_ls_coefficients(nel,x_e,z_e,swarm_x,swarm_z,swarm_iel,swarm_rho,swarm_eta):
+def compute_ls_coefficients_P1(nel,x_e,z_e,swarm_x,swarm_z,swarm_iel,swarm_rho,swarm_eta):
     """
     Args:
        nel: number of elements
@@ -944,6 +948,103 @@ def compute_ls_coefficients(nel,x_e,z_e,swarm_x,swarm_z,swarm_iel,swarm_rho,swar
 
     return ls_rho_a,ls_rho_b,ls_rho_c,ls_eta_a,ls_eta_b,ls_eta_c,rho_min_e,rho_max_e,eta_min_e,eta_max_e
 
+###################################################################################################
+# least square process Q1
+# for each element I loop over the particles in it and build the corresponding A matrix and b rhs. 
+# The solution consists of the coefficients a,b,c for viscosity, d,e,f for density, for each elt. 
+###################################################################################################
+
+@numba.njit
+def compute_ls_coefficients_Q1(nel,x_e,z_e,swarm_x,swarm_z,swarm_iel,swarm_rho,swarm_eta):
+    """
+    Args:
+       nel: number of elements
+       x_e,z_e: coordinates of elements center
+       swarm_x,swarm_z: coordinates of particles
+       swarm_rho,swarm_eta: density, viscosity on particles 
+       swarm_iel: cell index of all particles
+    Returns:
+       ls_rho_a,ls_rho_n,ls_rho_c,ls_rho_d: coeffs for ls density linear fit
+       ls_eta_a,ls_eta_n,ls_eta_c,ls_eta_d: coeffs for ls viscosity linear fit
+    """
+
+    ls_rho_a=np.zeros(nel,dtype=np.float64) 
+    ls_rho_b=np.zeros(nel,dtype=np.float64) 
+    ls_rho_c=np.zeros(nel,dtype=np.float64) 
+    ls_rho_d=np.zeros(nel,dtype=np.float64) 
+    ls_eta_a=np.zeros(nel,dtype=np.float64) 
+    ls_eta_b=np.zeros(nel,dtype=np.float64) 
+    ls_eta_c=np.zeros(nel,dtype=np.float64) 
+    ls_eta_d=np.zeros(nel,dtype=np.float64) 
+    rho_min_e=np.zeros(nel,dtype=np.float64) 
+    rho_max_e=np.zeros(nel,dtype=np.float64) 
+    eta_min_e=np.zeros(nel,dtype=np.float64) 
+    eta_max_e=np.zeros(nel,dtype=np.float64) 
+
+    for iel in range(0,nel):
+        A_ls=np.zeros((4,4),dtype=np.float64)
+        rhs_eta_ls=np.zeros((4),dtype=np.float64)
+        rhs_rho_ls=np.zeros((4),dtype=np.float64)
+
+        mask=(swarm_iel==iel) 
+        s_eta=swarm_eta[mask]
+        s_rho=swarm_rho[mask]
+        s_x=swarm_x[mask]-x_e[iel]
+        s_z=swarm_z[mask]-z_e[iel]
+        nb_ptcls=np.count_nonzero(mask)
+
+        A_ls[0,0]=nb_ptcls
+        for ip in range(0,nb_ptcls):        
+            A_ls[0,1]+=s_x[ip]
+            A_ls[0,2]+=s_z[ip]
+            A_ls[0,3]+=s_x[ip]*s_z[ip]
+
+            A_ls[1,1]+=s_x[ip]**2
+            A_ls[1,2]+=s_x[ip]*s_z[ip]
+            A_ls[1,3]+=s_x[ip]**2*s_z[ip]
+
+            A_ls[2,2]+=s_z[ip]**2
+            A_ls[2,3]+=s_x[ip]*s_z[ip]**2
+
+            A_ls[3,3]+=s_x[i]**2*s_z[ip]**2
+
+            rhs_eta_ls[0]+=s_eta[ip]
+            rhs_eta_ls[1]+=s_eta[ip]*s_x[ip]
+            rhs_eta_ls[2]+=s_eta[ip]*s_z[ip]
+            rhs_eta_ls[3]+=s_eta[ip]*s_x[ip]*s_z[ip]
+
+            rhs_rho_ls[0]+=s_rho[ip]
+            rhs_rho_ls[1]+=s_rho[ip]*s_x[ip]
+            rhs_rho_ls[2]+=s_rho[ip]*s_z[ip]
+            rhs_rho_ls[3]+=s_rho[ip]*s_x[ip]*s_z[ip]
+        #end for ip
+        A_ls[1,0]=A_ls[0,1]
+        A_ls[2,0]=A_ls[0,2]
+        A_ls[2,1]=A_ls[1,2]
+        A_ls[3,0]=A_ls[0,3]
+        A_ls[3,1]=A_ls[1,3]
+        A_ls[3,2]=A_ls[2,3]
+
+        sol=np.linalg.solve(A_ls,rhs_eta_ls)
+        ls_eta_a[iel]=sol[0]
+        ls_eta_b[iel]=sol[1]
+        ls_eta_c[iel]=sol[2]
+        ls_eta_d[iel]=sol[3]
+        sol=np.linalg.solve(A_ls,rhs_rho_ls)
+        ls_rho_a[iel]=sol[0]
+        ls_rho_b[iel]=sol[1]
+        ls_rho_c[iel]=sol[2]
+        ls_rho_d[iel]=sol[3]
+
+        rho_min_e[iel]=np.min(s_rho) ; rho_max_e[iel]=np.max(s_rho)
+        eta_min_e[iel]=np.min(s_eta) ; eta_max_e[iel]=np.max(s_eta)
+
+    #end for iel
+
+    return ls_rho_a,ls_rho_b,ls_rho_c,ls_rho_d,ls_eta_a,ls_eta_b,ls_eta_c,ls_eta_d,rho_min_e,rho_max_e,eta_min_e,eta_max_e
+
+###################################################################################################
+# export least square fields in vtu format with P1 field defined over each element
 ###################################################################################################
 
 def output_fields_ls(istep,nel,x,z,icon,x_e,z_e,ls_rho_a,ls_rho_b,ls_rho_c,ls_eta_a,ls_eta_b,ls_eta_c):

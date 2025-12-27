@@ -1,13 +1,17 @@
+###################################################################################################
+# MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
+###################################################################################################
+
 import numpy as np
 import numba
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def effective(Txx,Tzz,Txz):
     return np.sqrt(0.5*(Txx**2+Tzz**2)+Txz**2)
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def convert_tensor_to_polar_coords(theta,Txx,Tzz,Txz):
@@ -20,7 +24,7 @@ def convert_tensor_to_polar_coords(theta,Txx,Tzz,Txz):
 
     return Trr,Ttt,Trt
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def convert_tensor_to_spherical_coords(theta_polar,Txx,Tzz,Txz):
@@ -42,7 +46,7 @@ def convert_tensor_to_spherical_coords(theta_polar,Txx,Tzz,Txz):
 
     return Trr,Ttt,Trt
 
-###############################################################################
+###################################################################################################
 
 def inspect_element(iel,m_V,icon_V,x_V,z_V,rho_n,eta_n,nq_per_element,xq,zq,rhoq,etaq):
     for k in range(0,m_V):
@@ -51,13 +55,31 @@ def inspect_element(iel,m_V,icon_V,x_V,z_V,rho_n,eta_n,nq_per_element,xq,zq,rhoq
     for iq in range(0,nq_per_element):
         print(xq[iel,iq],zq[iel,iq],etaq[iel,iq],rhoq[iel,iq])
 
-               
+###################################################################################################
+# this functions exports the values of the solution fields at a given set of user-chosen 
+# locations, provided these locations correspond to a V node location.
+# A more versatile algorithm could/should be implemented in the future.
+###################################################################################################
 
+@numba.njit
+def sample_solution_box(nn_V,x_V,z_V,u,w,q,T,nsamplepoints,xsamplepoints,zsamplepoints,Lx,Lz,nelx,nelz):
+    """
+    Args:
+     nn_V: number of V nodes
+     x_V,z_V: coordinates of V nodes
+     u,w,q,T: fields on V nodes
+     nsamplepoints: nb of sampling points
+     xsamplepoints,zsamplepoints: coordinates of sampling points
+     Lx,Lz: domain size
+     nelx,nelz: number of elements
+    Returns:
+     -
+    """
 
+    for isp in range(0,nsamplepoints):
+        for i in range(nn_V):
+            if abs(x_V[i]-xsamplepoints[isp])/Lx<1e-6 and\
+               abs(z_V[i]-zsamplepoints[isp])/Lz<1e-6:
+               print('sample ->',x_V[i],z_V[i],u[i],w[i],q[i],T[i],nelx,nelz)
 
-
-
-
-
-
-
+###################################################################################################

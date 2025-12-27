@@ -9,8 +9,10 @@
 \usepackage[dvipsnames]{xcolor}
 \usepackage{bm}
 \usepackage{url}
+\usepackage{siunitx}
 \usepackage{listings}
 \usepackage{tikz}
+\usepackage{amsfonts}
 \lstset{ 
   language=Python,
   backgroundcolor=\color{white},   % choose the background color; you must add \usepackage{xcolor}; should come as last argument
@@ -24,16 +26,20 @@
 }
 
 \newcommand{\nn}{\nonumber}
+\newcommand{\meeuuw}{{\sc meeuuw~}}
+\newcommand{\K}{{\mathbb{K}}}
+\newcommand{\G}{{\mathbb{G}}}
+\newcommand{\M}{{\mathbb{M}}}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \title{MEEUUW \\ Mantle modelling Early Earth Utrecht University Work in progress}
 \author{C. Thieulot} %, A. van den Berg}
 
-
 \usepackage[style=authoryear,maxnames=1]{biblatex}
 \addbibresource{bibliography.bib}
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -50,15 +56,16 @@
 %==============================================================================
 \section{Foreword}
 
-I have quite a history of naming codes and regretting it afterwards. This 
-is one more in my collection: SoPHa, SPHene, FANTOM, ELEFANT, FLAPS, FieldStone.
+I have quite a history of naming codes and regretting my choice afterwards. \meeuuw
+is one more in my collection: SoPHa, SPHene, FANTOM, ELEFANT, FLAPS, FieldStone\footnote{\url{https://cedrict.github.io/}}.
 
 %==============================================================================
 \section{Install process}
 
-The code consists of a dozen of Python files. 
+The code consists of about two dozens of Python files. 
 Aside from standard Python modules (numpy, scipy, etc ...) the 
-numba\footnote{\url{https://numba.pydata.org/}} package is needed and needs to be installed.
+numba\footnote{\url{https://numba.pydata.org/}} package also needs to be installed on the
+machine you are running the code.
 The reason for the use of this module is as follows: 
 ``Numba translates Python functions to optimized machine code at runtime using 
 the industry-standard LLVM compiler library. Numba-compiled numerical algorithms 
@@ -90,12 +97,15 @@ outer radius \lstinline{Router} and an opening angle $\theta\in[\pi/4,\pi/2]$
 An axisymmetric option has been implemented for all four geometries\footnote{Only for the Stokes solver!
 no temp eq yet}.
 
-There is no adaptive mesh refinement. The mesh also does not deform (i.e. no ALE-type algorithm).
+{\color{red} add here figure of all 4 geometries}
+
+There is no adaptive mesh refinement nor mesh 'stretching'. 
+The mesh also does not deform (i.e. no ALE-type algorithm).
 The mesh consists of \lstinline{nelx*nelz} elements. In the case of curved domains 
 the topology of the mesh is the same but it is curved to conform to the domain boundaries.
 
 The code is not meant to compete with ASPECT or any similar code. It is 
-meant to be an educational tool, typically for MSc or PhD students in mind. 
+meant to be an educational tool, with MSc or PhD students in mind. 
 The interface is simple and flexible. 
 Inside a \lstinline{experimentX.py} file the user needs to specify the 
 necessary parameters (e.g. the resolution, domain size, number of timesteps, etc ...)
@@ -108,10 +118,24 @@ particle_layout
 material_model
 gravity_model
 \end{lstlisting}  
+Run parameters also need to be defined this file, and if not the value in the 
+{\tt set\_default\_parameters.py} file apply. 
 
-There are at the moment 10 so-called experiments (called cookbooks in ASPECT)
+Because the code is only 2d the memory requirements (aside from the linear solver)
+are rather mild with respect with the amount of RAM even laptops now have.
+As such I make no attempt at being cautious when it comes to memory use.
+This means for example that each particle carries a dozen or so field. 
+Likewise the material parameters are projected from the particles onto the 
+quadrature points and these projected fields are permanently stored in large arrays.
+The rationale is as follows: Lets us assume that we are running a $200\times 200$
+element simulation. There are then at least 9 times the number of quadrature points, 
+i.e. $\sim 360,000$, each carrying approx. 10 double precision floats (64 bits). 
+In total the memory use for these is $360000 \cdot 10 \cdot 64 = 230400000$bits, 
+or about 220Mb of memory.
+
+There are at the moment 18 so-called experiments (also called cookbooks in ASPECT)
 that either aim at reproducing existing articles results (numerical benchmarks)
-or built as setups to be used in class.
+or built as setups to be used in class or for research purposes.
 Each experiment is entirely contained in its corresponding \lstinline{experimentX.py} file.
 The current list of experiments is as follows:
 \begin{lstlisting}  
@@ -125,13 +149,22 @@ The current list of experiments is as follows:
 # experiment  7: ESA workshop
 # experiment  8: quarter - sinker
 # experiment  9: axisymmetric Mars setup
-# experiment 10: axisymmetric aspect benchmark of Stokes sphere
+# experiment 10: axisymmetric 4D dyn Earth benchmark of Stokes sphere
+# experiment 11: rising plume 
+# experiment 12: hollow earth gravity benchmark 
+# experiment 13: sinking block benchmark
+# experiment 14: slab detachment (Schmalholz 2011)
+# experiment 15: stokes sphere axisymmetric 
+# experiment 16: subduction initiation from Matsumoto and Tomoda (1983)
+# experiment 17: sinking sphere 512km with sticky air
+# experiment 18: sinking sphere unit square with sticky air 
 \end{lstlisting}  
 The results obtained with the code for these experiments are 
-available in the {\tt RESULTS} folder.
+available in the {\tt RESULTS} folder (simply open the {\tt results.pdf} file
+-- if it not present use the {\tt lat} script to compile the \LaTeX code)
 
-In order to select one of these experiments, simply open \lstinline{meeuuw.py}
-and edit line 55 which reads \lstinline{experiment=X}.
+In order to select one of these experiments, simply open {\tt meeuuw.py}
+and edit line 66 which reads \lstinline{experiment=X}.
 
 In order to run the code, simply then type the following in the terminal:
 \begin{verbatim}
@@ -158,6 +191,7 @@ model, it is recommended to remove all results by running the following script:
 ./cleandata
 \end{verbatim}
 
+\newpage
 %==============================================================================
 \section{Numerical methods}
 
@@ -165,18 +199,78 @@ model, it is recommended to remove all results by running the following script:
 \subsection{Finite Element Method}
 
 The Stokes equations are discretised by means of the Finite Element Method (FEM).
-As explained in \textcite{thba22} and \textcite{thba22}, there are many 
-so-called element pairs for the velocity and pressure spaces.  The code relies
+As explained in \textcite{thba22} and \textcite{thba25}, there are many 
+so-called element pairs for the velocity and pressure spaces.  
+The \meeuuw code relies
 on quadrilateral Taylor-Hood elements only, i.e. $Q_2 \times Q_1$.
 The energy equation relies on $Q_2$ elements for the temperature.
 The FEM formulation of these equations is explained in the FieldStone 
-manual\footnote{\url{https://cedrict.github.io/}}.
+manual\footnote{\url{https://cedrict.github.io/}} and plenty of 
+textbooks.
+
+The discretisation of the Stokes equations (mass and momentum equation)
+yields the following linear system:
+\[
+\left(\begin{array}{cc}
+\K & \G \\
+\G^T & 0
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{c}
+\vec{\cal V} \\
+\vec{\cal P} 
+\end{array}
+\right)
+=
+\left(
+\begin{array}{c}
+\vec{f} \\
+\vec{h} 
+\end{array}
+\right)
+\]
+At the moment the whole matrix and right hand side is built and stored in the 
+following arrays:
+\begin{lstlisting}
+bignb_V=nel*( (m_V*ndof_V)**2 + 2*(m_V*ndof_V*m_P) )
+II_V=np.zeros(bignb_V,dtype=np.int32)    
+JJ_V=np.zeros(bignb_V,dtype=np.int32)    
+VV_T=np.zeros(bignb,dtype=np.float64)    
+rhs=np.zeros(Nfem_T,dtype=np.float64)
+\end{lstlisting}
+
+while the discretisation of the energy equation yields
+\[
+\left(\M + \frac12 (\K_a + \K_d) \delta t \right) \cdot \vec{\cal T}^{k+1}
+= \left(\M - \frac12 (\K_a + \K_d) \delta t \right) \cdot \vec{\cal T}^k + \vec{H}
+\]
+where $\M$ is the mass matrix, $\K_a$ is the advection matrix, 
+$\K_d$ is the diffusion matrix.
+
+The fully assembled matrix and right hand side are stored in the following arrays: 
+\begin{lstlisting}
+bignb_T=nel*m_T**2 
+II_T=np.zeros(bignb_T,dtype=np.int32)    
+JJ_T=np.zeros(bignb_T,dtype=np.int32)    
+VV_T=np.zeros(bignb,dtype=np.float64)    
+rhs=np.zeros(Nfem_T,dtype=np.float64)
+\end{lstlisting}
+
+
+
+At the moment there is no stabilisation scheme implemented which can help 
+with highly advective problems (high Peclet number).
+
 
 %-----------------------------------
 \subsection{Particle-In-Cell method}
 
 
 The code relies on the Particle-in-Cell method to track compositional fields.
+This is not the only method used in geodynamics, see for example 
+the textbooks by Gerya, or by Tackley \& Ismael-Zaddeh.
 All arrays bearing the name \lstinline{swarm_xxxx} are \lstinline{nparticle} long.
 Note that the total number of particles is constant (no addition, no deletion).
 \lstinline{swarm_x}, \lstinline{swarm_z} contain all their Cartesian coordinates, 
@@ -185,7 +279,8 @@ Note that the total number of particles is constant (no addition, no deletion).
 \lstinline{swarm_r}, \lstinline{swarm_t} contain all their local coordinates ($r,t\in[-1:1]$),
 \lstinline{swarm_iel} contains their parent element number, etc ...
 The particles are advected by means of either Runge-Kutta 1st, 2nd and 4th order in space
-algorithms (as controlled by the global parameter \lstinline{RKorder})..
+algorithms (as controlled by the global parameter \lstinline{RKorder}).
+Note that \lstinline{RKorder} can also be set to -1 {\color{red} explain}.
 The global parameter \lstinline{nparticle_per_dim} controls the initial number 
 of particles per element and the total number of particles:
 \begin{lstlisting}
@@ -198,26 +293,205 @@ values:
 \begin{enumerate}
 \item random: \lstinline{nparticle_per_element} particles are generated at random inside the element
 using the local coordinates and an isoparametric mapping; 
-\item regular: the particles are arranged in an \lstinline{nparticle_per_dim} X \lstinline{nparticle_per_dim} array;
+\item regular: the particles are arranged in an \lstinline{nparticle_per_dim*nparticle_per_dim} array;
 \item Poisson disc sampling\footnote{\url{https://www.jasondavies.com/poisson-disc/}}. At the moment this is only 
 available for the 'box' geometry.
 \item pseudo-random: this is similar to 2, but a small perturbation is added to the positions.
 \end{enumerate}
 
-Fields can be easily added to particles depending on the needs of a given experiment.
+Fields can be easily added to particles depending on the needs of a given experiment, for example 
+\lstinline{swarm_F} tracks the depletion.
 
 The core of the Particle-In-Cell method that is implemented is as follows. 
 At the beginning of each time step the temperature, pressure and strain rate 
 is interpolated on a particle.
 The so-called \lstinline{material_model} is then called and returns the following 
-particle fields:
-\lstinline{swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod}.
+particle fields: \lstinline{swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod}.
+
+The fields carried by the particle must then be projected where 
+they are needed for the Finite Element matrix building algorithm, i.e. 
+the Gauss quadrature points (typically and array of $3\times 3$ points inside
+each element).
+
+There are multiple options, controlled by the 
+\lstinline{particle_rho_projection} and \lstinline{particle_eta_projection}
+parameters:
+\begin{itemize}
+\item \lstinline{'elemental}
+\item \lstinline{'nodal'}
+\item \lstinline{'least_squares'} -- see subsection below 
+\end{itemize}
+
+
 The fields are then projected onto the mesh nodes, the resulting fields belonging 
 to the $Q_1$ space. An arithmetic average is used for the 
 heat capacity, heat conductivity, heat production and density, while the user may choose 
 between and arithmetic, geometric, or harmonic averaging for the viscosity.
+
+
+
 Finally these nodal quantities are interpolated onto the quadrature points and these 
 values will be used to build the FE matrices for the Stokes and/or energy equations.
+
+%------------------------------------
+\subsubsection{Least square algorithms}
+
+One could think that 
+with high(er) order elements optimal convergence is unlikely to be reached 
+if viscosity (and density) are assumed to be constant inside each element (see  
+\textcite{galb19}). 
+One could therefore use the least-square method to arrive at 
+a functional representation of the field inside the element which is as 
+close as possible (in the least-squares sense, then) to the particle-based field. 
+
+\textcite{thmk14} use the $Q_2P_{-1}$ element and introduce an 
+element-wise interpolation
+scheme based on a least squares fitting of the particle properties and choose the functional to 
+be a linear function to match the pressure space. 
+They define the error $\epsilon$ such that 
+\[
+\epsilon^2 = \sum_{i=1}^n ( \tilde{f}(x_i,y_i)-f_i)^2
+\]
+with $\tilde{f}(x,y)=a+bx+cy$ and proceed to  
+look for the minimum of $\epsilon^2$, i.e. $\vec\nabla(\epsilon^2)=0$ in the $\{a,b,c\}$ space:
+\begin{eqnarray}
+0=\frac{\partial \epsilon^2}{\partial a} 
+&=& 2\sum\limits_i ( \tilde{f}(x_i,y_i)-f_i) \nn\\
+&=& 2\sum\limits_i ( a + bx_i +cy_i -f_i) \nn\\
+&=& 2 \left[ a \sum\limits_i 1 + b \sum\limits_i x_i + c \sum y_i - \sum\limits_i f_i \right] \nn\\
+0=\frac{\partial \epsilon^2}{\partial b} &=& 2\sum\limits_i ( \tilde{f}(x_i,y_i)-f_i) x_i \nn\\
+&=& 2\sum\limits_i ( a + bx_i +cy_i -f_i) x_i \nn\\
+&=& 2 \left[ a \sum\limits_i x_i  + b \sum\limits_i x_i^2 + c \sum x_i y_i - \sum\limits_i x_i f_i \right]\nn\\
+0=\frac{\partial \epsilon^2}{\partial c} &=& 2\sum\limits_i ( \tilde{f}(x_i,y_i)-f_i) y_i \nn\\ 
+&=& 2\sum\limits_i ( a + bx_i +cy_i -f_i) y_i \nn\\
+&=& 2 \left[ a \sum\limits_i y_i + b \sum\limits_i x_i y_i + c \sum y_i^2 - \sum\limits_i y_if_i \right] \nn
+\end{eqnarray}
+so 
+\[
+\left( 
+\begin{array}{ccc}
+\sum\limits_i 1 & \sum\limits_i x_i & \sum\limits_i y_i \\
+\sum\limits_i x_i & \sum\limits_i x_i^2 & \sum\limits_i x_iy_i \\
+\sum\limits_i y_i & \sum\limits_i x_i y_i & \sum\limits_i y_i^2 
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{c}
+a\\ \\
+b\\ \\
+c
+\end{array}
+\right)
+=
+\left(
+\begin{array}{c}
+\sum\limits_i f_i \\
+\sum\limits_i x_i f_i \\
+\sum\limits_i y_i f_i 
+\end{array}
+\right)
+\]
+This method can trivially be extended to three dimensions. It must also be noted that 
+it is not cheap: for each element the matrix and rhs above must be formed and the system 
+solved for $a,b,c$. 
+
+
+We could also then decide to use a bi-linear function $\tilde{f}$, i.e.
+\[
+\tilde{f}(x,y)=a+bx+cy+dxy
+\]
+which lies in the $Q_1$ space of Taylor-Hood quadrilateral elements. In this case the error is 
+\[
+\epsilon^2 
+= \sum_{i=1}^n ( \tilde{f}(x_i,y_i)-f_i)^2
+= \sum_{i=1}^n (a+bx_i+cy_i + dx_iy_i -f_i)^2
+\]
+and one has to solve a $4\times 4$ system this time:
+\[
+\left( 
+\begin{array}{cccc}
+\sum\limits_i 1 & \sum\limits_i x_i & \sum\limits_i y_i & \sum\limits_i x_iy_i\\
+\sum\limits_i x_i & \sum\limits_i x_i^2 & \sum\limits_i x_iy_i & \sum\limits_i x_i^2 y_i\\
+\sum\limits_i y_i & \sum\limits_i x_i y_i & \sum\limits_i y_i^2 & \sum\limits_i x_iy_i^2\\ 
+\sum\limits_i x_iy_i & \sum\limits_i x_i y_i & \sum\limits_i y_i^2 & \sum\limits_i x_i^2y_i^2  
+\end{array}
+\right)
+\cdot
+\left(
+\begin{array}{c}
+a\\
+b\\
+c\\
+d
+\end{array}
+\right)
+=
+\left(
+\begin{array}{c}
+\sum\limits_i f_i \\
+\sum\limits_i x_i f_i \\
+\sum\limits_i y_i f_i \\
+\sum\limits_i x_i y_i f_i 
+\end{array}
+\right)
+\]
+which we write ${\bm A}\cdot \vec{c}={\bm b}$. Note that 
+the matrix ${\bm A}$ is symmetric.
+We see that this is a potentially numerically problematic equation. 
+Distances/coordinates in geodynamic calculations are of the order of 100-1000\si{\km} and 
+viscosities are between $10^{19}$ and $10^{26}$\si{\pascal\second}. 
+The matrix would contain very large terms, which may compromise the accuracy of the system solve.
+
+Once this linear system (or the previous one) has been solved we have obtained the coefficients $a,b,c(,d)$ 
+which allow us to compute $\tilde{f}$ anywhere inside the element, and especially 
+at the quadrature points. Once these coefficients have been obtained one can compute $\tilde{f}$
+anywhere in the element, and in particular at the quadrature points.  
+
+Using a different (bi)linear function $\tilde{f}$ for each element 
+means that it is likely to be discontinuous 
+from one element to another in regions of high gradients. 
+
+There is however one drawback with this approach (linear or bi-linear alike):
+in the areas of steep gradients the computed coefficients can be such that 
+the function $\tilde{f}$ evaluated on a quadrature point 
+is negative  which 1) would be wrong but not numerically 
+dramatic for density, 2) would be wrong and physically and numerically 
+problematic for viscosity (a viscosity cannot be negative, and this would 
+automatically destroy the SPD nature of the viscous block of the Stokes matrix).
+
+
+This problem is discussed in \textcite{thmk14} in Section 3.2.1 and they 
+call this "Over- and Under-shooting". A simple (iterative) 
+fix is then designed which insures that the computed value is within user-defined 
+acceptable bounds. This is also mentioned in \cite{galb19} but the authors 
+explain that this problem was not encountered in the context of the publication.
+
+Remark: One could consider the above least-square approach with $\tilde{f}=a$, i.e. $\tilde{f}$ is
+a zero-th order polynomial. In this case
+\[
+\epsilon^2 = \sum_{i=1}^n ( \tilde{f}(x_i,y_i)-f_i)^2 = \sum_{i=1}^n (a-f_i)^2 
+\]
+The gradient becomes
+\[
+\vec\nabla(\epsilon^2)= \frac{d \epsilon^2}{da} = \sum_{i=1}^n 2 (a-f_i) = 0
+\]
+or $a=\frac1n \sum_i f_i$. We here recover the arithmetic averaging!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 \newpage
@@ -242,7 +516,7 @@ are related to/defined on the velocity nodes while those ending in
 are related to/defined on the pressure nodes. 
 
 \begin{center}
-\includegraphics[width=7cm]{IMAGES/q2q1setup} % borrowed from stone 18
+\includegraphics[width=8cm]{IMAGES/q2q1setup} % borrowed from stone 18
 \end{center}
 
 
@@ -262,31 +536,38 @@ $\theta$ and $\phi$:
 \end{center}
 
 
+\subsection{Mesh related parameters}
 
 \begin{itemize}
-\item \lstinline{exx,ezz,exz}: strain rate tensor ${\bm \varepsilon}(\vec\upnu)$
-\item \lstinline{dxx,dzz,dxz}: deviatoric strain rate tensor ${\bm \varepsilon}^d(\vec\upnu)$
-\item \lstinline{tauxx,tauzz,tauxz}: deviatoric stress ${\bm \tau}$
-\item \lstinline{sigmaxx,sigmazz,sigmaxz}: full stress tensor ${\bm \sigma}$
-\item \lstinline{T}: temperature array
-\item \lstinline{p}: pressure field (on Q1 mesh)
-\item \lstinline{q}: pressure field (on Q2 mesh)
-\item \lstinline{u,w}:  velocity components arrays
-\item \lstinline{vrms}: root mean square velocity $\upnu_{rms}$
 \item \lstinline{nelx,nelz}: number of elements in each direction
 \item \lstinline{nnx,nnz}: number of V nodes in each direction
 \item \lstinline{nel}: number of elements
 \item \lstinline{nn_V}: number of velocity nodes
 \item \lstinline{nn_P}: number of pressure nodes
 \item \lstinline{ndof_V_el}: number of V dofs per element (=18)
-\item \lstinline{Nfem_V}: number of velocity degrees of freedom
-\item \lstinline{Nfem_P}: number of pressure degrees of freedom
-\item \lstinline{Nfem_T}: number of temperature degrees of freedom
-\item \lstinline{Nfem}: total number of degrees of freedom (Stokes eqs) 
 \item \lstinline{m_V}: number of velocity nodes per element (=9)
 \item \lstinline{m_P}: number of pressure nodes per element (=4)
 \item \lstinline{m_T}: number of temperature nodes per element (=9)
 \item \lstinline{hx,hz}: size of an element
+\item \lstinline{Nfem_V}: number of velocity degrees of freedom
+\item \lstinline{Nfem_P}: number of pressure degrees of freedom
+\item \lstinline{Nfem_T}: number of temperature degrees of freedom
+\item \lstinline{Nfem}: total number of degrees of freedom (Stokes eqs) 
+\item \lstinline{vrms}: root mean square velocity $\upnu_{rms}$
+\end{itemize}
+
+\subsection{Mesh related arrays}
+
+\begin{itemize}
+\item \lstinline{exx_n,ezz_n,exz_n}: strain rate tensor ${\bm \varepsilon}(\vec\upnu)$ on the nodes
+\item \lstinline{exx_e,ezz_e,exz_e}: strain rate tensor ${\bm \varepsilon}(\vec\upnu)$ in the element center
+\item \lstinline{dxx_n,dzz_n,dxz_n}: deviatoric strain rate tensor ${\bm \varepsilon}^d(\vec\upnu)$ on the nodes
+\item \lstinline{tauxx_n,tauzz_n,tauxz_n}: deviatoric stress ${\bm \tau}$ on the nodes
+\item \lstinline{sigmaxx_n,sigmazz_n,sigmaxz_n}: full stress tensor ${\bm \sigma}$ on the nodes
+\item \lstinline{T}: temperature array
+\item \lstinline{p}: pressure field (on $Q_1$ mesh)
+\item \lstinline{q}: pressure field (on $Q_2$ mesh)
+\item \lstinline{u,w}:  velocity components arrays
 \item \lstinline{x_V,y_V}: coordinates arrays of velocity nodes
 \item \lstinline{x_P,y_P}: coordinates arrays of pressure nodes
 \item \lstinline{icon_V}: connectivity array for velocity nodes
@@ -295,20 +576,66 @@ $\theta$ and $\phi$:
 \item \lstinline{bc_fix_T, bc_val_T}: boundary conditions arrays for temperature
 \item \lstinline{N_V, dNdr_V, dNdt_V, dNdx_V, dNdz_V}: velocity basis functions and derivatives
 \item \lstinline{N_P}: pressure basis functions
-\item \lstinline{qx_nodal, qz_nodal}: nodal heat flux component
+\item \lstinline{qx_n, qz_n}: nodal heat flux component
 \item \lstinline{II_V, JJ_V, VV_V}: arrays to store Stokes FEM matrix
 \item \lstinline{II_T, JJ_T, VV_T}: arrays to store energy FEM matrix
 \item \lstinline{r_V, s_V}: arrays of size \lstinline{m_V} containing red coords of V nodes
 \item \lstinline{rad_V, theta_V}: polar coordinates of V nodes, i.e. $\theta_V\in[-\pi/2,\pi/2]$
 \item \lstinline{rad_P, theta_P}: polar coordinates of P nodes
-
 \end{itemize}
+
+\subsection{Particle swarm related arrays and parameters}
+
+\begin{itemize}
+\item \lstinline{swarm_x}: 
+\item \lstinline{swarm_z}:
+\item \lstinline{swarm_rho}:
+\item \lstinline{swarm_eta}:
+\item \lstinline{swarm_T}:
+\item \lstinline{swarm_p}:
+\item \lstinline{swarm_F}:
+\item \lstinline{swarm_sst}:
+\item \lstinline{swarm_exx}:
+\item \lstinline{swarm_ezz}:
+\item \lstinline{swarm_exz}:
+\item \lstinline{swarm_iel}:
+\item \lstinline{swarm_rad}:
+\item \lstinline{swarm_theta}:
+\item \lstinline{swarm_u}:
+\item \lstinline{swarm_w}:
+\item \lstinline{swarm_r}:
+\item \lstinline{swarm_t}:
+\item \lstinline{swarm_strain}:
+\item \lstinline{swarm_active}:
+\item \lstinline{swarm_hcond}:
+\item \lstinline{swarm_hcapa}:
+\item \lstinline{swarm_hprod}:
+\end{itemize}
+
+\subsection{Quadrature related arrays and parameters}
+
+\begin{itemize}
+\item \lstinline{nq_per_element=nq_per_dim**ndim}
+\item \lstinline{nq=nq_per_element*nel}
+\item \lstinline{xq,zq}
+\item \lstinline{rhoq}
+\item \lstinline{etaq}
+\item \lstinline{Tq}
+\item \lstinline{hcondq}
+\item \lstinline{hcapaq}
+\item \lstinline{hprodq}
+\item \lstinline{dpdxq,dpdzq}
+\item \lstinline{gxq,gzq}
+\item \lstinline{exxq,ezzq,exzq}
+\item \lstinline{JxWq}
+\item \lstinline{jcbi00q,jcbi01q,jcbi10q,jcbi11q}
+\item \lstinline{nqperdim,qcoords,qweights}
+\end{itemize}
+
 
 \newpage
 %==============================================================================
 \section{Conversions between coordinate systems}
-
-{\color{red} I need to rewrite the entire code in the xz plane, not xy plane!}
 
 %-------------------
 \subsection{vectors}
@@ -995,6 +1322,15 @@ by differences in the gravitational force due to a density variations.
 In the following, we largely follow the exposition of this
 material in Schubert, Turcotte and Olson \cite{scto01}.
 
+\[
+{\bm \sigma} = -p \; {\bm 1} + {\bm \tau}
+\]
+\[
+{\bm \tau} = 2 \eta \dot{\bm \varepsilon}^d(\vec\upnu) = 2\eta \left(\dot{\bm \varepsilon}(\vec \upnu)
+                                  - \frac{1}{3}(\vec\nabla \cdot \vec \upnu)\mathbf 1\right)
+\]
+
+
 Specifically, we consider the following set of equations for 
 velocity $\vec\upnu$, pressure $p$ and temperature $T$:
 \begin{align}
@@ -1052,6 +1388,105 @@ terms of this equation correspond to
 \end{itemize}
 
 
+
+\subsubsection{A word about the shear heating term}
+It is defined as
+\[
+\Phi=2 \eta
+\left(\dot\varepsilon(\vec\upnu) - \frac{1}{3}(\vec\nabla \cdot \vec \upnu)\mathbf 1\right)
+:
+\left(\dot\varepsilon(\vec\upnu) - \frac{1}{3}(\vec\nabla \cdot \vec \upnu)\mathbf 1\right)
+\]
+We start from the 3d strain rate tensor 
+\[
+\dot{\bm \varepsilon}(\vec\upnu) = 
+\left(
+\begin{array}{ccc}
+\dot{\varepsilon}_{xx} & \dot{\varepsilon}_{xy} & \dot{\varepsilon}_{xz} \\
+\dot{\varepsilon}_{yx} & \dot{\varepsilon}_{yy} & \dot{\varepsilon}_{yz} \\
+\dot{\varepsilon}_{zx} & \dot{\varepsilon}_{zy} & \dot{\varepsilon}_{zz} 
+\end{array}
+\right)
+\]
+
+The plane strain assumption is such that the problem at hand is assumed to be  
+infinite in a given direction. In the case of computational geodynamics, most 2D  
+modelling is a vertical section of the crust-lithosphere-mantle
+and the underlying implicit assumption is then that the orogen/rift/subduction/etc ... 
+is infinite in the direction perpendicular to the screen/paper.  
+
+Let us assume that the deformation takes place in the $x,z$-plane,
+so that $v=0$ (velocity in the $y$ direction is zero) and $\partial_y \rightarrow 0$ 
+(no change in the $y$ direction).
+We then have $\dot{\varepsilon}_{yy}=0$ as well as $\dot{\varepsilon}_{xy}=0$ 
+and $\dot{\varepsilon}_{yz}=0$, so that the strain rate tensor is  
+\[
+\dot{\bm \varepsilon}(\vec\upnu)=
+\left( \begin{array}{ccc}
+\dot{\varepsilon}_{xx} & 0 & \dot{\varepsilon}_{xz} \\
+0 & 0 & 0  \\
+\dot{\varepsilon}_{xz} & 0 & \dot{\varepsilon}_{zz} 
+\end{array}\right)
+\]
+where we have also used the fact that the tensor is symmetric.
+The deviatoric strain rate tensor in plane strain is given by
+\[
+\dot{\bm \varepsilon}^d(\vec\upnu) 
+= \dot{\bm \varepsilon}(\vec\upnu) -\frac{1}{3} {\rm tr}[\dot{\bm \varepsilon}]   {\bm 1} 
+= \dot{\bm \varepsilon}(\vec\upnu) -\frac{1}{3} (\dot{\varepsilon}_{xx} +\dot{\varepsilon}_{zz}   )  {\bm 1} 
+=
+\left(
+\begin{array}{ccc}
+\frac{2}{3}\dot{\varepsilon}_{xx} -\frac{1}{3}\dot{\varepsilon}_{zz} & \dot{\varepsilon}_{xy} & 0 \\
+\dot{\varepsilon}_{yx} & -\frac{1}{3} \dot{\varepsilon}_{xx} -\frac{1}{3}\dot{\varepsilon}_{zz} & 0 \\
+0 & 0 & -\frac{1}{3}\dot{\varepsilon}_{xx} +\frac{2}{3} \dot{\varepsilon}_{zz} 
+\end{array}
+\right)
+\]
+We then have
+\begin{eqnarray}
+&&\dot{\bm \varepsilon}^d(\vec\upnu) : \dot{\bm \varepsilon}^d(\vec\upnu) \nn\\
+&=& 
+\left(
+\begin{array}{ccc}
+\frac{2}{3}\dot{\varepsilon}_{xx} -\frac{1}{3}\dot{\varepsilon}_{zz} & \dot{\varepsilon}_{xy} & 0 \\
+\dot{\varepsilon}_{yx} & -\frac{1}{3} \dot{\varepsilon}_{xx} -\frac{1}{3}\dot{\varepsilon}_{zz} & 0 \\
+0 & 0 & -\frac{1}{3}\dot{\varepsilon}_{xx} +\frac{2}{3} \dot{\varepsilon}_{zz} 
+\end{array}
+\right)
+:
+\left(
+\begin{array}{ccc}
+\frac{2}{3}\dot{\varepsilon}_{xx} -\frac{1}{3}\dot{\varepsilon}_{zz} & \dot{\varepsilon}_{xy} & 0 \\
+\dot{\varepsilon}_{yx} & -\frac{1}{3} \dot{\varepsilon}_{xx} -\frac{1}{3}\dot{\varepsilon}_{zz} & 0 \\
+0 & 0 & -\frac{1}{3}\dot{\varepsilon}_{xx} +\frac{2}{3} \dot{\varepsilon}_{zz} 
+\end{array}
+\right) \nn\\
+&=&
+\left(\frac{2}{3}\dot{\varepsilon}_{xx} -\frac{1}{3}\dot{\varepsilon}_{zz} \right)^2 
++ 
+\left(-\frac{1}{3} \dot{\varepsilon}_{xx} -\frac{1}{3}\dot{\varepsilon}_{zz} \right)^2 
++ 
+\left(-\frac{1}{3}\dot{\varepsilon}_{xx} +\frac{2}{3} \dot{\varepsilon}_{zz} \right)^2 
++ 2  \dot{\varepsilon}_{xz}^2 
+\nn\\
+&=& (\frac49 +\frac19 +\frac19) \dot{\varepsilon}_{xx}^2 + 
+(\frac19 + \frac49 + \frac19 )\dot{\varepsilon}_{zz}^2 
++(-\frac29 -\frac29 +\frac19) \dot{\varepsilon}_{xx} \dot{\varepsilon}_{zz} 
++ 2  \dot{\varepsilon}_{xz}^2 \nn\\
+&=&  \frac23  \dot{\varepsilon}_{xx}^2 + 
+\frac23 \dot{\varepsilon}_{zz}^2 
+-\frac13  \dot{\varepsilon}_{xx} \dot{\varepsilon}_{zz} 
++ 2  \dot{\varepsilon}_{xz}^2 
+\end{eqnarray}
+
+This translates as follows in the code:
+\begin{lstlisting}
+b_el[:]+=N[:]*JxWq[iq]*2*etaq[iel,iq]*\
+       (2./3.*(exxq[iel,iq]**2+ezzq[iel,iq]**2)\
+       -exxq[iel,iq]*ezzq[iel,iq]/3+2*exzq[iel,iq]**2)
+\end{lstlisting}
+
 \newpage
 %==============================================================
 \section{Equation of state}
@@ -1104,8 +1539,8 @@ p and T) is then described by the well-known equation:
 - \alpha T  \vec\upnu \cdot \rho \vec{g} 
 + {\bm \tau} : \vec\nabla \vec\upnu + Q
 \]
-where $C_p$ is the isobaric speciﬁc heat, $\alpha$ is the thermal expansion
-coefﬁcient and vr denotes the radial component of velocity. The
+where $C_p$ is the isobaric specific heat, $\alpha$ is the thermal expansion
+coefficient and vr denotes the radial component of velocity. The
 left-hand side of equation 8 represents local changes of heat balance; 
 the second (third) term on the right-hand side describes ad-
 vection of heat (adiabatic heating and/or cooling).
@@ -1398,8 +1833,6 @@ where $\eta_0\sim 10^{21}$ .
 - vrms in axisymmetry
 
 - check dev strain rate in axisymm 
-
-- rename xc, zc, rad\_c,... consistently
  
 - top\_element vs top\_nodeS
 
@@ -1408,9 +1841,6 @@ where $\eta_0\sim 10^{21}$ .
 - run schmeling subduction - 
 
 - if ss detected make sure vtus are produced 
-
-
-
 
 
 

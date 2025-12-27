@@ -1,3 +1,7 @@
+###################################################################################################
+# MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
+###################################################################################################
+
 CFLnb=0.25
 tol_ss=-1e-8
 pressure_normalisation='surface'
@@ -20,6 +24,7 @@ nsamplepoints=0
 xsamplepoints=[0]
 zsamplepoints=[0]
 dt_max=1e30
+compute_dynamic_topography=False
 
 #######################################
 # finite elements
@@ -30,6 +35,7 @@ top_free_slip=False
 bot_free_slip=False
 method_nodal_strain_rate=1
 compute_plith=False
+compute_L2_errors=False
 
 #######################################
 # debug pparameters 

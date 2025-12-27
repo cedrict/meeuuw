@@ -1,11 +1,16 @@
+###################################################################################################
+# MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
+###################################################################################################
+
 import numpy as np
 from toolbox import *
 
-###############################################################################
+###################################################################################################
 
-def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel_unit,TKelvin,x_V,z_V,u,w,q,T,
-                           eta_nodal,rho_nodal,exx_nodal,ezz_nodal,exz_nodal,e_nodal,divv_nodal,qx_nodal,qz_nodal,
-                           rho_elemental,exx_e,ezz_e,exz_e,divv_e,sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal,rad_V,theta_V,
+def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel_unit,TKelvin,\
+                           x_V,z_V,u,w,q,T,eta_nodal,rho_nodal,exx_nodal,ezz_nodal,exz_nodal,\
+                           e_nodal,divv_nodal,qx_nodal,qz_nodal,rho_elemental,exx_e,ezz_e,exz_e,\
+                           divv_e,sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal,rad_V,theta_V,
                            eta_elemental,nparticle_elemental,area,icon_V,bc_fix_V,bc_fix_T,geometry,
                            gx_nodal,gz_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt,plith,
                            exx_el,ezz_el,exz_el,taurr_nodal,tautt_nodal,taurt_nodal,
@@ -191,7 +196,6 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
           vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
        rho_nodal.tofile(vtufile,sep=' ',format='%.5e')
        vtufile.write("</DataArray>\n")
-
        #--
        if solve_T:
           vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Heat flux' Format='ascii'> \n")
@@ -220,9 +224,6 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
           exz_e.tofile(vtufile,sep=' ',format='%.5e')
           vtufile.write("</DataArray>\n")
           #--
-
-
-
        #--
        if solve_Stokes:
           if particle_rho_projection=='elemental':
@@ -239,7 +240,6 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
           vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
        rho_elemental.tofile(vtufile,sep=' ',format='%.5e')
        vtufile.write("</DataArray>\n")
-
        #--
        if particle_rho_projection=='least_squares':
           vtufile.write("<DataArray type='Float32' Name='Density (*)' Format='ascii'> \n")
@@ -250,7 +250,6 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
           vtufile.write("<DataArray type='Float32' Name='Viscosity (*)' Format='ascii'> \n")
           ls_eta_a.tofile(vtufile,sep=' ',format='%.5e')
           vtufile.write("</DataArray>\n")
-
        #--
        vtufile.write("<DataArray type='Int32' Name='nb particles' Format='ascii'> \n")
        for iel in range (0,nel):
@@ -277,14 +276,12 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
           vtufile.write("<DataArray type='Float32' Name='e' Format='ascii'> \n")
           ee_el.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
-
        #--
        if debug_sol:
           vtufile.write("<DataArray type='Float32' Name='area' Format='ascii'> \n")
           for iel in range (0,nel):
               vtufile.write("%e \n" % (area[iel]))
           vtufile.write("</DataArray>\n")
-
        #--
        vtufile.write("</CellData>\n")
        #####
@@ -314,4 +311,4 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
        vtufile.write("</VTKFile>\n")
        vtufile.close()
 
-###############################################################################
+###################################################################################################

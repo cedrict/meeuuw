@@ -1,3 +1,7 @@
+###################################################################################################
+# MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
+###################################################################################################
+
 import numpy as np
 import numba
 import scipy.sparse as sps
@@ -123,4 +127,4 @@ def compute_nodal_strain_rate2(bignb,II,JJ,m_T,nq_per_element,icon_V,u,v,nn_V,ne
 
     return exx_n,eyy_n,exy_n,e_n
 
-###############################################################################
+###################################################################################################

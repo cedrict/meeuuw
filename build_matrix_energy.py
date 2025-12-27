@@ -1,12 +1,17 @@
+###################################################################################################
+# MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
+###################################################################################################
+
+from constants import *
 import numpy as np
 import numba
 
 ## PB: shear heating should use dev strain rate
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
-def build_matrix_energy(bignb,nel,nqel,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,wq,\
+def build_matrix_energy(bignb,nel,nq_per_element,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,wq,\
                         hcondq,hcapaq,exxq,ezzq,exzq,dpdxq,dpdzq,JxWq,N_V,dNdr_V,dNds_V,\
                         jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
                         bc_fix_T,bc_val_T,dt,formulation,rho0):
@@ -19,16 +24,16 @@ def build_matrix_energy(bignb,nel,nqel,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,wq,\
     counter=0
     for iel in range(0,nel):
 
-        b_el=np.zeros(m_T,dtype=np.float64)
-        A_el=np.zeros((m_T,m_T),dtype=np.float64)
+        b_el=np.zeros(m_T,dtype=np.float64)       # elemental rhs
+        A_el=np.zeros((m_T,m_T),dtype=np.float64) # elemental matrix
         Ka=np.zeros((m_T,m_T),dtype=np.float64)   # elemental advection matrix 
         Kd=np.zeros((m_T,m_T),dtype=np.float64)   # elemental diffusion matrix 
         MM=np.zeros((m_T,m_T),dtype=np.float64)   # elemental mass matrix 
-        velq=np.zeros((1,2),dtype=np.float64)
+        velq=np.zeros((1,ndim),dtype=np.float64)  # velocity at quad point
 
         Tvect[0:m_T]=T[icon_V[0:m_T,iel]]
 
-        for iq in range(0,nqel):
+        for iq in range(0,nq_per_element):
 
             N=N_V[iq,:]
 
@@ -87,4 +92,4 @@ def build_matrix_energy(bignb,nel,nqel,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,wq,\
 
     return VV_T,rhs
 
-###############################################################################
+###################################################################################################

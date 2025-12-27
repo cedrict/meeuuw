@@ -1,11 +1,15 @@
+###################################################################################################
+# MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
+###################################################################################################
 import numpy as np
 
 ###################################################################################################
 
-def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticle,solve_T,vel_scale,swarm_x,swarm_z,\
-                        swarm_u,swarm_w,swarm_mat,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
-                        swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_iel,\
-                        swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst):
+def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticle,solve_T,\
+                        vel_scale,swarm_x,swarm_z,swarm_u,swarm_w,swarm_mat,swarm_rho,swarm_eta,\
+                        swarm_r,swarm_t,swarm_p,swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,\
+                        swarm_iel,swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,\
+                        swarm_F,swarm_sst):
 
        debug_swarm=False
 
@@ -35,15 +39,15 @@ def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticl
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='exx' Format='binary'> \n")
-          swarm_exx.tofile(vtufile,sep=' ')
+          swarm_exx.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='ezz' Format='binary'> \n")
-          swarm_ezz.tofile(vtufile,sep=' ')
+          swarm_ezz.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='exz' Format='binary'> \n")
-          swarm_exz.tofile(vtufile,sep=' ')
+          swarm_exz.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='Pressure' Format='binary'> \n")
@@ -51,11 +55,11 @@ def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticl
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='r' Format='binary'> \n")
-          swarm_r.tofile(vtufile,sep=' ')
+          swarm_r.tofile(vtufile,sep=' ',format='%.3e')
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='t' Format='binary'> \n")
-          swarm_t.tofile(vtufile,sep=' ')
+          swarm_t.tofile(vtufile,sep=' ',format='%.3e')
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Int32' Name='iel' Format='binary'> \n")
@@ -72,47 +76,47 @@ def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticl
        #--
        if use_melting:
           vtufile.write("<DataArray type='Float32' Name='F' Format='binary'> \n")
-          swarm_F.tofile(vtufile,sep=' ')
+          swarm_F.tofile(vtufile,sep=' ',format='%.3e')
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='super solidus T' Format='binary'> \n")
-          swarm_sst.tofile(vtufile,sep=' ')
+          swarm_sst.tofile(vtufile,sep=' ',format='%.3e')
           vtufile.write("</DataArray>\n")
        #--
        if solve_Stokes:
           vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='binary'> \n")
-          swarm_eta.tofile(vtufile,sep=' ')
+          swarm_eta.tofile(vtufile,sep=' ',format='%.3e')
           vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='Strain' Format='binary'> \n")
-       swarm_strain.tofile(vtufile,sep=' ')
+       swarm_strain.tofile(vtufile,sep=' ',format='%.3e')
        vtufile.write("</DataArray>\n")
        #--
        if debug_swarm and geometry=='quarter':
           vtufile.write("<DataArray type='Float32' Name='rad' Format='binary'> \n")
-          swarm_rad.tofile(vtufile,sep=' ')
+          swarm_rad.tofile(vtufile,sep=' ',format='%.3e')
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='theta' Format='binary'> \n")
-          swarm_theta.tofile(vtufile,sep=' ')
+          swarm_theta.tofile(vtufile,sep=' ',format='%.3e')
           vtufile.write("</DataArray>\n")
        #--
        if debug_swarm and solve_T:
           swarm_TK=swarm_T-TKelvin
           vtufile.write("<DataArray type='Float32' Name='Temperature' Format='binary'> \n")
-          swarm_TK.tofile(vtufile,sep=' ')
+          swarm_TK.tofile(vtufile,sep=' ',format='%.3e')
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='hcond' Format='binary'> \n")
-          swarm_hcond.tofile(vtufile,sep=' ')
+          swarm_hcond.tofile(vtufile,sep=' ',format='%.3e')
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='hcapa' Format='binary'> \n")
-          swarm_hcapa.tofile(vtufile,sep=' ')
+          swarm_hcapa.tofile(vtufile,sep=' ',format='%.3e')
           vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Int32' Name='Paint' Format='binary'> \n")
-       swarm_paint.tofile(vtufile,sep=' ')
+       swarm_paint.tofile(vtufile,sep=' ',format='%.2e')
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("</PointData>\n")

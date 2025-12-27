@@ -1,8 +1,12 @@
+###################################################################################################
+# MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
+###################################################################################################
+
 import numpy as np
 import numba
 from constants import *
 
-###############################################################################
+###################################################################################################
 
 @numba.njit
 def compute_gravity_at_point(xs,ys,nel,xc,yc,rho,vol,rho_ref):
@@ -32,7 +36,8 @@ def compute_gravity_at_point(xs,ys,nel,xc,yc,rho,vol,rho_ref):
 
     return ggx,ggy,gnorm
 
-###############################################################################
+###################################################################################################
+# this is a placeholder !!
 
 def compute_gravity_at_point_axisymmetric(xs,ys,nel,xc,yc,rho,vol,rho_ref):
 
@@ -43,4 +48,4 @@ def compute_gravity_at_point_axisymmetric(xs,ys,nel,xc,yc,rho,vol,rho_ref):
 
     return ggx,ggy,gnorm
 
-###############################################################################
+###################################################################################################

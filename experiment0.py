@@ -15,7 +15,7 @@ end_time=0.25
 every_solution_vtu=10
 every_swarm_vtu=100
 RKorder=-1
-nstep=10
+nstep=100
 
 ###################################################################################################
 
@@ -25,8 +25,8 @@ match(icase):
    case '1a':
       Lx=1
       Ra=1e4
-      nelx=32
-      nelz=32
+      nelx=64
+      nelz=64
    case '1b':
       Lx=1
       Ra=1e5
