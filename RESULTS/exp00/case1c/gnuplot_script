@@ -1,0 +1,53 @@
+#
+set term pdf enhanced font 'Times,12pt'
+set grid
+set pointsize .1
+set key outside
+
+
+set xlabel 'time'
+set ylabel 'v_{rms}'
+
+set output 'vrms.pdf'
+plot[][]\
+'OUTPUT_16/vrms.ascii' w l t '16x16',\
+'OUTPUT_24/vrms.ascii' w l t '24x24',\
+'OUTPUT_32/vrms.ascii' w l t '32x32',\
+'OUTPUT_48/vrms.ascii' w l t '48x48',\
+'OUTPUT_64/vrms.ascii' w l t '64x64',\
+'statistics' u 2:($11) w l t 'ASPECT, 32^2',\
+833.99 lt -1 dt 2 lw .25 
+
+set output 'vrms_zoom.pdf'
+plot[][]\
+'OUTPUT_16/vrms.ascii' w l t '16x16',\
+'OUTPUT_24/vrms.ascii' w l t '24x24',\
+'OUTPUT_32/vrms.ascii' w l t '32x32',\
+'OUTPUT_48/vrms.ascii' w l t '48x48',\
+'OUTPUT_64/vrms.ascii' w l t '64x64',\
+'statistics' u 2:($11) w l t 'ASPECT, 32^2',\
+833.99 lt -1 lw .25 
+
+############################################
+
+set ylabel 'Nu'
+set output 'Nu.pdf'
+plot[][]\
+'OUTPUT_16/Nu.ascii' w l t '16x16',\
+'OUTPUT_24/Nu.ascii' w l t '24x24',\
+'OUTPUT_32/Nu.ascii' w l t '32x32',\
+'OUTPUT_48/Nu.ascii' w l t '48x48',\
+'OUTPUT_64/Nu.ascii' w l t '64x64',\
+'statistics' u 2:20 w l t 'ASPECT, 32^2',\
+21.97 lt -1 dt 2 lw .25
+
+set ylabel 'Nu'
+set output 'Nu_zoom.pdf'
+plot[][]\
+'OUTPUT_16/Nu.ascii' w l t '16x16',\
+'OUTPUT_24/Nu.ascii' w l t '24x24',\
+'OUTPUT_32/Nu.ascii' w l t '32x32',\
+'OUTPUT_48/Nu.ascii' w l t '48x48',\
+'OUTPUT_64/Nu.ascii' w l t '64x64',\
+'statistics' u 2:20 w l t 'ASPECT, 32^2',\
+21.97 lt -1 dt 2 lw .25
