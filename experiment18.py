@@ -22,9 +22,6 @@ nodal_projection_type=1
 #debug_ascii=True
 #remove_rho_profile=True
 
-#particle_rho_projection='least_squares'
-#particle_eta_projection='least_squares'
-
 ###################################################################################################
 
 def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\

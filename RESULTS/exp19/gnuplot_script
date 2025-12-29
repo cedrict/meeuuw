@@ -1,24 +1,38 @@
+#
 set term pdf enhanced font "times,12pt"
 set grid
 set log xy
-set pointsize .5
+set pointsize .25
 set xlabel 'h'
 set ylabel 'L_2 errors'
 set key outside
 set output 'errors.pdf'
 
-plot[:0.15][]\
+plot[3e-3:0.15][]\
 'errors.ascii' u (1./sqrt($5)):3 w lp pt 5 t 'velocity',\
 'errors.ascii' u (1./sqrt($5)):4 w lp pt 5 t 'pressure',\
 x**3/80 lt -1 dt 2 t 'h^3',\
 x**2/10 lt -1 dt 3 t 'h^2'
 
 ############################################
+set pointsize .3
 
 set xlabel 'Nfem'
 set ylabel 'time (s)'
 
-set output 'solve_times.pdf'
-plot[][]\
-'solve_times.ascii' u 7:5 w lp pt 5 t 'laptop',\
-x**1.85/3e7 lt -1 dt 2 t 'x^{1.85}'
+set output 'solve_times1.pdf'
+plot[][0.005:250]\
+'solve_times_powersaver.ascii'  u 7:5 w lp pt 5 t 'laptop (power saver)',\
+'solve_times_performance.ascii' u 7:5 w lp pt 5 ps .2 t 'laptop (performance)',\
+x**1.8/3e7 lt -1 dt 2 t 'x^{1.8}'
+
+############################################
+set pointsize .3
+
+set xlabel 'nelx=nelz'
+set ylabel 'time (s)'
+
+set output 'solve_times2.pdf'
+plot[][0.005:250]\
+'solve_times_performance.ascii' u (sqrt($8)):5 w lp pt 5 t 'laptop (performance)',\
+x**3.3/170000 lt -1 dt 2 t 'x^{3.3}'

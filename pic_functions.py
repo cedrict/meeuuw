@@ -964,8 +964,8 @@ def compute_ls_coefficients_Q1(nel,x_e,z_e,swarm_x,swarm_z,swarm_iel,swarm_rho,s
        swarm_rho,swarm_eta: density, viscosity on particles 
        swarm_iel: cell index of all particles
     Returns:
-       ls_rho_a,ls_rho_n,ls_rho_c,ls_rho_d: coeffs for ls density linear fit
-       ls_eta_a,ls_eta_n,ls_eta_c,ls_eta_d: coeffs for ls viscosity linear fit
+       ls_rho_a,ls_rho_n,ls_rho_c,ls_rho_d: coeffs for ls density bilinear fit
+       ls_eta_a,ls_eta_n,ls_eta_c,ls_eta_d: coeffs for ls viscosity bilinear fit
     """
 
     ls_rho_a=np.zeros(nel,dtype=np.float64) 
@@ -998,21 +998,16 @@ def compute_ls_coefficients_Q1(nel,x_e,z_e,swarm_x,swarm_z,swarm_iel,swarm_rho,s
             A_ls[0,1]+=s_x[ip]
             A_ls[0,2]+=s_z[ip]
             A_ls[0,3]+=s_x[ip]*s_z[ip]
-
             A_ls[1,1]+=s_x[ip]**2
             A_ls[1,2]+=s_x[ip]*s_z[ip]
             A_ls[1,3]+=s_x[ip]**2*s_z[ip]
-
             A_ls[2,2]+=s_z[ip]**2
             A_ls[2,3]+=s_x[ip]*s_z[ip]**2
-
-            A_ls[3,3]+=s_x[i]**2*s_z[ip]**2
-
+            A_ls[3,3]+=s_x[ip]**2*s_z[ip]**2
             rhs_eta_ls[0]+=s_eta[ip]
             rhs_eta_ls[1]+=s_eta[ip]*s_x[ip]
             rhs_eta_ls[2]+=s_eta[ip]*s_z[ip]
             rhs_eta_ls[3]+=s_eta[ip]*s_x[ip]*s_z[ip]
-
             rhs_rho_ls[0]+=s_rho[ip]
             rhs_rho_ls[1]+=s_rho[ip]*s_x[ip]
             rhs_rho_ls[2]+=s_rho[ip]*s_z[ip]
@@ -1041,13 +1036,108 @@ def compute_ls_coefficients_Q1(nel,x_e,z_e,swarm_x,swarm_z,swarm_iel,swarm_rho,s
 
     #end for iel
 
-    return ls_rho_a,ls_rho_b,ls_rho_c,ls_rho_d,ls_eta_a,ls_eta_b,ls_eta_c,ls_eta_d,rho_min_e,rho_max_e,eta_min_e,eta_max_e
+    return ls_rho_a,ls_rho_b,ls_rho_c,ls_rho_d,\
+           ls_eta_a,ls_eta_b,ls_eta_c,ls_eta_d,\
+           rho_min_e,rho_max_e,eta_min_e,eta_max_e
 
 ###################################################################################################
 # export least square fields in vtu format with P1 field defined over each element
 ###################################################################################################
 
-def output_fields_ls(istep,nel,x,z,icon,x_e,z_e,ls_rho_a,ls_rho_b,ls_rho_c,ls_eta_a,ls_eta_b,ls_eta_c):
+def output_fields_ls_P1(istep,nel,x,z,icon,x_e,z_e,ls_rho_a,ls_rho_b,ls_rho_c,ls_eta_a,ls_eta_b,ls_eta_c):
+
+       filename = 'OUTPUT/fields_ls_{:04d}.vtu'.format(istep) 
+       vtufile=open(filename,"w")
+       vtufile.write("<VTKFile type='UnstructuredGrid' version='0.1' byte_order='BigEndian'> \n")
+       vtufile.write("<UnstructuredGrid> \n")
+       vtufile.write("<Piece NumberOfPoints=' %5d ' NumberOfCells=' %5d '> \n" %(4*nel,nel))
+       #####
+       vtufile.write("<Points> \n")
+       vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Format='ascii'> \n")
+       for iel in range(0,nel):
+           vtufile.write("%.4e %.1e %.4e \n" %(x[icon[0,iel]],0.,z[icon[0,iel]]))
+           vtufile.write("%.4e %.1e %.4e \n" %(x[icon[1,iel]],0.,z[icon[1,iel]]))
+           vtufile.write("%.4e %.1e %.4e \n" %(x[icon[2,iel]],0.,z[icon[2,iel]]))
+           vtufile.write("%.4e %.1e %.4e \n" %(x[icon[3,iel]],0.,z[icon[3,iel]]))
+       vtufile.write("</DataArray>\n")
+       vtufile.write("</Points> \n")
+       #--
+       vtufile.write("<CellData Scalars='scalars'>\n")
+
+       vtufile.write("<DataArray type='Float32' Name='ls_rho_a' Format='ascii'> \n")
+       ls_rho_a.tofile(vtufile,sep=' ',format='%.4e')
+       vtufile.write("</DataArray>\n")
+
+       vtufile.write("<DataArray type='Float32' Name='ls_rho_b' Format='ascii'> \n")
+       ls_rho_b.tofile(vtufile,sep=' ',format='%.4e')
+       vtufile.write("</DataArray>\n")
+
+       vtufile.write("<DataArray type='Float32' Name='ls_rho_c' Format='ascii'> \n")
+       ls_rho_c.tofile(vtufile,sep=' ',format='%.4e')
+       vtufile.write("</DataArray>\n")
+
+       vtufile.write("<DataArray type='Float32' Name='ls_eta_a' Format='ascii'> \n")
+       ls_eta_a.tofile(vtufile,sep=' ',format='%.4e')
+       vtufile.write("</DataArray>\n")
+
+       vtufile.write("<DataArray type='Float32' Name='ls_eta_b' Format='ascii'> \n")
+       ls_eta_b.tofile(vtufile,sep=' ',format='%.4e')
+       vtufile.write("</DataArray>\n")
+
+       vtufile.write("<DataArray type='Float32' Name='ls_eta_c' Format='ascii'> \n")
+       ls_eta_c.tofile(vtufile,sep=' ',format='%.4e')
+       vtufile.write("</DataArray>\n")
+
+       vtufile.write("</CellData>\n")
+       vtufile.write("<PointData Scalars='scalars'>\n")
+       #--
+       vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
+       for iel in range (0,nel):
+           vtufile.write("%e\n" % (ls_rho_a[iel]+ls_rho_b[iel]*(x[icon[0,iel]]-x_e[iel])+ls_rho_c[iel]*(z[icon[0,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_rho_a[iel]+ls_rho_b[iel]*(x[icon[1,iel]]-x_e[iel])+ls_rho_c[iel]*(z[icon[1,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_rho_a[iel]+ls_rho_b[iel]*(x[icon[2,iel]]-x_e[iel])+ls_rho_c[iel]*(z[icon[2,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_rho_a[iel]+ls_rho_b[iel]*(x[icon[3,iel]]-x_e[iel])+ls_rho_c[iel]*(z[icon[3,iel]]-z_e[iel]) ))
+       vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")
+       for iel in range (0,nel):
+           vtufile.write("%e\n" % (ls_eta_a[iel]+ls_eta_b[iel]*(x[icon[0,iel]]-x_e[iel])+ls_eta_c[iel]*(z[icon[0,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_eta_a[iel]+ls_eta_b[iel]*(x[icon[1,iel]]-x_e[iel])+ls_eta_c[iel]*(z[icon[1,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_eta_a[iel]+ls_eta_b[iel]*(x[icon[2,iel]]-x_e[iel])+ls_eta_c[iel]*(z[icon[2,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_eta_a[iel]+ls_eta_b[iel]*(x[icon[3,iel]]-x_e[iel])+ls_eta_c[iel]*(z[icon[3,iel]]-z_e[iel]) ))
+       vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("</PointData>\n")
+       #####
+       vtufile.write("<Cells>\n")
+       #--
+       vtufile.write("<DataArray type='Int32' Name='connectivity' Format='ascii'> \n")
+       for iel in range (0,nel):
+           vtufile.write("%d %d %d %d\n" %(iel*4,iel*4+1,iel*4+2,iel*4+3))
+       vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("<DataArray type='Int32' Name='offsets' Format='ascii'> \n")
+       for iel in range (0,nel):
+           vtufile.write("%d \n" %((iel+1)*4))
+       vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("<DataArray type='Int32' Name='types' Format='ascii'>\n")
+       for iel in range (0,nel):
+           vtufile.write("%d \n" %5)
+       vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("</Cells>\n")
+       #####
+       vtufile.write("</Piece>\n")
+       vtufile.write("</UnstructuredGrid>\n")
+       vtufile.write("</VTKFile>\n")
+       vtufile.close()
+
+###################################################################################################
+# export least square fields in vtu format with Q1 field defined over each element
+###################################################################################################
+
+def output_fields_ls_Q1(istep,nel,x,z,icon,x_e,z_e,ls_rho_a,ls_rho_b,ls_rho_c,ls_rho_d,ls_eta_a,ls_eta_b,ls_eta_c,ls_eta_d):
 
        filename = 'OUTPUT/fields_ls_{:04d}.vtu'.format(istep) 
        vtufile=open(filename,"w")
@@ -1067,46 +1157,80 @@ def output_fields_ls(istep,nel,x,z,icon,x_e,z_e,ls_rho_a,ls_rho_b,ls_rho_c,ls_et
        #--
        vtufile.write("<CellData Scalars='scalars'>\n")
        vtufile.write("<DataArray type='Float32' Name='ls_rho_a' Format='ascii'> \n")
-       for iel in range (0,nel):
-           vtufile.write("%e\n" % (ls_rho_a[iel]))
+       ls_rho_a.tofile(vtufile,sep=' ',format='%.4e')
        vtufile.write("</DataArray>\n")
        vtufile.write("<DataArray type='Float32' Name='ls_rho_b' Format='ascii'> \n")
-       for iel in range (0,nel):
-           vtufile.write("%e\n" % (ls_rho_b[iel]))
+       ls_rho_b.tofile(vtufile,sep=' ',format='%.4e')
        vtufile.write("</DataArray>\n")
        vtufile.write("<DataArray type='Float32' Name='ls_rho_c' Format='ascii'> \n")
-       for iel in range (0,nel):
-           vtufile.write("%e\n" % (ls_rho_c[iel]))
+       ls_rho_c.tofile(vtufile,sep=' ',format='%.4e')
        vtufile.write("</DataArray>\n")
+       vtufile.write("<DataArray type='Float32' Name='ls_rho_d' Format='ascii'> \n")
+       ls_rho_d.tofile(vtufile,sep=' ',format='%.4e')
+       vtufile.write("</DataArray>\n")
+
        vtufile.write("<DataArray type='Float32' Name='ls_eta_a' Format='ascii'> \n")
-       for iel in range (0,nel):
-           vtufile.write("%e\n" % (ls_eta_a[iel]))
+       ls_eta_a.tofile(vtufile,sep=' ',format='%.4e')
        vtufile.write("</DataArray>\n")
        vtufile.write("<DataArray type='Float32' Name='ls_eta_b' Format='ascii'> \n")
-       for iel in range (0,nel):
-           vtufile.write("%e\n" % (ls_eta_b[iel]))
+       ls_eta_b.tofile(vtufile,sep=' ',format='%.4e')
        vtufile.write("</DataArray>\n")
        vtufile.write("<DataArray type='Float32' Name='ls_eta_c' Format='ascii'> \n")
-       for iel in range (0,nel):
-           vtufile.write("%e\n" % (ls_eta_c[iel]))
+       ls_eta_c.tofile(vtufile,sep=' ',format='%.4e')
        vtufile.write("</DataArray>\n")
+       vtufile.write("<DataArray type='Float32' Name='ls_eta_d' Format='ascii'> \n")
+       ls_eta_d.tofile(vtufile,sep=' ',format='%.4e')
+       vtufile.write("</DataArray>\n")
+
        vtufile.write("</CellData>\n")
        vtufile.write("<PointData Scalars='scalars'>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='Density' Format='ascii'> \n")
        for iel in range (0,nel):
-           vtufile.write("%e\n" % (ls_rho_a[iel]+ls_rho_b[iel]*(x[icon[0,iel]]-x_e[iel])+ls_rho_c[iel]*(z[icon[0,iel]]-z_e[iel]) ))
-           vtufile.write("%e\n" % (ls_rho_a[iel]+ls_rho_b[iel]*(x[icon[1,iel]]-x_e[iel])+ls_rho_c[iel]*(z[icon[1,iel]]-z_e[iel]) ))
-           vtufile.write("%e\n" % (ls_rho_a[iel]+ls_rho_b[iel]*(x[icon[2,iel]]-x_e[iel])+ls_rho_c[iel]*(z[icon[2,iel]]-z_e[iel]) ))
-           vtufile.write("%e\n" % (ls_rho_a[iel]+ls_rho_b[iel]*(x[icon[3,iel]]-x_e[iel])+ls_rho_c[iel]*(z[icon[3,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_rho_a[iel]
+                                  +ls_rho_b[iel]*(x[icon[0,iel]]-x_e[iel])
+                                  +ls_rho_c[iel]*(z[icon[0,iel]]-z_e[iel]) 
+                                  +ls_rho_d[iel]*(x[icon[0,iel]]-x_e[iel])
+                                                *(z[icon[0,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_rho_a[iel]
+                                  +ls_rho_b[iel]*(x[icon[1,iel]]-x_e[iel])
+                                  +ls_rho_c[iel]*(z[icon[1,iel]]-z_e[iel]) 
+                                  +ls_rho_d[iel]*(x[icon[1,iel]]-x_e[iel])
+                                                *(z[icon[1,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_rho_a[iel]
+                                  +ls_rho_b[iel]*(x[icon[2,iel]]-x_e[iel])
+                                  +ls_rho_c[iel]*(z[icon[2,iel]]-z_e[iel]) 
+                                  +ls_rho_d[iel]*(x[icon[2,iel]]-x_e[iel])
+                                                *(z[icon[2,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_rho_a[iel]
+                                  +ls_rho_b[iel]*(x[icon[3,iel]]-x_e[iel])
+                                  +ls_rho_c[iel]*(z[icon[3,iel]]-z_e[iel]) 
+                                  +ls_rho_d[iel]*(x[icon[3,iel]]-x_e[iel])
+                                                *(z[icon[3,iel]]-z_e[iel]) ))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='Viscosity' Format='ascii'> \n")
        for iel in range (0,nel):
-           vtufile.write("%e\n" % (ls_eta_a[iel]+ls_eta_b[iel]*(x[icon[0,iel]]-x_e[iel])+ls_eta_c[iel]*(z[icon[0,iel]]-z_e[iel]) ))
-           vtufile.write("%e\n" % (ls_eta_a[iel]+ls_eta_b[iel]*(x[icon[1,iel]]-x_e[iel])+ls_eta_c[iel]*(z[icon[1,iel]]-z_e[iel]) ))
-           vtufile.write("%e\n" % (ls_eta_a[iel]+ls_eta_b[iel]*(x[icon[2,iel]]-x_e[iel])+ls_eta_c[iel]*(z[icon[2,iel]]-z_e[iel]) ))
-           vtufile.write("%e\n" % (ls_eta_a[iel]+ls_eta_b[iel]*(x[icon[3,iel]]-x_e[iel])+ls_eta_c[iel]*(z[icon[3,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_eta_a[iel]
+                                  +ls_eta_b[iel]*(x[icon[0,iel]]-x_e[iel])
+                                  +ls_eta_c[iel]*(z[icon[0,iel]]-z_e[iel]) 
+                                  +ls_eta_d[iel]*(x[icon[0,iel]]-x_e[iel])
+                                                *(z[icon[0,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_eta_a[iel]
+                                  +ls_eta_b[iel]*(x[icon[1,iel]]-x_e[iel])
+                                  +ls_eta_c[iel]*(z[icon[1,iel]]-z_e[iel]) 
+                                  +ls_eta_d[iel]*(x[icon[1,iel]]-x_e[iel])
+                                                *(z[icon[1,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_eta_a[iel]
+                                  +ls_eta_b[iel]*(x[icon[2,iel]]-x_e[iel])
+                                  +ls_eta_c[iel]*(z[icon[2,iel]]-z_e[iel]) 
+                                  +ls_eta_d[iel]*(x[icon[2,iel]]-x_e[iel])
+                                                *(z[icon[2,iel]]-z_e[iel]) ))
+           vtufile.write("%e\n" % (ls_eta_a[iel]
+                                  +ls_eta_b[iel]*(x[icon[3,iel]]-x_e[iel])
+                                  +ls_eta_c[iel]*(z[icon[3,iel]]-z_e[iel]) 
+                                  +ls_eta_d[iel]*(x[icon[3,iel]]-x_e[iel])
+                                                *(z[icon[3,iel]]-z_e[iel]) ))
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("</PointData>\n")

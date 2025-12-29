@@ -241,35 +241,31 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
        rho_elemental.tofile(vtufile,sep=' ',format='%.5e')
        vtufile.write("</DataArray>\n")
        #--
-       if particle_rho_projection=='least_squares':
+       if particle_rho_projection=='least_squares_P1' or particle_rho_projection=='least_squares_Q1':
           vtufile.write("<DataArray type='Float32' Name='Density (*)' Format='ascii'> \n")
           ls_rho_a.tofile(vtufile,sep=' ',format='%.5e')
           vtufile.write("</DataArray>\n")
        #--
-       if particle_eta_projection=='least_squares':
+       if particle_eta_projection=='least_squares_P1' or particle_eta_projection=='least_squares_Q1':
           vtufile.write("<DataArray type='Float32' Name='Viscosity (*)' Format='ascii'> \n")
           ls_eta_a.tofile(vtufile,sep=' ',format='%.5e')
           vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Int32' Name='nb particles' Format='ascii'> \n")
-       for iel in range (0,nel):
-           vtufile.write("%d \n" % (nparticle_elemental[iel]))
+       nparticle_elemental.tofile(vtufile,sep=' ',format='%d')
        vtufile.write("</DataArray>\n")
        #--
        if debug_sol and solve_Stokes and (not (geometry=='quarter' or geometry=='half')): 
           vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
-          for iel in range (0,nel):
-              vtufile.write("%e \n" % (exx_el[iel]))
+          exx.tofile(vtufile,sep=' ',format='%.5e')
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='ezz' Format='ascii'> \n")
-          for iel in range (0,nel):
-              vtufile.write("%e \n" % (ezz_el[iel]))
+          ezz.tofile(vtufile,sep=' ',format='%.5e')
           vtufile.write("</DataArray>\n")
           #--
           vtufile.write("<DataArray type='Float32' Name='exz' Format='ascii'> \n")
-          for iel in range (0,nel):
-              vtufile.write("%e \n" % (exz_el[iel]))
+          exz.tofile(vtufile,sep=' ',format='%.5e')
           vtufile.write("</DataArray>\n")
           #
           ee_el=effective(exx_el,ezz_el,exz_el)
@@ -279,8 +275,7 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
        #--
        if debug_sol:
           vtufile.write("<DataArray type='Float32' Name='area' Format='ascii'> \n")
-          for iel in range (0,nel):
-              vtufile.write("%e \n" % (area[iel]))
+          area.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
        #--
        vtufile.write("</CellData>\n")

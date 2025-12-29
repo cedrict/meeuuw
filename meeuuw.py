@@ -1113,6 +1113,9 @@ for istep in range(0,nstep):
        ls_rho_a,ls_rho_b,ls_rho_c,ls_eta_a,ls_eta_b,ls_eta_c,rho_min_e,rho_max_e,eta_min_e,eta_max_e=\
        compute_ls_coefficients_P1(nel,x_e,z_e,swarm_x,swarm_z,swarm_iel,swarm_rho,swarm_eta)
 
+       ls_rho_d=0.
+       ls_eta_d=0.
+
        for iel in range(0,nel):
            ls_rho_b[iel],ls_rho_c[iel]=limiter(ls_rho_a[iel],ls_rho_b[iel],ls_rho_c[iel],rho_min_e[iel],rho_max_e[iel],hx)
            ls_eta_b[iel],ls_eta_c[iel]=limiter(ls_eta_a[iel],ls_eta_b[iel],ls_eta_c[iel],eta_min_e[iel],eta_max_e[iel],hx)
@@ -1125,7 +1128,7 @@ for istep in range(0,nstep):
        print("     -> ls_eta_b (m,M) %.3e %.3e " %(np.min(ls_eta_b),np.max(ls_eta_b)))
        print("     -> ls_eta_c (m,M) %.3e %.3e " %(np.min(ls_eta_c),np.max(ls_eta_c)))
 
-       if debug: output_fields_ls_P1(istep,nel,x_V,z_V,icon_V,x_e,z_e,ls_rho_a,ls_rho_b,ls_rho_c,ls_eta_a,ls_eta_b,ls_eta_c)
+       output_fields_ls_P1(istep,nel,x_V,z_V,icon_V,x_e,z_e,ls_rho_a,ls_rho_b,ls_rho_c,ls_eta_a,ls_eta_b,ls_eta_c)
 
        print("least squares fit P1: ........................ %.3f s" % (clock.time()-start)) ; timings[25]+=clock.time()-start
 
@@ -1134,9 +1137,7 @@ for istep in range(0,nstep):
        ls_rho_a,ls_rho_b,ls_rho_c,ls_rho_d,ls_eta_a,ls_eta_b,ls_eta_c,ls_eta_d,rho_min_e,rho_max_e,eta_min_e,eta_max_e=\
        compute_ls_coefficients_Q1(nel,x_e,z_e,swarm_x,swarm_z,swarm_iel,swarm_rho,swarm_eta)
 
-       #for iel in range(0,nel):
-       #    ls_rho_b[iel],ls_rho_c[iel]=limiter(ls_rho_a[iel],ls_rho_b[iel],ls_rho_c[iel],rho_min_e[iel],rho_max_e[iel],hx)
-       #    ls_eta_b[iel],ls_eta_c[iel]=limiter(ls_eta_a[iel],ls_eta_b[iel],ls_eta_c[iel],eta_min_e[iel],eta_max_e[iel],hx)
+       print('**** no limiter***')
 
        print("     -> ls_rho_a (m,M) %.3e %.3e " %(np.min(ls_rho_a),np.max(ls_rho_a)))
        print("     -> ls_rho_b (m,M) %.3e %.3e " %(np.min(ls_rho_b),np.max(ls_rho_b)))
@@ -1148,8 +1149,8 @@ for istep in range(0,nstep):
        print("     -> ls_eta_c (m,M) %.3e %.3e " %(np.min(ls_eta_c),np.max(ls_eta_c)))
        print("     -> ls_eta_d (m,M) %.3e %.3e " %(np.min(ls_eta_d),np.max(ls_eta_d)))
 
-       if debug: output_fields_ls_Q1(istep,nel,x_V,z_V,icon_V,x_e,z_e,ls_rho_a,ls_rho_b,ls_rho_c,ls_rho_d,\
-                                     ls_eta_a,ls_eta_b,ls_eta_c,ls_eta_d)
+       output_fields_ls_Q1(istep,nel,x_V,z_V,icon_V,x_e,z_e,ls_rho_a,ls_rho_b,ls_rho_c,ls_rho_d,\
+                           ls_eta_a,ls_eta_b,ls_eta_c,ls_eta_d)
 
        print("least squares fit Q1: ........................ %.3f s" % (clock.time()-start)) ; timings[25]+=clock.time()-start
 
@@ -1283,10 +1284,16 @@ for istep in range(0,nstep):
           rhoq[iel,:]=rho_e[iel]
      case 'nodal':
       rhoq=Q1_project_nodal_field_onto_qpoints(rho_n,nq_per_element,nel,N_P,icon_V)
-     case 'least_squares':
+     case 'least_squares_P1':
       for iel in range(0,nel):
           for iq in range(nq_per_element):
               rhoq[iel,iq]=ls_rho_a[iel]+ls_rho_b[iel]*(xq[iel,iq]-x_e[iel])+ls_rho_c[iel]*(zq[iel,iq]-z_e[iel])
+     case 'least_squares_Q1':
+      for iel in range(0,nel):
+          for iq in range(nq_per_element):
+              rhoq[iel,iq]=ls_rho_a[iel]+ls_rho_b[iel]*(xq[iel,iq]-x_e[iel])\
+                                        +ls_rho_c[iel]*(zq[iel,iq]-z_e[iel])\
+                                        +ls_rho_d[iel]*(xq[iel,iq]-x_e[iel])*(zq[iel,iq]-z_e[iel])
      case _ :
       exit('particle_rho_projection: unknown value')
 
@@ -1303,10 +1310,16 @@ for istep in range(0,nstep):
           etaq[iel,:]=eta_e[iel]
      case 'nodal':
        etaq=Q1_project_nodal_field_onto_qpoints(eta_n,nq_per_element,nel,N_P,icon_V)
-     case 'least_squares':
+     case 'least_squares_P1':
       for iel in range(0,nel):
           for iq in range(nq_per_element):
               etaq[iel,iq]=ls_eta_a[iel]+ls_eta_b[iel]*(xq[iel,iq]-x_e[iel])+ls_eta_c[iel]*(zq[iel,iq]-z_e[iel])
+     case 'least_squares_Q1':
+      for iel in range(0,nel):
+          for iq in range(nq_per_element):
+              etaq[iel,iq]=ls_eta_a[iel]+ls_eta_b[iel]*(xq[iel,iq]-x_e[iel])\
+                                        +ls_eta_c[iel]*(zq[iel,iq]-z_e[iel])\
+                                        +ls_eta_d[iel]*(xq[iel,iq]-x_e[iel])*(zq[iel,iq]-z_e[iel])
      case _ :
       exit('particle_eta_projection: unknown value')
 
@@ -1400,7 +1413,8 @@ for istep in range(0,nstep):
     else:
        sol=np.zeros(Nfem,dtype=np.float64)
 
-    print("solve Stokes system: ......................... %.3f s %d" % (clock.time()-start, Nfem)) ; timings[2]+=clock.time()-start
+    print("solve Stokes system: ......................... %.3f s %d %d" % (clock.time()-start, Nfem, nel)) 
+    timings[2]+=clock.time()-start
 
     ###############################################################################################
     #@@ split solution into separate u,v,p velocity arrays

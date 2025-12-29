@@ -4,7 +4,6 @@ This manufactured solution originates in the book of \textcite{dohu03}.
 Boundary conditions are no-slip on all sides, 
 density and viscosity are constant and equal to 1 inside the domain. 
 The gravity vector is given by the following polynomial expressions:
-The components of the body force $\vec{b}$ are prescribed as  
 \begin{eqnarray}
 g_x &=& (12 - 24z) x^4 + (-24 + 48z) x^3 + (-48z + 72z^2 - 48 z^3 + 12) x^2 \nonumber\\
     && + (-2 + 24z -72z^2+48z^3)x + 1-4z + 12z^2-8z^3 \nonumber\\ 
@@ -31,25 +30,27 @@ The reason to carry out this experiment resides in
 the subsequent calculations of the $L_2$ errors of the 
 velocity and pressure fields. These errors 
 should decrease when the resolution is increased, at a given rate
-as documented for example in \textcite{thba22}, \textcite{thba25}.
+as documented for example in \textcite{thba22} or \textcite{thba25}.
 
 We then run a series of calculations from 
-\lstinline{nelx=nelz=16} to \lstinline{nelx=nelz=128} and
+\lstinline{nelx=nelz=16} to \lstinline{nelx=nelz=160} and
 recover the expected convergence rates: 
 
 \begin{center}
 \includegraphics[width=12cm]{exp19/errors.pdf}
 \end{center}
 
-We can also turn to the (direct) solver performance and look 
+We can also turn to the (direct) SciPy solver performance and look 
 at the Stokes solve time as a function of the total number of degrees
-of freedom:
+of freedom or the number of elements in each direction:
 
 \begin{center}
-\includegraphics[width=12cm]{exp19/solve_times.pdf}
+\includegraphics[width=8cm]{exp19/solve_times1.pdf}
+\includegraphics[width=8cm]{exp19/solve_times2.pdf}
 \end{center}
 
-
+We also find that the different modes 'Performance', 'Balanced', and 'Power Saver'
+in Ubuntu 24 on my laptop do not affect the solver speed at all...
 
 
 

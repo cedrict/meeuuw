@@ -22,8 +22,8 @@ nodal_projection_type=1
 #debug_ascii=True
 #remove_rho_profile=True
 
-particle_rho_projection='least_squares'
-particle_eta_projection='least_squares'
+particle_rho_projection='least_squares_Q1'
+particle_eta_projection='least_squares_Q1'
 
 p_scale=1e6 ; p_unit="MPa"
 vel_scale=cm/year ; vel_unit='cm/yr'
