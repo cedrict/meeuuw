@@ -13,7 +13,7 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
                            divv_e,sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal,rad_V,theta_V,
                            eta_elemental,nparticle_elemental,area,icon_V,bc_fix_V,bc_fix_T,geometry,
                            gx_nodal,gz_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt,plith,
-                           exx_el,ezz_el,exz_el,taurr_nodal,tautt_nodal,taurt_nodal,
+                           taurr_nodal,tautt_nodal,taurt_nodal,
                            particle_rho_projection,particle_eta_projection,ls_rho_a,ls_eta_a):
 
        debug_sol=False
@@ -224,6 +224,11 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
           exz_e.tofile(vtufile,sep=' ',format='%.5e')
           vtufile.write("</DataArray>\n")
           #--
+          #
+          ee_el=effective(exx_e,ezz_e,exz_e)
+          vtufile.write("<DataArray type='Float32' Name='e' Format='ascii'> \n")
+          ee_el.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
        #--
        if solve_Stokes:
           if particle_rho_projection=='elemental':
@@ -266,11 +271,6 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
           #--
           vtufile.write("<DataArray type='Float32' Name='exz' Format='ascii'> \n")
           exz.tofile(vtufile,sep=' ',format='%.5e')
-          vtufile.write("</DataArray>\n")
-          #
-          ee_el=effective(exx_el,ezz_el,exz_el)
-          vtufile.write("<DataArray type='Float32' Name='e' Format='ascii'> \n")
-          ee_el.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
        #--
        if debug_sol:

@@ -18,6 +18,7 @@ def global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ez
     GPE=0 # Gravitational potential energy
     ITE=0 # Internal thermal energy
     vrms=0 # root mean square velocity
+    Tavrg=0
 
     for iel in range(0,nel):
         for iq in range(0,nq_per_element):
@@ -28,11 +29,13 @@ def global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ez
             #GPE+=rhoq[iel,iq]*gzq[iel,iq]*(Lz-zq[iel,iq])                           *JxWq[iel,iq]
             ITE+=rhoq[iel,iq]*hcapaq[iel,iq]*Tq[iel,iq]                             *JxWq[iel,iq]
             vrms+=(uq[iel,iq]**2+wq[iel,iq]**2)                                     *JxWq[iel,iq]
+            Tavrg+=Tq[iel,iq]                                                       *JxWq[iel,iq]
         #end for iq
     #end for iel
     vrms=np.sqrt(vrms/volume) 
+    Tavrg/=volume
 
-    return vrms,EK,WAG,TVD,GPE,ITE,TM
+    return vrms,EK,WAG,TVD,GPE,ITE,TM,Tavrg
 
 ###############################################################################
 

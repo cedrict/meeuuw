@@ -28,7 +28,7 @@ def assign_parameters(icase):
 
 ###################################################################################################
 
-case_tosi=4
+case_tosi=1
 Lx=1
 Lz=1
 eta_ref=1
@@ -40,7 +40,6 @@ hcond=1
 hcapa=1 
 rho0=1
 Ra=1e4
-every_Nu=1
 end_time=0.25
 gamma_T=np.log(1e5)
 eta_star=1e-3 
@@ -48,14 +47,17 @@ eta_ref=1e-2
 Ra,sigma_y,gamma_y=assign_parameters(case_tosi)
 eta_min=1e-5
 eta_max=1
-every_solution_vtu=1
-every_swarm_vtu=5
-averaging='geometric'
-debug_ascii=False
+every_Nu=10
+every_solution_vtu=100
+every_swarm_vtu=10000
+RKorder=-1
+CFLnb=0.75
 
-nelx=32
-nelz=32
-nstep=10
+debug_nan=True
+
+nelx=80
+nelz=nelx
+nstep=500
 
 ###################################################################################################
 

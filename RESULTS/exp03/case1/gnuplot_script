@@ -1,0 +1,154 @@
+#
+set term pdf enhanced font 'Times,12pt'
+set grid
+set pointsize .1
+set key outside
+
+###################################
+set xlabel 'istep'
+set ylabel 'min/max u'
+
+set output 'stats_u.pdf'
+plot[][]\
+'48/stats_velocity.ascii' u 1:2 w l lt 3 t '48^2',\
+'48/stats_velocity.ascii' u 1:3 w l lt 3 notitle,\
+'64/stats_velocity.ascii' u 1:2 w l lt 4 t '64^2',\
+'64/stats_velocity.ascii' u 1:3 w l lt 4 notitle,\
+'80/stats_velocity.ascii' u 1:2 w l lt 5 t '80^2',\
+'80/stats_velocity.ascii' u 1:3 w l lt 5 notitle 
+
+set ylabel 'min/max w'
+set output 'stats_v.pdf'
+plot[][]\
+'48/stats_velocity.ascii' u 1:4 w l lt 3 t '48^2',\
+'48/stats_velocity.ascii' u 1:5 w l lt 3 notitle,\
+'64/stats_velocity.ascii' u 1:4 w l lt 4 t '64^2',\
+'64/stats_velocity.ascii' u 1:5 w l lt 4 notitle,\
+'80/stats_velocity.ascii' u 1:2 w l lt 5 t '80^2',\
+'80/stats_velocity.ascii' u 1:3 w l lt 5 notitle 
+
+###################################
+
+set xlabel 'time'
+set ylabel 'v_{rms}'
+
+set output 'vrms.pdf'
+plot[:][]\
+'24/vrms.ascii' w l t '24^2',\
+'32/vrms.ascii' w l t '32^2',\
+'48/vrms.ascii' w l t '48^2',\
+'64/vrms.ascii' w l t '64^2',\
+'80/vrms.ascii' w l t '80^2',\
+249 lt -1 dt 2 
+
+############################################
+
+set ylabel 'Nu'
+set output 'Nu.pdf'
+plot[:0.25][]\
+'24/Nu.ascii' w l t '24^2',\
+'32/Nu.ascii' w l t '32^2',\
+'48/Nu.ascii' w l t '48^2',\
+'64/Nu.ascii' w l t '64^2',\
+'80/Nu.ascii' w l t '80^2',\
+3.42 lt -1 dt 2 
+
+############################################
+
+set xlabel 'time'
+set ylabel 'work against gravity (WAG)'
+set output 'wag.pdf'
+plot[][]\
+'24/work_against_gravity.ascii' w l t '24^2',\
+'32/work_against_gravity.ascii' w l t '32^2',\
+'48/work_against_gravity.ascii' w l t '48^2',\
+'64/work_against_gravity.ascii' w l t '64^2',\
+'80/work_against_gravity.ascii' w l t '80^2',\
+
+############################################
+
+set xlabel 'time'
+set ylabel 'total viscous dissipation (TVD)'
+set output 'tvd.pdf'
+plot[][]\
+'24/viscous_dissipation.ascii' w l t '24^2',\
+'32/viscous_dissipation.ascii' w l t '32^2',\
+'48/viscous_dissipation.ascii' w l t '48^2',\
+'64/viscous_dissipation.ascii' w l t '64^2',\
+'80/viscous_dissipation.ascii' w l t '80^2',\
+
+############################################
+
+set xlabel 'time'
+set ylabel 'WAG-TVD'
+set output 'delta1.pdf'
+plot[][]\
+'24/delta_WAG_TVD.ascii' w l t '24^2',\
+'32/delta_WAG_TVD.ascii' w l t '32^2',\
+'48/delta_WAG_TVD.ascii' w l t '48^2',\
+'64/delta_WAG_TVD.ascii' w l t '64^2',\
+'80/delta_WAG_TVD.ascii' w l t '80^2',\
+
+set xlabel 'time'
+set ylabel '(WAG-TVD)/max(|WAG|,TVD'
+set output 'delta2.pdf'
+plot[][-0.05:0.05]\
+'24/delta_WAG_TVD.ascii' u 1:($2/$3)w l t '24^2',\
+'32/delta_WAG_TVD.ascii' u 1:($2/$3)w l t '32^2',\
+'48/delta_WAG_TVD.ascii' u 1:($2/$3)w l t '48^2',\
+'64/delta_WAG_TVD.ascii' u 1:($2/$3)w l t '64^2',\
+'80/delta_WAG_TVD.ascii' u 1:($2/$3)w l t '80^2',\
+
+############################################
+
+set output 'eta_q_min.pdf'
+set ylabel 'min({/Symbol h}_q)'
+plot[][]\
+'48/stats_eta_q.ascii' u 1:2 w l lt 3 t '48^2',\
+'64/stats_eta_q.ascii' u 1:2 w l lt 4 t '64^2',\
+'80/stats_eta_q.ascii' u 1:2 w l lt 5 t '80^2',\
+
+set output 'eta_q_max.pdf'
+set ylabel 'max({/Symbol h}_q)'
+plot[][]\
+'48/stats_eta_q.ascii' u 1:3 w l lt 3 t '48^2',\
+'64/stats_eta_q.ascii' u 1:3 w l lt 4 t '64^2',\
+'80/stats_eta_q.ascii' u 1:3 w l lt 5 t '80^2',\
+
+############################################
+
+set output 'avrg_profile_T.pdf'
+set ylabel 'z'
+set xlabel 'T' 
+plot[][]\
+'24/avrg_profile_T.ascii' u 2:1 w lp t '24^2',\
+'32/avrg_profile_T.ascii' u 2:1 w lp t '32^2',\
+'48/avrg_profile_T.ascii' u 2:1 w lp t '48^2',\
+'64/avrg_profile_T.ascii' u 2:1 w lp t '64^2',\
+'80/avrg_profile_T.ascii' u 2:1 w lp t '80^2',\
+'ggge20762-sup-0002-2015gc005807-ds01.txt' u 2:(1-$1) w l lt -1 dt 2   t 'Tosi et al, 2015'
+
+set output 'avrg_profile_vel.pdf'
+set ylabel 'z'
+set xlabel '|v|' 
+plot[][]\
+'24/avrg_profile_vel.ascii' u 2:1 w lp t '24^2',\
+'32/avrg_profile_vel.ascii' u 2:1 w lp t '32^2',\
+'48/avrg_profile_vel.ascii' u 2:1 w lp t '48^2',\
+'64/avrg_profile_vel.ascii' u 2:1 w lp t '64^2',\
+'80/avrg_profile_vel.ascii' u 2:1 w lp t '80^2',\
+'ggge20762-sup-0002-2015gc005807-ds01.txt' u 4:(1-$1) w l lt -1 dt 2  t 'Tosi et al, 2015'
+
+set log x 
+set output 'avrg_profile_eta.pdf'
+set ylabel 'z'
+set xlabel '{/Symbol h}' 
+plot[][]\
+'24/avrg_profile_eta.ascii' u 2:1 w lp t '24^2',\
+'32/avrg_profile_eta.ascii' u 2:1 w lp t '32^2',\
+'48/avrg_profile_eta.ascii' u 2:1 w lp t '48^2',\
+'64/avrg_profile_eta.ascii' u 2:1 w lp t '64^2',\
+'80/avrg_profile_eta.ascii' u 2:1 w lp t '80^2',\
+'ggge20762-sup-0002-2015gc005807-ds01.txt' u 3:(1-$1) w l lt -1 dt 2 t 'Tosi et al, 2015'
+
+unset log x
