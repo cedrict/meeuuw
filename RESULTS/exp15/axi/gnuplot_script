@@ -7,7 +7,9 @@ set xlabel 'nelx=nelz'
 set ylabel 'v_{sphere}'
 set output 'v_sphere.pdf'
 plot[][]\
-'measurements_exp15.ascii' u 10:6 w lp notitle,\
+'measurements_exp15.ascii' u 10:6 w lp t 'L_z=1',\
+'measurements_exp15_L125.ascii' u 10:6 w lp t 'L_z=1.25',\
+'measurements_exp15_eta10000.ascii' u 10:6 w lp t 'eta=10^4',\
 -1.72944e-05 lt -1 dt 2 t 'v_{Habermann}',\
 -1.72974e-05 lt -1 dt 3 t 'v_{Faxen}'
 

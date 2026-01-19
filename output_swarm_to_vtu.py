@@ -116,7 +116,7 @@ def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticl
           vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Int32' Name='Paint' Format='binary'> \n")
-       swarm_paint.tofile(vtufile,sep=' ',format='%.2e')
+       swarm_paint.tofile(vtufile,sep=' ',format='%.3e')
        vtufile.write("</DataArray>\n")
        #--
        vtufile.write("</PointData>\n")

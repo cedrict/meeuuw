@@ -13,6 +13,7 @@
 \usepackage{listings}
 \usepackage{tikz}
 \usepackage{amsfonts}
+\usepackage{csquotes}
 \lstset{ 
   language=Python,
   backgroundcolor=\color{white},   % choose the background color; you must add \usepackage{xcolor}; should come as last argument
@@ -57,15 +58,16 @@
 \section{Foreword}
 
 I have quite a history of naming codes and regretting my choice afterwards. \meeuuw
-is one more in my collection: SoPHa, SPHene, FANTOM, ELEFANT, FLAPS, FieldStone\footnote{\url{https://cedrict.github.io/}}.
+is one more in my collection: SoPHa, SPHene, FANTOM, ELEFANT, FLAPS, 
+FieldStone\footnote{\url{https://cedrict.github.io/}}.
 
 %==============================================================================
 \section{Install process}
 
-The code consists of about two dozens of Python files. 
+The code consists of about two dozens Python files. 
 Aside from standard Python modules (numpy, scipy, etc ...) the 
-numba\footnote{\url{https://numba.pydata.org/}} package also needs to be installed on the
-machine you are running the code.
+numba\footnote{\url{https://numba.pydata.org/}} package also needs to be 
+installed on the machine you are running the code.
 The reason for the use of this module is as follows: 
 ``Numba translates Python functions to optimized machine code at runtime using 
 the industry-standard LLVM compiler library. Numba-compiled numerical algorithms 
@@ -76,7 +78,6 @@ Python function, and Numba does the rest.'' [Taken from the numba website]
 
 If numba is not available on your machine, simply delete all occurences of 
 \lstinline{@numba.njit} before the functions.
-
 
 %==============================================================================
 \section{Philosophy}
@@ -95,18 +96,19 @@ outer radius \lstinline{Router} and an opening angle $\theta\in[0,\pi/2]$
 outer radius \lstinline{Router} and an opening angle $\theta\in[\pi/4,\pi/2]$
 \end{itemize}
 An axisymmetric option has been implemented for all four geometries\footnote{Only for the Stokes solver!
-no temp eq yet}.
+no energy equation yet}.
 
 {\color{red} add here figure of all 4 geometries}
 
-There is no adaptive mesh refinement nor mesh 'stretching'. 
+There is no adaptive mesh refinement nor mesh 'stretching' at the moment. 
 The mesh also does not deform (i.e. no ALE-type algorithm).
 The mesh consists of \lstinline{nelx*nelz} elements. In the case of curved domains 
 the topology of the mesh is the same but it is curved to conform to the domain boundaries.
 
 The code is not meant to compete with ASPECT or any similar code. It is 
 meant to be an educational tool, with MSc or PhD students in mind. 
-The interface is simple and flexible. 
+The interface is simple and flexible so that users can implement
+a specific rheology or setup in a few lines of code. 
 Inside a \lstinline{experimentX.py} file the user needs to specify the 
 necessary parameters (e.g. the resolution, domain size, number of timesteps, etc ...)
 and fill in a few template functions:
@@ -122,7 +124,7 @@ Run parameters also need to be defined this file, and if not the value in the
 {\tt set\_default\_parameters.py} file apply. 
 
 Because the code is only 2d the memory requirements (aside from the linear solver)
-are rather mild with respect with the amount of RAM even laptops now have.
+are rather mild with respect with the amount of RAM that laptop or desktop computers now have.
 As such I make no attempt at being cautious when it comes to memory use.
 This means for example that each particle carries a dozen or so field. 
 Likewise the material parameters are projected from the particles onto the 
@@ -319,7 +321,8 @@ parameters:
 \begin{itemize}
 \item \lstinline{'elemental}
 \item \lstinline{'nodal'}
-\item \lstinline{'least_squares'} -- see subsection below 
+\item \lstinline{'least_squares_P1'} -- see subsection below 
+\item \lstinline{'least_squares_Q1'} -- see subsection below 
 \end{itemize}
 
 
@@ -350,29 +353,29 @@ scheme based on a least squares fitting of the particle properties and choose th
 be a linear function to match the pressure space. 
 They define the error $\epsilon$ such that 
 \[
-\epsilon^2 = \sum_{i=1}^n ( \tilde{f}(x_i,y_i)-f_i)^2
+\epsilon^2 = \sum_{i=1}^n ( \tilde{f}(x_i,z_i)-f_i)^2
 \]
-with $\tilde{f}(x,y)=a+bx+cy$ and proceed to  
+with $\tilde{f}(x,z)=a+bx+cz$ and proceed to  
 look for the minimum of $\epsilon^2$, i.e. $\vec\nabla(\epsilon^2)=0$ in the $\{a,b,c\}$ space:
 \begin{eqnarray}
 0=\frac{\partial \epsilon^2}{\partial a} 
-&=& 2\sum\limits_i ( \tilde{f}(x_i,y_i)-f_i) \nn\\
-&=& 2\sum\limits_i ( a + bx_i +cy_i -f_i) \nn\\
-&=& 2 \left[ a \sum\limits_i 1 + b \sum\limits_i x_i + c \sum y_i - \sum\limits_i f_i \right] \nn\\
-0=\frac{\partial \epsilon^2}{\partial b} &=& 2\sum\limits_i ( \tilde{f}(x_i,y_i)-f_i) x_i \nn\\
-&=& 2\sum\limits_i ( a + bx_i +cy_i -f_i) x_i \nn\\
-&=& 2 \left[ a \sum\limits_i x_i  + b \sum\limits_i x_i^2 + c \sum x_i y_i - \sum\limits_i x_i f_i \right]\nn\\
-0=\frac{\partial \epsilon^2}{\partial c} &=& 2\sum\limits_i ( \tilde{f}(x_i,y_i)-f_i) y_i \nn\\ 
-&=& 2\sum\limits_i ( a + bx_i +cy_i -f_i) y_i \nn\\
-&=& 2 \left[ a \sum\limits_i y_i + b \sum\limits_i x_i y_i + c \sum y_i^2 - \sum\limits_i y_if_i \right] \nn
+&=& 2\sum\limits_i ( \tilde{f}(x_i,z_i)-f_i) \nn\\
+&=& 2\sum\limits_i ( a + bx_i +cz_i -f_i) \nn\\
+&=& 2 \left[ a \sum\limits_i 1 + b \sum\limits_i x_i + c \sum z_i - \sum\limits_i f_i \right] \nn\\
+0=\frac{\partial \epsilon^2}{\partial b} &=& 2\sum\limits_i ( \tilde{f}(x_i,z_i)-f_i) x_i \nn\\
+&=& 2\sum\limits_i ( a + bx_i +cz_i -f_i) x_i \nn\\
+&=& 2 \left[ a \sum\limits_i x_i  + b \sum\limits_i x_i^2 + c \sum x_i z_i - \sum\limits_i x_i f_i \right]\nn\\
+0=\frac{\partial \epsilon^2}{\partial c} &=& 2\sum\limits_i ( \tilde{f}(x_i,z_i)-f_i) z_i \nn\\ 
+&=& 2\sum\limits_i ( a + bx_i +cz_i -f_i) z_i \nn\\
+&=& 2 \left[ a \sum\limits_i z_i + b \sum\limits_i x_i z_i + c \sum z_i^2 - \sum\limits_i z_if_i \right] \nn
 \end{eqnarray}
 so 
 \[
 \left( 
 \begin{array}{ccc}
-\sum\limits_i 1 & \sum\limits_i x_i & \sum\limits_i y_i \\
-\sum\limits_i x_i & \sum\limits_i x_i^2 & \sum\limits_i x_iy_i \\
-\sum\limits_i y_i & \sum\limits_i x_i y_i & \sum\limits_i y_i^2 
+\sum\limits_i 1 & \sum\limits_i x_i & \sum\limits_i z_i \\
+\sum\limits_i x_i & \sum\limits_i x_i^2 & \sum\limits_i x_iz_i \\
+\sum\limits_i z_i & \sum\limits_i x_i z_i & \sum\limits_i z_i^2 
 \end{array}
 \right)
 \cdot
@@ -388,7 +391,7 @@ c
 \begin{array}{c}
 \sum\limits_i f_i \\
 \sum\limits_i x_i f_i \\
-\sum\limits_i y_i f_i 
+\sum\limits_i z_i f_i 
 \end{array}
 \right)
 \]
@@ -399,22 +402,22 @@ solved for $a,b,c$.
 
 We could also then decide to use a bi-linear function $\tilde{f}$, i.e.
 \[
-\tilde{f}(x,y)=a+bx+cy+dxy
+\tilde{f}(x,z)=a+bx+cz+dxz
 \]
 which lies in the $Q_1$ space of Taylor-Hood quadrilateral elements. In this case the error is 
 \[
 \epsilon^2 
-= \sum_{i=1}^n ( \tilde{f}(x_i,y_i)-f_i)^2
-= \sum_{i=1}^n (a+bx_i+cy_i + dx_iy_i -f_i)^2
+= \sum_{i=1}^n ( \tilde{f}(x_i,z_i)-f_i)^2
+= \sum_{i=1}^n (a+bx_i+cz_i + dx_iz_i -f_i)^2
 \]
 and one has to solve a $4\times 4$ system this time:
 \[
 \left( 
 \begin{array}{cccc}
-\sum\limits_i 1 & \sum\limits_i x_i & \sum\limits_i y_i & \sum\limits_i x_iy_i\\
-\sum\limits_i x_i & \sum\limits_i x_i^2 & \sum\limits_i x_iy_i & \sum\limits_i x_i^2 y_i\\
-\sum\limits_i y_i & \sum\limits_i x_i y_i & \sum\limits_i y_i^2 & \sum\limits_i x_iy_i^2\\ 
-\sum\limits_i x_iy_i & \sum\limits_i x_i y_i & \sum\limits_i y_i^2 & \sum\limits_i x_i^2y_i^2  
+\sum\limits_i 1 & \sum\limits_i x_i & \sum\limits_i z_i & \sum\limits_i x_iz_i\\
+\sum\limits_i x_i & \sum\limits_i x_i^2 & \sum\limits_i x_iz_i & \sum\limits_i x_i^2 z_i\\
+\sum\limits_i z_i & \sum\limits_i x_i z_i & \sum\limits_i z_i^2 & \sum\limits_i x_iz_i^2\\ 
+\sum\limits_i x_iz_i & \sum\limits_i x_i z_i & \sum\limits_i z_i^2 & \sum\limits_i x_i^2z_i^2  
 \end{array}
 \right)
 \cdot
@@ -431,8 +434,8 @@ d
 \begin{array}{c}
 \sum\limits_i f_i \\
 \sum\limits_i x_i f_i \\
-\sum\limits_i y_i f_i \\
-\sum\limits_i x_i y_i f_i 
+\sum\limits_i z_i f_i \\
+\sum\limits_i x_i z_i f_i 
 \end{array}
 \right)
 \]
@@ -442,6 +445,18 @@ We see that this is a potentially numerically problematic equation.
 Distances/coordinates in geodynamic calculations are of the order of 100-1000\si{\km} and 
 viscosities are between $10^{19}$ and $10^{26}$\si{\pascal\second}. 
 The matrix would contain very large terms, which may compromise the accuracy of the system solve.
+
+A typical 'fix' for some of these numerical problems is as follows. One postulates that 
+over element $e$ the field $\tilde{f}$ is given (in the $P_1$ case) by 
+\[
+\tilde{f}(x,z)=a+b(x-x_e)+c(z-z_e)+d(x-x_e)(z-z_e)
+\]
+where $x_e,z_e$ are the coordinates of the element center.
+This means that all the terms containing coordinates $x$ and $y$ in the matrix 
+are all about the same magnitude.
+However this may not be enough. If the particle distribution in the element is 
+not homogenous enough then the matrix may be ill-conditioned.
+
 
 Once this linear system (or the previous one) has been solved we have obtained the coefficients $a,b,c(,d)$ 
 which allow us to compute $\tilde{f}$ anywhere inside the element, and especially 
@@ -460,17 +475,58 @@ dramatic for density, 2) would be wrong and physically and numerically
 problematic for viscosity (a viscosity cannot be negative, and this would 
 automatically destroy the SPD nature of the viscous block of the Stokes matrix).
 
-
 This problem is discussed in \textcite{thmk14} in Section 3.2.1 and they 
 call this "Over- and Under-shooting". A simple (iterative) 
 fix is then designed which insures that the computed value is within user-defined 
-acceptable bounds. This is also mentioned in \cite{galb19} but the authors 
+acceptable bounds. 
+They write:
+\begin{displayquote}
+``
+If $f(x,z)$ possesses a jump inside an element, the value $\tilde{f}$ 
+at both the quadrature points and the nodes of 
+might be significantly larger or smaller than the
+maximum or minimum value of the same physical
+property on the particles. This over-shooting or
+under-shooting is not desirable as it might have a
+severe impact on the solution. In extreme cases, even
+unphysical results are possible (e.g., negative viscosities). 
+In our implementation of the linear least
+squares interpolation, we, therefore, check each
+element for over-shooting and under-shooting by
+inspecting the value of $\tilde{f}$ at the nodes of each
+element. We choose to use the nodal values as those
+to represent the locations where over-shooting and
+under-shooting have the biggest effect. Additionally,
+as we expect both the density and viscosity field to be
+continuous, the values at the nodes should not exhibit
+jumps that are too large. The nodal values that exhibit
+smaller/larger values than the minimum/maximum
+values stored on the particles are then set to the
+respective minimum and maximum values. We then
+compute the new coefficients of the linear regression
+plane using the updated nodal values only. This
+procedure is repeated until no nodal values are over-
+shooting or under-shooting. The values at the quadrature 
+points use the corrected coefficients. For better
+convergence of this iterative algorithm, we slightly
+relax the upper and lower limits and allow nodal
+values to over-/under-shoot by 1\% of the respective
+maximum/minimum value.
+''
+\end{displayquote}
+{\color{red} to do ?}
+
+This is also mentioned in \cite{galb19} but the authors 
 explain that this problem was not encountered in the context of the publication.
 
-Remark: One could consider the above least-square approach with $\tilde{f}=a$, i.e. $\tilde{f}$ is
+For the time being there is a limiter implemented for the $P_1$ case ({\color{red}
+I need to ask Gerry where it comes from - ref?}) and node for the $Q_1$ case.
+
+
+\underline{Remark:} One could consider the above least-square approach with $\tilde{f}=a$, i.e. $\tilde{f}$ is
 a zero-th order polynomial. In this case
 \[
-\epsilon^2 = \sum_{i=1}^n ( \tilde{f}(x_i,y_i)-f_i)^2 = \sum_{i=1}^n (a-f_i)^2 
+\epsilon^2 = \sum_{i=1}^n ( \tilde{f}(x_i,z_i)-f_i)^2 = \sum_{i=1}^n (a-f_i)^2 
 \]
 The gradient becomes
 \[

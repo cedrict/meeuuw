@@ -1,60 +1,283 @@
 #
 set term pdf enhanced font "Times,12pt"
 set grid
-set pointsize .2
+set pointsize .12
 set key left
 
-set title 'res 428x64'
+
+##############################################################
+# plane strain
+
+#---- surface
+
+set title 'plane strain - res 428x64 - top surface'
+
+set ylabel 'e_{rr}'
+set output 'ps_top_err.pdf' 
+plot[1.52:1.58][]\
+'res64_ps_0_0/top_err_nodal_0.ascii' w lp t 'Q_2 mapping',\
+'res64_ps_0_1/top_err_nodal_0.ascii' w lp t 'Q_1 mapping',\
+'res64_ps_1_0/top_err_nodal_0.ascii' w lp t 'Q_2 mapping -rho ',\
+'res64_ps_1_1/top_err_nodal_0.ascii' w lp t 'Q_1 mapping -rho'
+
+set ylabel 'pressure q'
+set output 'ps_top_q.pdf' 
+plot[1.52:1.58][]\
+'res64_ps_0_0/top_q_0.ascii' w lp t 'Q_2 mapping',\
+'res64_ps_0_1/top_q_0.ascii' w lp t 'Q_1 mapping',\
+'res64_ps_1_0/top_q_0.ascii' w lp t 'Q_2 mapping -rho',\
+'res64_ps_1_1/top_q_0.ascii' w lp t 'Q_1 mapping -rho'
+
+set ylabel 'dynamic topography (m)'
+set output 'ps_top_dynamic_topography.pdf' 
+plot[-pi/2:pi/2][]\
+'res64_ps_0_0/top_dynamic_topography_nodal_0.ascii' w lp t 'Q_2 mapping',\
+'res64_ps_0_1/top_dynamic_topography_nodal_0.ascii' w lp t 'Q_1 mapping',\
+'res64_ps_1_0/top_dynamic_topography_nodal_0.ascii' w lp t 'Q_2 mapping -rho',\
+'res64_ps_1_1/top_dynamic_topography_nodal_0.ascii' w lp t 'Q_1 mapping -rho',\
+
+#---- bottom
+
+set title 'plane strain - res 428x64 - bottom surface'
+
+set ylabel 'e_{rr}'
+set output 'ps_bot_err.pdf' 
+plot[1.52:1.58][]\
+'res64_ps_0_0/bot_err_nodal_0.ascii' w lp t 'Q_2 mapping',\
+'res64_ps_0_1/bot_err_nodal_0.ascii' w lp t 'Q_1 mapping',\
+'res64_ps_1_0/bot_err_nodal_0.ascii' w lp t 'Q_2 mapping -rho ',\
+'res64_ps_1_1/bot_err_nodal_0.ascii' w lp t 'Q_1 mapping -rho'
+
+set ylabel 'pressure q'
+set output 'ps_bot_q.pdf' 
+plot[1.52:1.58][]\
+'res64_ps_0_0/bot_q_0.ascii' w lp t 'Q_2 mapping',\
+'res64_ps_0_1/bot_q_0.ascii' w lp t 'Q_1 mapping',\
+'res64_ps_1_0/bot_q_0.ascii' w lp t 'Q_2 mapping -rho',\
+'res64_ps_1_1/bot_q_0.ascii' w lp t 'Q_1 mapping -rho'
+
+
+set ylabel 'dynamic topography (m)'
+set output 'ps_bot_dynamic_topography.pdf' 
+plot[-pi/2:pi/2][]\
+'res64_ps_0_0/bot_dynamic_topography_nodal0.ascii' w lp t 'Q_2 mapping',\
+'res64_ps_0_1/bot_dynamic_topography_nodal0.ascii' w lp t 'Q_1 mapping',\
+'res64_ps_1_0/bot_dynamic_topography_nodal0.ascii' w lp t 'Q_2 mapping -rho',\
+'res64_ps_1_1/bot_dynamic_topography_nodal0.ascii' w lp t 'Q_1 mapping -rho',\
+
+
+
+
+
+
+
+
+#------------------------------
+
+set title 'plane strain - top surface'
+
+set ylabel 'e_{rr}'
+set output 'ps_top_err_res.pdf' 
+plot[-pi/2:pi/2][]\
+'res16_ps/top_err_nodal_0.ascii' w l t '16',\
+'res32_ps/top_err_nodal_0.ascii' w l t '32',\
+'res48_ps/top_err_nodal_0.ascii' w l t '48',\
+'res64_ps/top_err_nodal_0.ascii' w l t '64',\
+'res80_ps/top_err_nodal_0.ascii' w l t '80',\
+'res96_ps/top_err_nodal_0.ascii' w l t '96'
+
+set ylabel 'pressure q'
+set output 'ps_top_q_res.pdf' 
+plot[-pi/2:pi/2][]\
+'res16_ps/top_q_0.ascii' w l t '16',\
+'res32_ps/top_q_0.ascii' w l t '32',\
+'res48_ps/top_q_0.ascii' w l t '48',\
+'res64_ps/top_q_0.ascii' w l t '64',\
+'res80_ps/top_q_0.ascii' w l t '80',\
+'res96_ps/top_q_0.ascii' w l t '96'
+
+set ylabel 'dynamic topography (m)'
+set output 'ps_top_dynamic_topography_res.pdf' 
+plot[-pi/2:pi/2][]\
+'res16_ps/top_dynamic_topography_nodal_0.ascii' w l t '16',\
+'res32_ps/top_dynamic_topography_nodal_0.ascii' w l t '32',\
+'res48_ps/top_dynamic_topography_nodal_0.ascii' w l t '48',\
+'res64_ps/top_dynamic_topography_nodal_0.ascii' w l t '64',\
+'res80_ps/top_dynamic_topography_nodal_0.ascii' w l t '80',\
+'res96_ps/top_dynamic_topography_nodal_0.ascii' w l t '96',\
+
+
+
+
+
+
+
+#------------------------------
+
+set title 'plane strain - bottom surface'
+
+set ylabel 'e_{rr}'
+set output 'ps_bot_err_res.pdf' 
+plot[-pi/2:pi/2][]\
+'res16_ps/bot_err_nodal_0.ascii' w l t '16',\
+'res32_ps/bot_err_nodal_0.ascii' w l t '32',\
+'res48_ps/bot_err_nodal_0.ascii' w l t '48',\
+'res64_ps/bot_err_nodal_0.ascii' w l t '64',\
+'res80_ps/bot_err_nodal_0.ascii' w l t '80',\
+'res96_ps/bot_err_nodal_0.ascii' w l t '96'
+
+set ylabel 'pressure q'
+set output 'ps_bot_q_res.pdf' 
+plot[-pi/2:pi/2][]\
+'res16_ps/bot_q_0.ascii' w l t '16',\
+'res32_ps/bot_q_0.ascii' w l t '32',\
+'res48_ps/bot_q_0.ascii' w l t '48',\
+'res64_ps/bot_q_0.ascii' w l t '64',\
+'res80_ps/bot_q_0.ascii' w l t '80',\
+'res96_ps/bot_q_0.ascii' w l t '96'
+
+set ylabel 'dynamic topography (m)'
+set output 'ps_bot_dynamic_topography_res.pdf' 
+plot[-pi/2:pi/2][]\
+'res16_ps/bot_dynamic_topography_nodal0.ascii' w l t '16',\
+'res32_ps/bot_dynamic_topography_nodal0.ascii' w l t '32',\
+'res48_ps/bot_dynamic_topography_nodal0.ascii' w l t '48',\
+'res64_ps/bot_dynamic_topography_nodal0.ascii' w l t '64',\
+'res80_ps/bot_dynamic_topography_nodal0.ascii' w l t '80',\
+'res96_ps/bot_dynamic_topography_nodal0.ascii' w l t '96',\
+
+
+
+
+
+
+##############################################################
+# axisymmetric
+
+
+
+
+set title 'axisymmetric - res 428x64 - top surface'
 
 set ylabel 'e_{rr}'
 set output 'axi_top_err.pdf' 
 plot[1.52:1.58][]\
-'axi/res64/top_err_0.ascii' w lp t 'Q_2 mapping',\
-'axi_fix/res64/top_err_0.ascii' w lp t 'Q_1 mapping',\
-'axi_rhoprofile/res64/top_err_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
-'axi_fix_rhoprofile/res64/top_err_0.ascii' w l t 'Q_1 mapping + rho substracted',\
-
-set output 'axi_bot_err.pdf' 
-plot[1.52:1.58][]\
-'axi/res64/bot_err_0.ascii' w lp t 'Q_2 mapping',\
-'axi_fix/res64/bot_err_0.ascii' w lp t 'Q_1 mapping',\
-'axi_rhoprofile/res64/bot_err_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
-'axi_fix_rhoprofile/res64/bot_err_0.ascii' w l t 'Q_1 mapping + rho substracted',\
-
-#####################################################
+'res64_axi_0_0/top_err_nodal_0.ascii' w lp t 'Q_2 mapping',\
+'res64_axi_0_1/top_err_nodal_0.ascii' w lp t 'Q_1 mapping',\
+'res64_axi_1_0/top_err_nodal_0.ascii' w lp t 'Q_2 mapping -rho',\
+'res64_axi_1_1/top_err_nodal_0.ascii' w lp t 'Q_1 mapping -rho'
 
 set ylabel 'pressure q'
 set output 'axi_top_q.pdf' 
 plot[1.52:1.58][]\
-'axi/res64/top_q_0.ascii' w lp t 'Q_2 mapping',\
-'axi_fix/res64/top_q_0.ascii' w lp t 'Q_1 mapping',\
-'axi_rhoprofile/res64/top_q_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
-'axi_fix_rhoprofile/res64/top_q_0.ascii' w l t 'Q_1 mapping + rho substracted',\
-
-set output 'axi_bot_q.pdf' 
-plot[1.52:1.58][]\
-'axi/res64/bot_q_0.ascii' w lp t 'Q_2 mapping',\
-'axi_fix/res64/bot_q_0.ascii' w lp t 'Q_1 mapping',\
-'axi_rhoprofile/res64/bot_q_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
-'axi_fix_rhoprofile/res64/bot_q_0.ascii' w l t 'Q_1 mapping + rho substracted',\
-
-
-#####################################################
+'res64_axi_0_0/top_q_0.ascii' w lp t 'Q_2 mapping',\
+'res64_axi_0_1/top_q_0.ascii' w lp t 'Q_1 mapping',\
+'res64_axi_1_0/top_q_0.ascii' w lp t 'Q_2 mapping -rho',\
+'res64_axi_1_1/top_q_0.ascii' w lp t 'Q_1 mapping -rho'
 
 set ylabel 'dynamic topography (m)'
 set output 'axi_top_dynamic_topography.pdf' 
 plot[1.52:1.58][]\
-'axi/res64/top_dynamic_topography_0.ascii' w lp t 'Q_2 mapping',\
-'axi_fix/res64/top_dynamic_topography_0.ascii' w lp t 'Q_1 mapping',\
-'axi_rhoprofile/res64/top_dynamic_topography_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
-'axi_fix_rhoprofile/res64/top_dynamic_topography_0.ascii' w l t 'Q_1 mapping + rho substracted',\
+'res64_axi_0_0/top_dynamic_topography_nodal_0.ascii' w lp t 'Q_2 mapping',\
+'res64_axi_0_1/top_dynamic_topography_nodal_0.ascii' w lp t 'Q_1 mapping',\
+'res64_axi_1_0/top_dynamic_topography_nodal_0.ascii' w lp t 'Q_2 mapping -rho',\
+'res64_axi_1_1/top_dynamic_topography_nodal_0.ascii' w lp t 'Q_1 mapping -rho',\
 
+
+
+set title 'axisymmetric - res 428x64 - bottom surface'
+
+set ylabel 'e_{rr}'
+set output 'axi_bot_err.pdf' 
+plot[1.52:1.58][]\
+'res64_axi_0_0/bot_err_nodal_0.ascii' w lp t 'Q_2 mapping',\
+'res64_axi_0_1/bot_err_nodal_0.ascii' w lp t 'Q_1 mapping',\
+'res64_axi_1_0/bot_err_nodal_0.ascii' w lp t 'Q_2 mapping -rho',\
+'res64_axi_1_1/bot_err_nodal_0.ascii' w lp t 'Q_1 mapping -rho'
+
+set ylabel 'pressure q'
+set output 'axi_bot_q.pdf' 
+plot[1.52:1.58][]\
+'res64_axi_0_0/bot_q_0.ascii' w lp t 'Q_2 mapping',\
+'res64_axi_0_1/bot_q_0.ascii' w lp t 'Q_1 mapping',\
+'res64_axi_1_0/bot_q_0.ascii' w lp t 'Q_2 mapping -rho',\
+'res64_axi_1_1/bot_q_0.ascii' w lp t 'Q_1 mapping -rho'
+
+set ylabel 'dynamic topography (m)'
 set output 'axi_bot_dynamic_topography.pdf' 
 plot[1.52:1.58][]\
-'axi/res64/bot_dynamic_topography_0.ascii' w lp t 'Q_2 mapping',\
-'axi_fix/res64/bot_dynamic_topography_0.ascii' w lp t 'Q_1 mapping',\
-'axi_rhoprofile/res64/bot_dynamic_topography_0.ascii' w l t 'Q_2 mapping + rho subtracted',\
-'axi_fix_rhoprofile/res64/bot_dynamic_topography_0.ascii' w l t 'Q_1 mapping + rho substracted',\
+'res64_axi_0_0/bot_dynamic_topography_nodal0.ascii' w lp t 'Q_2 mapping',\
+'res64_axi_0_1/bot_dynamic_topography_nodal0.ascii' w lp t 'Q_1 mapping',\
+'res64_axi_1_0/bot_dynamic_topography_nodal0.ascii' w lp t 'Q_2 mapping -rho',\
+'res64_axi_1_1/bot_dynamic_topography_nodal0.ascii' w lp t 'Q_1 mapping -rho',\
 
+
+
+#------------------------------
+set title 'axisymmetric - top surface'
+
+set ylabel 'e_{rr}'
+set output 'axi_top_err_res.pdf' 
+plot[-pi/2:pi/2][]\
+'res16_axi/top_err_nodal_0.ascii' w l t '16',\
+'res32_axi/top_err_nodal_0.ascii' w l t '32',\
+'res48_axi/top_err_nodal_0.ascii' w l t '48',\
+'res64_axi/top_err_nodal_0.ascii' w l t '64',\
+'res80_axi/top_err_nodal_0.ascii' w l t '80',\
+'res96_axi/top_err_nodal_0.ascii' w l t '96'
+
+set ylabel 'pressure q'
+set output 'axi_top_q_res.pdf' 
+plot[-pi/2:pi/2][]\
+'res16_axi/top_q_0.ascii' w l t '16',\
+'res32_axi/top_q_0.ascii' w l t '32',\
+'res48_axi/top_q_0.ascii' w l t '48',\
+'res64_axi/top_q_0.ascii' w l t '64',\
+'res80_axi/top_q_0.ascii' w l t '80',\
+'res96_axi/top_q_0.ascii' w l t '96'
+
+set ylabel 'dynamic topography (m)'
+set output 'axi_top_dynamic_topography_res.pdf' 
+plot[-pi/2:pi/2][]\
+'res16_axi/top_dynamic_topography_nodal_0.ascii' w l t '16',\
+'res32_axi/top_dynamic_topography_nodal_0.ascii' w l t '32',\
+'res48_axi/top_dynamic_topography_nodal_0.ascii' w l t '48',\
+'res64_axi/top_dynamic_topography_nodal_0.ascii' w l t '64',\
+'res80_axi/top_dynamic_topography_nodal_0.ascii' w l t '80',\
+'res96_axi/top_dynamic_topography_nodal_0.ascii' w l t '96'
+
+#------------------------------
+
+set title 'axisymmetric - bottom surface'
+
+set ylabel 'e_{rr}'
+set output 'axi_bot_err_res.pdf' 
+plot[-pi/2:pi/2][]\
+'res16_axi/bot_err_nodal_0.ascii' w l t '16',\
+'res32_axi/bot_err_nodal_0.ascii' w l t '32',\
+'res48_axi/bot_err_nodal_0.ascii' w l t '48',\
+'res64_axi/bot_err_nodal_0.ascii' w l t '64',\
+'res80_axi/bot_err_nodal_0.ascii' w l t '80',\
+'res96_axi/bot_err_nodal_0.ascii' w l t '96'
+
+set ylabel 'pressure q'
+set output 'axi_bot_q_res.pdf' 
+plot[-pi/2:pi/2][]\
+'res16_axi/bot_q_0.ascii' w l t '16',\
+'res32_axi/bot_q_0.ascii' w l t '32',\
+'res48_axi/bot_q_0.ascii' w l t '48',\
+'res64_axi/bot_q_0.ascii' w l t '64',\
+'res80_axi/bot_q_0.ascii' w l t '80',\
+'res96_axi/bot_q_0.ascii' w l t '96'
+
+set ylabel 'dynamic topography (m)'
+set output 'axi_bot_dynamic_topography_res.pdf' 
+plot[-pi/2:pi/2][]\
+'res16_axi/bot_dynamic_topography_nodal0.ascii' w l t '16',\
+'res32_axi/bot_dynamic_topography_nodal0.ascii' w l t '32',\
+'res48_axi/bot_dynamic_topography_nodal0.ascii' w l t '48',\
+'res64_axi/bot_dynamic_topography_nodal0.ascii' w l t '64',\
+'res80_axi/bot_dynamic_topography_nodal0.ascii' w l t '80',\
+'res96_axi/bot_dynamic_topography_nodal0.ascii' w l t '96',\
 
 

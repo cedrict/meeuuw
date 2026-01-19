@@ -67,7 +67,7 @@ from set_default_parameters import *
 # experiment 19: Donea & Huerta manufactured solution
 ###############################################################################
 
-experiment=3
+experiment=21
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx",type=int,default=0)
@@ -115,6 +115,7 @@ match(experiment):
      case 17: from experiment17 import *
      case 18: from experiment18 import *
      case 19: from experiment19 import *
+     case 20: from experiment20 import *
      case _ : exit('setup - unknown experiment')  
 
 #if int(len(sys.argv)==8): # override these parameters
@@ -270,6 +271,7 @@ pstats_file.write("#istep,min p, max p\n")
 vstats_file=open('OUTPUT/stats_velocity.ascii',"w") 
 vstats_file.write("#istep,min(u),max(u),min(v),max(v)\n")
 vstats_file.write("# "+vel_unit+"\n")
+srstats_file=open('OUTPUT/stats_strainrate.ascii',"w") 
 dt_file=open('OUTPUT/dt.ascii',"w") ; dt_file.write("#time dt1 dt2 dt\n") ; dt_file.write('#'+time_unit+'\n')
 ptcl_stats_file=open('OUTPUT/stats_particle.ascii',"w")
 timings_file=open('timings.ascii',"w")
@@ -1813,6 +1815,8 @@ for istep in range(0,nstep):
     print("     -> ezz_n (m,M) %.3e %.3e " %(np.min(ezz_n),np.max(ezz_n)))
     print("     -> exz_n (m,M) %.3e %.3e " %(np.min(exz_n),np.max(exz_n)))
 
+    srstats_file.write("%e %e %e\n" % (geological_time/time_scale,np.min(e_n),np.max(e_n))) ; srstats_file.flush()
+
     if debug_ascii: np.savetxt('DEBUG/strainrate_cartesian_n.ascii',\
                                np.array([x_V,z_V,exx_n,ezz_n,exz_n,e_n,rad_V,theta_V]).T,\
                                header='#x,z,exx,ezz,exz,e,rad,theta')
@@ -2404,6 +2408,7 @@ print("compute T profile: ........................... %.3f s" % (clock.time()-st
        
 vstats_file.close()
 pstats_file.close()
+srstats_file.close()
 vrms_file.close()
 dt_file.close()
 TM_file.close()

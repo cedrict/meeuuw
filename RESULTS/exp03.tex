@@ -91,19 +91,19 @@ In the publication a number of measurements is carried out:
 \begin{itemize}
 \item average temperature:
 \[
-\langle T \rangle = \int\int T(x,z) dx dz
+\langle T \rangle = \int\int T(x,z) \; dx dz
 \]
-\item top and bottom Nusselt numbers
+\item top and bottom Nusselt numbers 
 \[
-Nu_{\text{top,bot}} = - \int_0^1 \left. 
+\Nunb_{\text{top,bot}} = - \int_0^1 \left. 
 \frac{\partial T}{\partial z} \right|_{z=1,z=0} dx
 \]
 \item root-mean-square (RMS) velocity over the whole domain, 
 over the surface, as well as the maximum horizontal velocity at the surface:
 \[
-\upnu_{rms} = \left(  \int\int (u^2+v^2) dxdz    \right)^{1/2}
+\upnu_{rms} = \left(  \int\int (u^2+v^2) \; dxdz    \right)^{1/2}
 \qquad
-\upnu_{rms}^{\text{surf}}=\left(  \int \left. u^2 \right|_{z=1}  dx    \right)^{1/2}
+\upnu_{rms}^{\text{surf}}=\left(  \int \left. u^2 \right|_{z=1} \;  dx    \right)^{1/2}
 \qquad
 \upnu_{rms}^{\text{max}}= \left. \max (u) \right|_{z=1}
 \]
@@ -117,11 +117,11 @@ over the surface, as well as the maximum horizontal velocity at the surface:
 \langle \Phi \rangle = \int\int {\bm \tau} : \dot{\bm \varepsilon} \; dxdz
 \]
 \item At steady state, if thermal energy is accurately conserved, 
-the difference between $\langle W \rangle$ and $langle \Phi \rangle/Ra$ must
+the difference between $\langle W \rangle$ and $\langle \Phi \rangle/\Ranb$ must
 vanish [e.g., King et al., 2010], so we also compute the percentage error
 \[
-\delta = \frac{\left| \langle W \rangle- \langle \Phi \rangle/Ra  \right|   }
-{ \max(\langle W \rangle  , \langle \Phi \rangle /Ra  )   } \times 100 \%
+\delta = \frac{\left| \langle W \rangle- \langle \Phi \rangle/\Ranb  \right|   }
+{ \max(\langle W \rangle  , \langle \Phi \rangle /\Ranb  )   } \times 100 \%
 \]
 \end{itemize}
 
@@ -130,9 +130,8 @@ vanish [e.g., King et al., 2010], so we also compute the percentage error
 
 
 
-
-
-
+%----------------------------------
+\subsection{Implementation}
 
 We here follow the same approach as in Experiment~0: there is a 
 single fluid in the domain and the particles are not needed. 
@@ -159,8 +158,9 @@ $\eta_\text{lin} (T,z) = \exp(-\gamma_T T )$
 
 
 \begin{center}
-\includegraphics[width=7cm]{exp03/case1/vrms.pdf}
-\includegraphics[width=7cm]{exp03/case1/Nu.pdf}\\
+\includegraphics[width=5.7cm]{exp03/case1/vrms.pdf}
+\includegraphics[width=5.7cm]{exp03/case1/Tavrg.pdf}
+\includegraphics[width=5.7cm]{exp03/case1/Nu.pdf}\\
 \includegraphics[width=5.7cm]{exp03/case1/avrg_profile_T.pdf}
 \includegraphics[width=5.7cm]{exp03/case1/avrg_profile_eta.pdf}
 \includegraphics[width=5.7cm]{exp03/case1/avrg_profile_vel.pdf}
@@ -169,7 +169,7 @@ $\eta_\text{lin} (T,z) = \exp(-\gamma_T T )$
 
 \begin{center}
 \includegraphics[width=7cm]{exp03/case1/stats_u.pdf}
-\includegraphics[width=7cm]{exp03/case1/stats_v.pdf}\\
+\includegraphics[width=7cm]{exp03/case1/stats_w.pdf}\\
 \includegraphics[width=7cm]{exp03/case1/wag.pdf}
 \includegraphics[width=7cm]{exp03/case1/tvd.pdf}\\
 \includegraphics[width=7cm]{exp03/case1/delta1.pdf}
