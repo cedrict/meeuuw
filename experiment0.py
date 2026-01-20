@@ -1,5 +1,7 @@
 import numpy as np
 
+# Blankenbach et al 1989 benchmark
+
 geometry='box'
 Lz=1
 eta_ref=1

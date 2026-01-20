@@ -10,7 +10,7 @@ import numba
 # assuming strainrate = very small at surface, then eta_e very large 
 # and eta -> eta_T=1
 
-Lx=4
+Lx=5
 Lz=1
 solve_T=True
 Ttop=0
@@ -22,20 +22,20 @@ hcond0=1
 hcapa0=1  
 rho0=1
 Ra_surf=100
-sigma_y=2
 
-every_Nu=1
-end_time=0.25
+sigma_y=2
 gamma_T=np.log(1e5)
+every_Nu=10
 eta_star=1e-5 
 eta_ref=1e-2
-every_solution_vtu=1
-every_swarm_vtu=5
-averaging='geometric'
+
+end_time=10.25
+every_solution_vtu=20
+every_swarm_vtu=10000
 debug_ascii=False
-nparticle_per_dim=5
+RKorder=-1
            
-nelx=128
+nelx=200
 nelz=int(Lz/Lx*nelx)
 nstep=10000
 
@@ -58,8 +58,11 @@ def initial_temperature(x,z,rad,theta,nn_V):
     T=np.zeros(nn_V,dtype=np.float64)
 
     for i in range(0,nn_V):
-        T[i]=(Tbottom-Ttop)*(Lz-z[i])/Lz+Ttop\
-            +0.01*np.cos(3*np.pi*x[i]/Lx)*np.sin(3*np.pi*z[i]/Lz)
+        #T[i]=(Tbottom-Ttop)*(Lz-z[i])/Lz+Ttop\
+        T[i]=(Tbottom+Ttop)/2\
+            +0.010*np.cos(3*np.pi*x[i]/Lx)*np.sin(3*np.pi*z[i]/Lz)\
+            +0.015*np.cos(4*np.pi*x[i]/Lx)*np.sin(4*np.pi*z[i]/Lz)\
+            +0.005*np.cos(5*np.pi*x[i]/Lx)*np.sin(5*np.pi*z[i]/Lz)
 
     return T
 
@@ -89,6 +92,8 @@ def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
 ###############################################################################
 
 def assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V):
+
+    eps=1e-8
 
     bc_fix_T=np.zeros(Nfem_T,dtype=bool)  
     bc_val_T=np.zeros(Nfem_T,dtype=np.float64) 

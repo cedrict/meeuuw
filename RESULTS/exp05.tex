@@ -1,1 +1,105 @@
 \section{Experiment 5: convection w/ plate-like behavior (Trompert \& Hansen, 1998)}
+
+This experiment is based on \textcite{trha98b} -- see also \textcite{trha98}.
+In the original article the domain is a 3d Cartesian box of size $4 \times 4 \times 1$
+which translates into a domain (in km) of $11,600 \times  11,600 \times 2,900$ 
+when we take the height of the box equal to the depth of the mantle.
+
+The Rayleigh number is a measure of the ratio of buoyancy forces over viscous forces, 
+and its value based on the temperature-dependent viscosity at the top is 100. A
+$65 \times  64 \times  32 = 133,120$ grid was used\footnote{This corresponds to a
+mesh of 129,024 elements}; the horizontal grid is uniform and the grid in the vertical 
+is non-uniform with refinement in the thermal boundary layers.
+
+The simulation was performed over a period of 0.23 non-dimensional time units or 60 Gyr, assuming a
+length scale equal to the height of the mantle and a heat diffusion coefficient of $10^{-6} m^2/s$.
+The non-dimensional viscosity is defined by the following law (same as \cite{tosn15}:
+\[
+\eta = \frac{2}{\frac{1}{\eta_T} + \frac{1}{\eta_e}}
+\qquad
+\eta_T = \exp(-RT) 
+\qquad
+\eta_e=\eta^\star + \frac{\sigma^\star}{\sqrt{\dot{\varepsilon}:\dot{\varepsilon}}}
+\]
+where R is a constant governing the viscosity contrast based on temperature $T$ 
+set to $R=5 \log 10$, i.e. the viscosity contrast is $10^5$.
+
+The parameters $\eta^\star$ and $\sigma^\star$ 
+can be chosen freely. However, they need to be chosen carefully as
+$\sigma^\star$ controls the stress level at which failure occurs, and $\eta^\star$ controls
+the behaviour of the fluid for higher stresses. If the yield stress is very
+low, the stagnant lid yields almost everywhere and it would not
+consist of large rigid regions surrounded by localized regions of high
+deformation as on Earth. On the other hand, when the yield stress is
+very high, the lid stays intact, which is not very Earth-like either.
+This means that in order to approach the situation on Earth as
+closely as possible, these parameters should be chosen so that the
+yield stress is low enough for yielding to occur and the regions where
+yielding takes place are very localized.
+In the paper these values were determined from preliminary runs, and were
+chosen to be 2.0 and 0.00001 for $\sigma^\star$ and $\eta^\star$, respectively.
+
+Note that the boundary conditions are not specified in \cite{trha98b}.
+
+\begin{center}
+\includegraphics[width=9cm]{exp05/images/trha98b}\\
+{\it \small Taken from \cite{trha98b}. A typical convection cycle. Here the temperature is shown; the colour
+coding is indicated in h, where red is hot and blue is cold. The top surface of the
+box has been removed. The time points associated with the panels a–f are
+indicated in Fig. 2. After failure, a ridge-like structure develops with an upwelling
+flow underneath. This is shown in a, where the yellowish colour in the corner
+closest to the observer is the ridge. A part of the blue stagnant lid starts to move in
+the direction of the corner which is at the right side of the panel. Subduction of this
+moving part is initiated in the region where the flow goes downwards and only the
+part of the lid between the ridge and the down flow is in motion. It moves as a plate
+with little internal strain (b); the velocity field of this moving part of b clearly
+demonstrates this (g). The maximum velocity is $3.2 cm/yr$; c, d, show that the
+subducted part of the lid collides with the bottom boundary and spreads out. At
+this time a trench migration occurs. The flow initiated by the subduction is now
+pushing back the trench where subduction took place (c–e). After this, the slab
+shown in the c–e will now disconnect from the stagnant lid on top and will stay at
+the bottom of the box. This slab will heat up and at the same time the subducted
+part of the lid will be replaced by a new lid through cooling from the top (f).}
+\end{center}
+
+Since MEEUW is only 2d we will not be able to recover these results. 
+We can however run the model in 2d, both in Cartesian and Cylindrical geometry. 
+We can also look at the influence of the length of the model.
+For this experiment we increase the aspect ratio to 5:1, i.e. the 
+domain dimensions are now $5 \times 1$ and we stick to square elements (i.e.
+no mesh stretching).
+
+I run the model at two different resolutions: $160\times 32$ and $200\times 40$ elements, 
+counting respectively 20,865 and 32,481 V-nodes. 
+For all experiments the initial temperature is set to $(T_{bottom}+T_{top})/2$
+everywhere in the domain (of course boundary conditions are applied on the boundaries).
+That signal is added a deterministic perturbation:
+\begin{lstlisting}
+for i in range(0,nn_V):
+    T[i]=(Tbottom+Ttop)/2\
+        +0.010*np.cos(3*np.pi*x[i]/Lx)*np.sin(3*np.pi*z[i]/Lz)\
+        +0.015*np.cos(4*np.pi*x[i]/Lx)*np.sin(4*np.pi*z[i]/Lz)\
+        +0.005*np.cos(5*np.pi*x[i]/Lx)*np.sin(5*np.pi*z[i]/Lz)
+\end{lstlisting}
+
+I also monitor various min/max values of relevant quantities, as well 
+as the root mean square velocity. Since there is no randomness in the setup
+one would expect that the solution is unique and that round-off errors 
+do not make the different simulations diverge too early.
+
+\begin{center}
+\includegraphics[width=7cm]{exp05/vrms.pdf}
+\includegraphics[width=7cm]{exp05/stats_temperature.pdf}\\
+\includegraphics[width=7cm]{exp05/stats_strainrate.pdf}
+\includegraphics[width=7cm]{exp05/stats_eta_q.pdf}\\
+\end{center}
+
+One obvious good news is that the min/max values of the temperature field are
+always 0 and 1 respectively with only a few timesteps with visible but minor
+under- and overshoots.
+
+\begin{center}
+\includegraphics[width=11cm]{exp05/200x40/shot}
+\end{center}
+
+Remark: this was run with the code void of nonlinear iterations.

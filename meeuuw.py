@@ -67,7 +67,7 @@ from set_default_parameters import *
 # experiment 19: Donea & Huerta manufactured solution
 ###############################################################################
 
-experiment=21
+experiment=5
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx",type=int,default=0)
@@ -1096,8 +1096,8 @@ for istep in range(0,nstep):
     if np.min(nparticle_e)==0: 
        exit('ABORT: an element contains no particle!')
 
-    ptcl_stats_file.write("%d %d %d\n" % (istep,np.min(nparticle_e),np.max(nparticle_e))) ; ptcl_stats_file.flush()
-    etae_file.write("%d %.4e %.4e\n" % (istep,np.min(eta_e),np.max(eta_e))) ; etae_file.flush()
+    ptcl_stats_file.write("%.4e %d %d\n" % (geological_time/time_scale,np.min(nparticle_e),np.max(nparticle_e))) ; ptcl_stats_file.flush()
+    etae_file.write("%.4e %.4e %.4e\n" % (geological_time/time_scale,np.min(eta_e),np.max(eta_e))) ; etae_file.flush()
 
     print("     -> rho_e (m,M) %.3e %.3e " %(np.min(rho_e),np.max(rho_e)))
     print("     -> eta_e (m,M) %.3e %.3e " %(np.min(eta_e),np.max(eta_e)))
@@ -1471,8 +1471,8 @@ for istep in range(0,nstep):
     print("     -> w (m,M) %.3e %.3e %s" %(np.min(w)/vel_scale,np.max(w)/vel_scale,vel_unit))
     print("     -> p (m,M) %.3e %.3e %s" %(np.min(p)/p_scale,np.max(p)/p_scale,p_unit))
 
-    vstats_file.write("%.3e %.3e %.3e %.3e %.3e\n" % (istep,np.min(u)/vel_scale,np.max(u)/vel_scale,\
-                                                            np.min(w)/vel_scale,np.max(w)/vel_scale))
+    vstats_file.write("%.3e %.3e %.3e %.3e %.3e\n" % (geological_time/time_scale,np.min(u)/vel_scale,np.max(u)/vel_scale,\
+                                                                                 np.min(w)/vel_scale,np.max(w)/vel_scale))
     vstats_file.flush()
 
     if debug_ascii: np.savetxt('DEBUG/velocity.ascii',np.array([x_V,z_V,u,w,vel,rad_V,theta_V]).T,header='# x,z,u,w,vel,rad,theta')
@@ -1565,7 +1565,7 @@ for istep in range(0,nstep):
 
     print("     -> p aft (m,M) %.3e %.3e %s" %(np.min(p),np.max(p),p_unit))
 
-    pstats_file.write("%d %.3e %.3e\n" % (istep,np.min(p),np.max(p)))
+    pstats_file.write("%d %.3e %.3e\n" % (geological_time/time_scale,np.min(p),np.max(p)))
     pstats_file.flush()
 
     if geometry=='box' and (istep%every_solution_vtu==0 or istep==nstep-1): 
@@ -1674,7 +1674,7 @@ for istep in range(0,nstep):
 
        if debug_ascii: np.savetxt('DEBUG/T.ascii',np.array([x_V,z_V,T]).T,header='# x,z,T')
 
-       Tstats_file.write("%.3e %.3e %.3e\n" %(istep,np.min(T)-TKelvin,np.max(T)-TKelvin)) 
+       Tstats_file.write("%.3e %.3e %.3e\n" %(geological_time/time_scale,np.min(T)-TKelvin,np.max(T)-TKelvin)) 
        Tstats_file.flush()
 
        print("solve T time: ................................ %.3f s" % (clock.time()-start)) ; timings[5]+=clock.time()-start

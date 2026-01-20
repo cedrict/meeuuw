@@ -1,0 +1,41 @@
+#
+set term pdf enhanced font "Times,12pt"
+set grid
+set key outside
+
+
+set xlabel 'time'
+set ylabel 'v_{rms}'
+set output 'vrms.pdf'
+plot[][]\
+'160x32/vrms.ascii' u 1:2 w l t '160x32',\
+'200x40/vrms.ascii' u 1:2 w l t '200x40'
+
+set xlabel 'timestep'
+set ylabel 'min/max temperature'
+set output 'stats_temperature.pdf'
+plot[][-0.05:1.05]\
+'160x32/stats_temperature.ascii' u 1:2 w l lt 1 t '160x32',\
+'160x32/stats_temperature.ascii' u 1:3 w l lt 1  notitle,\
+'200x40/stats_temperature.ascii' u 1:2 w l lt 2 t '200x40',\
+'200x40/stats_temperature.ascii' u 1:3 w l lt 2  notitle
+
+set log y
+set ylabel 'min/max viscosity at q points'
+set output 'stats_eta_q.pdf'
+plot[][]\
+'160x32/stats_eta_q.ascii' u 1:2 w l lt 1 t '160x32',\
+'160x32/stats_eta_q.ascii' u 1:3 w l lt 1  notitle,\
+'200x40/stats_eta_q.ascii' u 1:2 w l lt 2 t '200x40',\
+'200x40/stats_eta_q.ascii' u 1:3 w l lt 2  notitle
+
+set xlabel 'time'
+set ylabel 'min/max strain rate'
+set output 'stats_strainrate.pdf'
+plot[][]\
+'160x32/stats_strainrate.ascii' u 1:2 w l lt 1 t '160x32',\
+'160x32/stats_strainrate.ascii' u 1:3 w l lt 1 notitle,\
+'200x40/stats_strainrate.ascii' u 1:2 w l lt 2 t '200x40',\
+'200x40/stats_strainrate.ascii' u 1:3 w l lt 2 notitle 
+
+
