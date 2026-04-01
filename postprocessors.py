@@ -7,9 +7,10 @@ import numba
 from basis_functions import *
 
 ###############################################################################
+# do we need sr or dev sr ?!
 
 @numba.njit
-def global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,volume,JxWq,gxq,gzq):
+def compute_global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,volume,JxWq,gxq,gzq):
 
     TM=0  # Total mass
     EK=0  # Kinetic Energy
@@ -18,24 +19,29 @@ def global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ez
     GPE=0 # Gravitational potential energy
     ITE=0 # Internal thermal energy
     vrms=0 # root mean square velocity
+    num=0. ; denom=0. # see eq 1 of chri83
     Tavrg=0
 
     for iel in range(0,nel):
         for iq in range(0,nq_per_element):
-            TM+=rhoq[iel,iq]                                                        *JxWq[iel,iq]
-            EK+=0.5*rhoq[iel,iq]*(uq[iel,iq]**2+wq[iel,iq]**2)                      *JxWq[iel,iq]
-            WAG-=rhoq[iel,iq]*(uq[iel,iq]*gxq[iel,iq]+wq[iel,iq]*gzq[iel,iq])       *JxWq[iel,iq]
-            TVD+=2*etaq[iel,iq]*(exxq[iel,iq]**2+ezzq[iel,iq]**2+2*exzq[iel,iq]**2) *JxWq[iel,iq]
-            #GPE+=rhoq[iel,iq]*gzq[iel,iq]*(Lz-zq[iel,iq])                           *JxWq[iel,iq]
-            ITE+=rhoq[iel,iq]*hcapaq[iel,iq]*Tq[iel,iq]                             *JxWq[iel,iq]
-            vrms+=(uq[iel,iq]**2+wq[iel,iq]**2)                                     *JxWq[iel,iq]
-            Tavrg+=Tq[iel,iq]                                                       *JxWq[iel,iq]
+            eII=exxq[iel,iq]**2+ezzq[iel,iq]**2+2*exzq[iel,iq]**2
+            TM+=rhoq[iel,iq]                                                   *JxWq[iel,iq]
+            EK+=0.5*rhoq[iel,iq]*(uq[iel,iq]**2+wq[iel,iq]**2)                 *JxWq[iel,iq]
+            WAG-=rhoq[iel,iq]*(uq[iel,iq]*gxq[iel,iq]+wq[iel,iq]*gzq[iel,iq])  *JxWq[iel,iq]
+            TVD+=2*etaq[iel,iq]*eII                                            *JxWq[iel,iq]
+            #GPE+=rhoq[iel,iq]*gzq[iel,iq]*(Lz-zq[iel,iq])                     *JxWq[iel,iq]
+            ITE+=rhoq[iel,iq]*hcapaq[iel,iq]*Tq[iel,iq]                        *JxWq[iel,iq]
+            vrms+=(uq[iel,iq]**2+wq[iel,iq]**2)                                *JxWq[iel,iq]
+            Tavrg+=Tq[iel,iq]                                                  *JxWq[iel,iq]
+            num+=etaq[iel,iq]*eII                                              *JxWq[iel,iq]
+            denom+=eII                                                         *JxWq[iel,iq] 
         #end for iq
     #end for iel
     vrms=np.sqrt(vrms/volume) 
     Tavrg/=volume
+    eta_avrg=num/denom
 
-    return vrms,EK,WAG,TVD,GPE,ITE,TM,Tavrg
+    return vrms,EK,WAG,TVD,GPE,ITE,TM,Tavrg,eta_avrg
 
 ###############################################################################
 

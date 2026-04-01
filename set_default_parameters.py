@@ -7,6 +7,7 @@ tol_ss=-1e-8
 pressure_normalisation='surface'
 every_Nu=1000000
 every_solution_vtu=1
+every_solution_pdf=100000
 every_swarm_vtu=1
 every_quadpoints_vtu=1000000
 end_time=0.

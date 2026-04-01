@@ -22,10 +22,12 @@ from build_matrix_energy import *
 from define_mapping import * 
 from compute_normals import *
 from compute_strain_rate import *
+from compute_avrg_profiles import *
 from compute_nodal_heat_flux import *
 from compute_nodal_pressure import *
 from output_swarm_to_vtu import *
 from output_solution_to_vtu import *
+from output_solution_to_pdf import *
 from output_quadpoints_to_vtu import *
 from compute_gravity_at_point import *
 from compute_gravity_fromDT_at_point import *
@@ -67,7 +69,7 @@ from set_default_parameters import *
 # experiment 19: Donea & Huerta manufactured solution
 ###############################################################################
 
-experiment=5
+experiment=0
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx",type=int,default=0)
@@ -279,7 +281,8 @@ TM_file=open('OUTPUT/total_mass.ascii',"w")
 EK_file=open('OUTPUT/kinetic_energy.ascii',"w") 
 TVD_file=open('OUTPUT/viscous_dissipation.ascii',"w") 
 WAG_file=open('OUTPUT/work_against_gravity.ascii',"w") 
-Tavrg_file=open('OUTPUT/Tavrg.ascii',"w") 
+T_avrg_file=open('OUTPUT/T_avrg.ascii',"w") 
+eta_avrg_file=open('OUTPUT/eta_avrg.ascii',"w") 
 delta_file=open('OUTPUT/delta_WAG_TVD.ascii',"w") 
 pvd_solution_file=open('OUTPUT/solution.pvd',"w")
 pvd_swarm_file=open('OUTPUT/swarm.pvd',"w")
@@ -1681,27 +1684,11 @@ for istep in range(0,nstep):
 
     #end if solve_T
 
-    ###############################################################################################
-    #@@ compute vrms 
-    ###############################################################################################
-    start=clock.time()
 
-    vrms,EK,WAG,TVD,GPE,ITE,TM,Tavrg=\
-    global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,volume,JxWq,gx_q,gz_q)
 
-    delta=WAG+TVD # see tosn15
 
-    vrms_file.write("%.4e %.4e \n" % (geological_time/time_scale,vrms/vel_scale)) ; vrms_file.flush()
-    TM_file.write("%.4e %.4e \n" % (geological_time/time_scale,TM)) ; TM_file.flush()
-    EK_file.write("%.4e %.4e \n" % (geological_time/time_scale,EK)) ; EK_file.flush()
-    TVD_file.write("%.4e %.4e \n" % (geological_time/time_scale,TVD)) ; TVD_file.flush()
-    WAG_file.write("%.4e %.4e \n" % (geological_time/time_scale,WAG)) ; WAG_file.flush()
-    delta_file.write("%.4e %.4e %.4e\n" % (geological_time/time_scale,delta,max(abs(WAG),TVD))) ; delta_file.flush()
-    Tavrg_file.write("%.4e %.4e \n" % (geological_time/time_scale,Tavrg)) ; Tavrg_file.flush()
 
-    print("     istep= %.6d ; vrms   = %.3e %s" %(istep,vrms/vel_scale,vel_unit))
 
-    print("compute global quantities: ................... %.3f s" % (clock.time()-start)) ; timings[6]+=clock.time()-start
 
     ###############################################################################################
     #@@ compute nodal heat flux 
@@ -1867,6 +1854,44 @@ for istep in range(0,nstep):
     print("     -> dxz_n (m,M) %.3e %.3e " %(np.min(dxz_n),np.max(dxz_n)))
 
     print("compute nodal strainrate: .................... %.3f s" % (clock.time()-start)) ; timings[11]+=clock.time()-start
+
+    ###############################################################################################
+    #@@ compute sr and dev sr on qpts
+    ###############################################################################################
+    start=clock.time()
+
+    exxq=Q2_project_nodal_field_onto_qpoints(exx_n,nq_per_element,nel,N_V,icon_V)
+    ezzq=Q2_project_nodal_field_onto_qpoints(ezz_n,nq_per_element,nel,N_V,icon_V)
+    exzq=Q2_project_nodal_field_onto_qpoints(exz_n,nq_per_element,nel,N_V,icon_V)
+
+    dxxq=Q2_project_nodal_field_onto_qpoints(dxx_n,nq_per_element,nel,N_V,icon_V)
+    dzzq=Q2_project_nodal_field_onto_qpoints(dzz_n,nq_per_element,nel,N_V,icon_V)
+    dxzq=Q2_project_nodal_field_onto_qpoints(dxz_n,nq_per_element,nel,N_V,icon_V)
+
+    print("compute nodal strainrate: .................... %.3f s" % (clock.time()-start)) #; timings[11]+=clock.time()-start
+
+    ###############################################################################################
+    #@@ compute global quantities 
+    ###############################################################################################
+    start=clock.time()
+
+    vrms,EK,WAG,TVD,GPE,ITE,TM,T_avrg,eta_avrg=\
+    compute_global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,volume,JxWq,gx_q,gz_q)
+
+    delta=WAG+TVD # see tosn15
+
+    vrms_file.write("%.4e %.4e \n" % (geological_time/time_scale,vrms/vel_scale)) ; vrms_file.flush()
+    TM_file.write("%.4e %.4e \n" % (geological_time/time_scale,TM)) ; TM_file.flush()
+    EK_file.write("%.4e %.4e \n" % (geological_time/time_scale,EK)) ; EK_file.flush()
+    TVD_file.write("%.4e %.4e \n" % (geological_time/time_scale,TVD)) ; TVD_file.flush()
+    WAG_file.write("%.4e %.4e \n" % (geological_time/time_scale,WAG)) ; WAG_file.flush()
+    delta_file.write("%.4e %.4e %.4e\n" % (geological_time/time_scale,delta,max(abs(WAG),TVD))) ; delta_file.flush()
+    T_avrg_file.write("%.4e %.4e \n" % (geological_time/time_scale,T_avrg)) ; T_avrg_file.flush()
+    eta_avrg_file.write("%.4e %.4e \n" % (geological_time/time_scale,eta_avrg)) ; eta_avrg_file.flush()
+
+    print("     istep= %.6d ; vrms   = %.3e %s" %(istep,vrms/vel_scale,vel_unit))
+
+    print("compute global quantities: ................... %.3f s" % (clock.time()-start)) ; timings[6]+=clock.time()-start
 
     ###############################################################################################
     #@@ compute deviatoric stress tensor components (elemental & nodal)
@@ -2155,6 +2180,33 @@ for istep in range(0,nstep):
        print("output quad pts to vtu file: ................. %.3f s" % (clock.time()-start)) ; timings[22]+=clock.time()-start
 
     ###############################################################################################
+    #@@ output solution to pdf file
+    ###############################################################################################
+    start=clock.time()
+
+    if istep%every_solution_pdf==0 or istep==nstep-1: 
+       output_solution_to_pdf(geometry,solve_Stokes,solve_T,istep,vel_scale,vel_unit,TKelvin,nelx,nelz,\
+                              Lx,Lz,x_V,z_V,u,w,q,T,eta_n,rho_n,exx_n,ezz_n,exz_n,e_n,divv_n,qx_n,qz_n) 
+
+       print("output solution to pdf file: ................. %.3f s" % (clock.time()-start)) #; timings[10]+=clock.time()-start
+
+    ###############################################################################################
+    #@@ compute avrg temperature, viscosity, velocity profiles
+    # not the most elegant but works
+    ###############################################################################################
+    start=clock.time()
+
+    if istep%every_solution_vtu==0 or istep==nstep-1: 
+
+       T_profile,vel_profile,eta_profile,coord_profile=compute_avrg_profiles(geometry,nnx,nnz,T,eta_n,u,w,z_V,rad_V)
+
+       np.savetxt('OUTPUT/avrg_profile_T_'+str(istep)+'.ascii',np.array([coord_profile,T_profile]).T,header='#z,T')
+       np.savetxt('OUTPUT/avrg_profile_eta_'+str(istep)+'.ascii',np.array([coord_profile,eta_profile]).T,header='#z,eta')
+       np.savetxt('OUTPUT/avrg_profile_vel_'+str(istep)+'.ascii',np.array([coord_profile,vel_profile]).T,header='#z,vel')
+
+    print("compute avrg profile: ........................ %.3f s" % (clock.time()-start)) ; timings[9]+=clock.time()-start
+
+    ###############################################################################################
     #@@ compute gravitational field above domain 
     # xs[npts],ys: coordinates of satellite
     # gxI,gzI,gnormI: gravity from internal density distribution
@@ -2373,34 +2425,11 @@ np.savetxt('OUTPUT/profile_horizontal_e.ascii',np.array([x_e[middleH_element],\
                                                          rho_e[middleH_element],\
                                                          eta_e[middleH_element]]).T)
 
-###############################################################################################
-#@@ compute avrg temperature, viscosity, velocity profiles
-# not the most elegant but works
-###############################################################################################
-start=clock.time()
 
-T_profile=np.zeros(nnz,dtype=np.float64)  
-vel_profile=np.zeros(nnz,dtype=np.float64)  
-eta_profile=np.zeros(nnz,dtype=np.float64)  
-coord_profile=np.zeros(nnz,dtype=np.float64) 
 
-counter=0    
-for j in range(0,nnz):
-    if geometry=='box':
-       coord_profile[j]=z_V[counter]
-    else:
-       coord_profile[j]=rad_V[counter]
-    for i in range(0,nnx):
-        T_profile[j]+=T[counter]/nnx
-        eta_profile[j]+=eta_n[counter]/nnx
-        vel_profile[j]+=np.sqrt(u[counter]**2+w[counter]**2)/nnx
-        counter+=1
 
-np.savetxt('OUTPUT/avrg_profile_T.ascii',np.array([coord_profile,T_profile]).T,header='#z,T')
-np.savetxt('OUTPUT/avrg_profile_eta.ascii',np.array([coord_profile,eta_profile]).T,header='#z,eta')
-np.savetxt('OUTPUT/avrg_profile_vel.ascii',np.array([coord_profile,vel_profile]).T,header='#z,vel')
 
-print("compute T profile: ........................... %.3f s" % (clock.time()-start)) ; timings[9]+=clock.time()-start
+
 
 ###############################################################################
 # close files
@@ -2414,7 +2443,8 @@ dt_file.close()
 TM_file.close()
 EK_file.close()
 WAG_file.close()
-Tavrg_file.close()
+T_avrg_file.close()
+eta_avrg_file.close()
 delta_file.close()
 etaq_file.close()
 etae_file.close()
