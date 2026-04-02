@@ -35,7 +35,7 @@ every_swarm_vtu=10000
 debug_ascii=False
 RKorder=-1
            
-nelx=200
+nelx=120
 nelz=int(Lz/Lx*nelx)
 nstep=10000
 
