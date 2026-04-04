@@ -7,6 +7,7 @@ import numba
 from constants import *
 
 ###################################################################################################
+# TODO: vectorise?
 
 @numba.njit
 def compute_gravity_at_point(xs,ys,nel,xc,yc,rho,vol,rho_ref):

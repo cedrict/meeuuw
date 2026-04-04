@@ -26,6 +26,8 @@ from compute_avrg_profiles import *
 from compute_nodal_heat_flux import *
 from compute_nodal_pressure import *
 from output_swarm_to_vtu import *
+from output_swarm_to_png import *
+from output_swarm_to_ascii import *
 from output_solution_to_vtu import *
 from output_solution_to_png import *
 from output_quadpoints_to_vtu import *
@@ -69,7 +71,7 @@ from set_default_parameters import *
 # experiment 19: Donea & Huerta manufactured solution
 ###############################################################################
 
-experiment=14
+experiment=13
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx",type=int,default=0)
@@ -224,8 +226,8 @@ if geometry=='quarter' or geometry=='half' or geometry=='eighth':
 nparticle_per_element=nparticle_per_dim**2
 nparticle=nel*nparticle_per_element
 
-timings=np.zeros(34+1)
-timings_mem=np.zeros(34+1)
+timings=np.zeros(36+1)
+timings_mem=np.zeros(36+1)
 
 if geometry=='box': L_ref=(Lx+Lz)/2
 #if geometry=='box': L_ref=(hx+hz)/2
@@ -2170,6 +2172,32 @@ for istep in range(0,nstep):
        print("output particles to vtu file: ................ %.3f s" % (clock.time()-start)) ; timings[20]+=clock.time()-start
 
     ###############################################################################################
+    #@@ output particles to png file
+    ###############################################################################################
+    start=clock.time()
+
+    if istep%every_swarm_png==0 or istep==nstep-1: 
+       output_swarm_to_png(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,swarm_x,swarm_z,\
+                           swarm_u,swarm_w,swarm_mat,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
+                           swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_iel,\
+                           swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
+
+       print("output particles to png file: ................ %.3f s" % (clock.time()-start)) ; timings[35]+=clock.time()-start
+
+    ###############################################################################################
+    #@@ output particles to ascii file
+    ###############################################################################################
+    start=clock.time()
+
+    if istep%every_swarm_ascii==0 or istep==nstep-1: 
+       output_swarm_to_ascii(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,swarm_x,swarm_z,\
+                             swarm_u,swarm_w,swarm_mat,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
+                             swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_iel,\
+                             swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
+
+       print("output particles to ascii file: .............. %.3f s" % (clock.time()-start)) ; timings[36]+=clock.time()-start
+
+    ###############################################################################################
     #@@ output quadrature points to vtu file
     ###############################################################################################
     start=clock.time()
@@ -2364,6 +2392,8 @@ for istep in range(0,nstep):
        print("output swarm to vtu: %8.3f s    (%.3f s per call) | %5.2f percent" % (timings[20],timings[20]/(istep+1),timings[20]/duration*100))
        print("output qpts to vtu: %8.3f s     (%.3f s per call) | %5.2f percent" % (timings[22],timings[22]/(istep+1),timings[22]/duration*100))
        print("output solution to png: %8.3f s (%.3f s per call) | %5.2f percent" % (timings[34],timings[34]/(istep+1),timings[34]/duration*100))
+       print("output swarm to png: %8.3f s    (%.3f s per call) | %5.2f percent" % (timings[35],timings[35]/(istep+1),timings[35]/duration*100))
+       print("output swarm to ascii: %8.3f s  (%.3f s per call) | %5.2f percent" % (timings[36],timings[36]/(istep+1),timings[36]/duration*100))
        print("----------------------------------------------------------------------")
        print("compute time per timestep: %.2f" %(duration/(istep+1)))
        print("----------------------------------------------------------------------")

@@ -6,11 +6,16 @@ import numpy as np
 import numba
 from basis_functions import *
 
-###############################################################################
+###################################################################################################
 # do we need sr or dev sr ?!
 
 @numba.njit
-def compute_global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,volume,JxWq,gxq,gzq):
+def compute_global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,\
+                              volume,JxWq,gxq,gzq):
+    """
+    Args:
+    Returns:
+    """
 
     TM=0  # Total mass
     EK=0  # Kinetic Energy
@@ -43,10 +48,14 @@ def compute_global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq
 
     return vrms,EK,WAG,TVD,GPE,ITE,TM,Tavrg,eta_avrg
 
-###############################################################################
+###################################################################################################
 
 def compute_Nu(Lx,Lz,nel,top_element,bottom_element,icon_V,T,dTdy_nodal,\
                nq_per_dim,qcoords,qweights,hx):
+    """
+    Args:
+    Returns:
+    """
 
     avrg_T_top=0    ; avrg_dTdy_top=0    
     avrg_T_bottom=0 ; avrg_dTdy_bottom=0 
@@ -106,8 +115,14 @@ def ms_pressure(x,y):
     val=x*(1.-x)-1./6.
     return val
 
+###################################################################################################
+
 #@numba.njit
 def compute_discretisation_errors(nel,nq_per_element,xq,zq,uq,wq,pq,volume,JxWq):
+    """
+    Args:
+    Returns:
+    """
 
     errv=0.
     errp=0.

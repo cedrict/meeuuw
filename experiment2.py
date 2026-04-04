@@ -12,7 +12,10 @@ vel_scale=cm/year ; vel_unit='cm/yr'
 time_scale=year ; time_unit='yr'
 end_time=50e6*year
 every_solution_vtu=1
+every_solution_png=10
 every_swarm_vtu=1
+every_swarm_png=10
+every_swarm_ascii=10
 averaging='arithmetic'
 debug_ascii=False
 nparticle_per_dim=7
@@ -21,7 +24,7 @@ particle_distribution=0 # 0: random, 1: reg
 
 nelz=80
 nelx=int(Lx/Lz*nelz*1.25)
-nstep=200
+nstep=20
 
 ###################################################################################################
 

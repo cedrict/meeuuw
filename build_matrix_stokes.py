@@ -18,6 +18,10 @@ def build_matrix_stokes(bignb,nel,nq_per_element,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof
                         jcbi00q,jcbi01q,jcbi10q,jcbi11q,eta_ref,L_ref,bc_fix_V,bc_val_V,\
                         bot_element,top_element,bot_free_slip,top_free_slip,geometry,theta_V,
                         axisymmetric,xq):
+    """
+    Args:
+    Returns:
+    """
 
     if axisymmetric:
        B=np.zeros((4,ndof_V*m_V),dtype=np.float64)
@@ -27,9 +31,7 @@ def build_matrix_stokes(bignb,nel,nq_per_element,m_V,m_P,ndof_V,Nfem_V,Nfem,ndof
        B=np.zeros((3,ndof_V*m_V),dtype=np.float64)
        N_mat=np.zeros((3,m_P),dtype=np.float64) 
        C=np.array([[2,0,0],[0,2,0],[0,0,1]],dtype=np.float64) 
-       #C=np.array([[1.33,-0.66,0],[-0.66,1.33,0],[0,0,1]],dtype=np.float64) 
        #C=np.array([[4/3,-2/3,0],[-2/3,4/3,0],[0,0,1]],dtype=np.float64) 
-       #C=np.array([[1.3333,-0.6666,0],[-0.66666,1.33333,0],[0,0,1]],dtype=np.float64) 
 
     VV_V=np.zeros(bignb,dtype=np.float64)    
     rhs=np.zeros(Nfem,dtype=np.float64) 

@@ -9,6 +9,10 @@ import numba
 
 @numba.njit
 def Q1_project_nodal_field_onto_qpoints(phi_nodal,nq_per_element,nel,N_P,icon_P):
+    """
+    Args:
+    Returns:
+    """
 
     phiq=np.zeros((nel,nq_per_element),dtype=np.float64)
 
@@ -22,6 +26,10 @@ def Q1_project_nodal_field_onto_qpoints(phi_nodal,nq_per_element,nel,N_P,icon_P)
 
 @numba.njit
 def Q2_project_nodal_field_onto_qpoints(phi_nodal,nq_per_element,nel,N_V,icon_V):
+    """
+    Args:
+    Returns:
+    """
 
     phiq=np.zeros((nel,nq_per_element),dtype=np.float64)
 
@@ -32,4 +40,3 @@ def Q2_project_nodal_field_onto_qpoints(phi_nodal,nq_per_element,nel,N_V,icon_V)
     return phiq
 
 ###################################################################################################
-

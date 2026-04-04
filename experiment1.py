@@ -7,8 +7,10 @@ Lz=1
 eta_ref=100
 pressure_normalisation='volume'
 end_time=2000
-every_solution_vtu=1
+every_solution_vtu=10
+every_solution_png=10
 every_swarm_vtu=5
+every_swarm_png=1
 
 nelx=48
 nelz=48
