@@ -71,7 +71,7 @@ from set_default_parameters import *
 # experiment 19: Donea & Huerta manufactured solution
 ###############################################################################
 
-experiment=13
+experiment=19
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx",type=int,default=0)
@@ -597,6 +597,8 @@ N_V=np.zeros((nq_per_element,m_V),dtype=np.float64)
 N_P=np.zeros((nq_per_element,m_P),dtype=np.float64) 
 dNdr_V=np.zeros((nq_per_element,m_V),dtype=np.float64) 
 dNdt_V=np.zeros((nq_per_element,m_V),dtype=np.float64) 
+dNdr_P=np.zeros((nq_per_element,m_P),dtype=np.float64) 
+dNdt_P=np.zeros((nq_per_element,m_P),dtype=np.float64) 
 
 area=np.zeros(nel,dtype=np.float64) 
 x_e=np.zeros(nel,dtype=np.float64) 
@@ -622,6 +624,8 @@ for iel in range(0,nel):
                N_P[counterq,0:m_P]=basis_functions_P(rq[counterq],tq[counterq])
                dNdr_V[counterq,0:m_V]=basis_functions_V_dr(rq[counterq],tq[counterq])
                dNdt_V[counterq,0:m_V]=basis_functions_V_dt(rq[counterq],tq[counterq])
+               dNdr_P[counterq,0:m_V]=basis_functions_P_dr(rq[counterq],tq[counterq])
+               dNdt_P[counterq,0:m_V]=basis_functions_P_dt(rq[counterq],tq[counterq])
             #end if
             jcb[0,0]=np.dot(dNdr_V[counterq,:],x_V[icon_V[:,iel]])
             jcb[0,1]=np.dot(dNdr_V[counterq,:],z_V[icon_V[:,iel]])
@@ -770,37 +774,115 @@ for iel in range(0,nel):
 print("compute local_to_globalV: .................... %.3f s" % (clock.time()-start))
 
 ###############################################################################
-#@@ fill II_V,JJ_V arrays for Stokes matrix
+#@@ fill II_Stokes,JJ_Stokes arrays for Stokes matrix
 ###############################################################################
 start=clock.time()
 
-bignb_V=nel*( (m_V*ndof_V)**2 + 2*(m_V*ndof_V*m_P) )
+if solve_Stokes:
 
-II_V=np.zeros(bignb_V,dtype=np.int32)    
-JJ_V=np.zeros(bignb_V,dtype=np.int32)    
+   bignb_Stokes=nel*( ndof_V_el**2 + 2*ndof_V_el*m_P )
 
-counter=0
-for iel in range(0,nel):
-    for ikk in range(ndof_V_el):
-        m1=local_to_globalV[ikk,iel]
-        for jkk in range(ndof_V_el):
-            m2=local_to_globalV[jkk,iel]
-            II_V[counter]=m1
-            JJ_V[counter]=m2
-            counter+=1
-        for jkk in range(0,m_P):
-            m2 =icon_P[jkk,iel]+Nfem_V
-            II_V[counter]=m1
-            JJ_V[counter]=m2
-            counter+=1
-            II_V[counter]=m2
-            JJ_V[counter]=m1
-            counter+=1
+   II_Stokes=np.zeros(bignb_Stokes,dtype=np.int32)    
+   JJ_Stokes=np.zeros(bignb_Stokes,dtype=np.int32)    
 
-print("fill II_V,JJ_V arrays: ....................... %.3f s" % (clock.time()-start))
+   counter=0
+   for iel in range(0,nel):
+       for ikk in range(ndof_V_el):
+           m1=local_to_globalV[ikk,iel]
+           for jkk in range(ndof_V_el):
+               m2=local_to_globalV[jkk,iel]
+               II_Stokes[counter]=m1
+               JJ_Stokes[counter]=m2
+               counter+=1
+           for jkk in range(0,m_P):
+               m2 =icon_P[jkk,iel]+Nfem_V
+               II_Stokes[counter]=m1
+               JJ_Stokes[counter]=m2
+               counter+=1
+               II_Stokes[counter]=m2
+               JJ_Stokes[counter]=m1
+               counter+=1
+
+print("fill II_Stokes,JJ_Stokes arrays: ............. %.3f s" % (clock.time()-start))
 
 ###############################################################################
-#@@ fill II_T,JJ_T arrays for temperature matrix & plith matrix
+#@@ fill II_K,JJ_K arrays for K block matrix (Q2, vector)
+###############################################################################
+start=clock.time()
+
+if solve_Stokes:
+
+   bignb_K=nel*ndof_V_el**2  
+
+   II_K=np.zeros(bignb_K,dtype=np.int32)    
+   JJ_K=np.zeros(bignb_K,dtype=np.int32)    
+
+   counter=0
+   for iel in range(0,nel):
+       for ikk in range(ndof_V_el):
+           m1=local_to_globalV[ikk,iel]
+           for jkk in range(ndof_V_el):
+               m2=local_to_globalV[jkk,iel]
+               II_K[counter]=m1
+               JJ_K[counter]=m2
+               counter+=1
+
+print("fill II_K,JJ_K arrays: ....................... %.3f s" % (clock.time()-start))
+
+###############################################################################
+#@@ fill II_K,JJ_K arrays for G and GT block matrices 
+###############################################################################
+start=clock.time()
+
+if solve_Stokes:
+
+   bignb_G=nel*(m_P*ndof_V_el)
+
+   II_G=np.zeros(bignb_G,dtype=np.int32)    
+   JJ_G=np.zeros(bignb_G,dtype=np.int32)    
+   II_GT=np.zeros(bignb_G,dtype=np.int32)    
+   JJ_GT=np.zeros(bignb_G,dtype=np.int32)    
+
+   counter=0
+   for iel in range(0,nel):
+       for ikk in range(ndof_V_el):
+           m1=local_to_globalV[ikk,iel]
+           for jkk in range(0,m_P):
+               m2=icon_P[jkk,iel]
+               II_G[counter]=m1
+               JJ_G[counter]=m2
+               II_GT[counter]=m2
+               JJ_GT[counter]=m1
+               counter+=1
+
+print("fill II_G,JJ_G arrays: ....................... %.3f s" % (clock.time()-start))
+
+###############################################################################
+#@@ fill II_MP,JJ_P arrays for pressure mass matrix (Q1, scalar)
+###############################################################################
+start=clock.time()
+
+if solve_Stokes:
+
+   bignb_P=nel*m_P**2  
+
+   II_MP=np.zeros(bignb_P,dtype=np.int32)    
+   JJ_MP=np.zeros(bignb_P,dtype=np.int32)    
+
+   counter=0
+   for iel in range(0,nel):
+       for ikk in range(m_P):
+           m1=icon_P[ikk,iel]
+           for jkk in range(m_P):
+               m2=icon_P[jkk,iel]
+               II_MP[counter]=m1
+               JJ_MP[counter]=m2
+               counter+=1
+
+print("fill II_MP,JJ_MP arrays: ..................... %.3f s" % (clock.time()-start))
+
+###############################################################################
+#@@ fill II_T,JJ_T arrays for temperature matrix & plith matrix (Q2, scalar)
 ###############################################################################
 start=clock.time()
 
@@ -1387,10 +1469,10 @@ for istep in range(0,nstep):
 
     if compute_plith:
 
-       VV_T,rhs=build_matrix_plith(bignb_T,nel,nq_per_element,m_T,Nfem_T,icon_V,rhoq,gx_q,gz_q,\
+       VV_T,b_fem=build_matrix_plith(bignb_T,nel,nq_per_element,m_T,Nfem_T,icon_V,rhoq,gx_q,gz_q,\
                                    JxWq,N_V,dNdr_V,dNdt_V,jcbi00q,jcbi01q,jcbi10q,jcbi11q,top_Vnodes)
-       sparse_matrix=sparse.coo_matrix((VV_T,(II_T,JJ_T)),shape=(Nfem_T,Nfem_T)).tocsr()
-       plith=sps.linalg.spsolve(sparse_matrix,rhs)
+       A_fem=sparse.coo_matrix((VV_T,(II_T,JJ_T)),shape=(Nfem_T,Nfem_T)).tocsr()
+       plith=sps.linalg.spsolve(A_fem,b_fem)
 
        print("     -> plith (m,M) %.3e %.3e " %(np.min(plith),np.max(plith)))
 
@@ -1407,28 +1489,46 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if solve_Stokes:
-       VV_V,rhs=build_matrix_stokes(bignb_V,nel,nq_per_element,m_V,m_P,ndof_V,Nfem_V,Nfem,\
-                                    ndof_V_el,icon_V,icon_P,rhoq,etaq,JxWq,\
-                                    local_to_globalV,gx_q,gz_q,N_V,N_P,dNdr_V,dNdt_V,\
-                                    jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
-                                    eta_ref,L_ref,bc_fix_V,bc_val_V,\
-                                    bot_element,top_element,bot_free_slip,top_free_slip,\
-                                    geometry,theta_V,axisymmetric,xq)
+       VV_Stokes,b_fem,VV_K,VV_G,VV_MP=\
+       build_matrix_stokes(bignb_Stokes,bignb_K,bignb_P,bignb_G,\
+                           nel,nq_per_element,m_V,m_P,ndof_V,Nfem_V,Nfem,\
+                           ndof_V_el,icon_V,icon_P,rhoq,etaq,JxWq,\
+                           local_to_globalV,gx_q,gz_q,N_V,N_P,dNdr_V,dNdt_V,dNdr_P,dNdt_P,\
+                           jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
+                           eta_ref,L_ref,bc_fix_V,bc_val_V,\
+                           bot_element,top_element,bot_free_slip,top_free_slip,\
+                           geometry,theta_V,axisymmetric,xq)
 
-    if debug_nan and np.isnan(np.sum(VV_V)): exit('nan found in VV_V')
+    if debug_nan and np.isnan(np.sum(VV_Stokes)): exit('nan found in VV_Stokes')
+    if debug_nan and np.isnan(np.sum(VV_MP)): exit('nan found in VV_MP')
+    if debug_nan and np.isnan(np.sum(VV_G)): exit('nan found in VV_G')
+    if debug_nan and np.isnan(np.sum(VV_K)): exit('nan found in VV_K')
 
     print("build FE matrix stokes: ...................... %.3f s" % (clock.time()-start)) ; timings[1]+=clock.time()-start
 
     ###############################################################################################
-    #@@ solve stokes system
+    #@@ convert matrix arrays to coo then to csr
     # By default when converting to CSR or CSC format, duplicate (i,j) entries will be 
     # summed together. This facilitates efficient construction of finite element matrices and the like. 
     ###############################################################################################
     start=clock.time()
 
     if solve_Stokes:
-       sparse_matrix=sparse.coo_matrix((VV_V,(II_V,JJ_V)),shape=(Nfem,Nfem)).tocsr()
-       sol=sps.linalg.spsolve(sparse_matrix,rhs)
+       A_fem=sparse.coo_matrix((VV_Stokes,(II_Stokes,JJ_Stokes)),shape=(Nfem,Nfem)).tocsr()
+       K_fem=sparse.coo_matrix((VV_K,(II_K,JJ_K)),shape=(Nfem_V,Nfem_V)).tocsr()
+       MP_fem=sparse.coo_matrix((VV_MP,(II_MP,JJ_MP)),shape=(Nfem_V,Nfem_V)).tocsr()
+       G_fem=sparse.coo_matrix((VV_G,(II_G,JJ_G)),shape=(Nfem_V,Nfem_P)).tocsr()
+       GT_fem=sparse.coo_matrix((VV_G,(II_GT,JJ_GT)),shape=(Nfem_P,Nfem_V)).tocsr()
+
+    print("convert fem blocks to csr: ................... %.3f s %d %d" % (clock.time()-start, Nfem, nel)) 
+
+    ###############################################################################################
+    #@@ solve stokes system
+    ###############################################################################################
+    start=clock.time()
+
+    if solve_Stokes:
+       sol=sps.linalg.spsolve(A_fem,b_fem)
     else:
        sol=np.zeros(Nfem,dtype=np.float64)
 
@@ -1686,12 +1786,6 @@ for istep in range(0,nstep):
 
     #end if solve_T
 
-
-
-
-
-
-
     ###############################################################################################
     #@@ compute nodal heat flux 
     # ordering 0-1-2-3 is BL-BR-TR-TL
@@ -1870,7 +1964,7 @@ for istep in range(0,nstep):
     dzzq=Q2_project_nodal_field_onto_qpoints(dzz_n,nq_per_element,nel,N_V,icon_V)
     dxzq=Q2_project_nodal_field_onto_qpoints(dxz_n,nq_per_element,nel,N_V,icon_V)
 
-    print("compute nodal strainrate: .................... %.3f s" % (clock.time()-start)) #; timings[11]+=clock.time()-start
+    print("compute dev nodal strainrate: ................ %.3f s" % (clock.time()-start)) #; timings[11]+=clock.time()-start
 
     ###############################################################################################
     #@@ compute global quantities 
