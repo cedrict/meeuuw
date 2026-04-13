@@ -7,6 +7,8 @@ import numba
 
 ###################################################################################################
 # boundary conditions are hard wired to be p=0 at the top boundary.
+# the lithostatic pressure is computed in the Q2 space so we can reuse icon_V
+###################################################################################################
 
 @numba.njit
 def build_matrix_plith(bignb,nel,nq_per_element,m_T,Nfem_T,icon_V,rhoq,gxq,gyq,JxWq,\
@@ -49,6 +51,8 @@ def build_matrix_plith(bignb,nel,nq_per_element,m_T,Nfem_T,icon_V,rhoq,gxq,gyq,J
                 counter+=1
             rhs[m1]+=b_el[ikk]
         #end for
+
+    #end for iel
 
     return VV_T,rhs
 

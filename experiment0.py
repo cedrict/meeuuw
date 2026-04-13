@@ -15,10 +15,10 @@ rho0=1
 every_Nu=1
 end_time=0.25
 every_solution_vtu=10
-every_solution_png=50
+every_solution_png=500
 every_swarm_vtu=100
 RKorder=-1
-nstep=100
+nstep=50
 CFLnb=0.75
 
 ###################################################################################################

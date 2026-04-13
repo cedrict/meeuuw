@@ -46,6 +46,7 @@ compute_L2_errors=False
 
 debug_ascii=False
 debug_nan=False
+debug_solver=False
 
 #######################################
 # geometry parameters

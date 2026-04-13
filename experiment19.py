@@ -6,15 +6,16 @@ from constants import *
 Lx=1
 Lz=1
 
-nelx=32
-nelz=32
+nelx=48
+nelz=nelx
 
 nstep=1
 end_time=0
 eta_ref=1
 every_solution_vtu=1
 every_swarm_vtu=1
-debug_ascii=True
+debug_ascii=False
+debug_solver=True
 pressure_normalisation='volume'
 RKorder=-1 # particles collocated with quadrature points
 compute_L2_errors=True

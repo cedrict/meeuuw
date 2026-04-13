@@ -8,6 +8,12 @@ rm DEBUG/*.ascii
 rm OUTPUT/*.ascii
 rm OUTPUT/*.vtu 
 rm OUTPUT/*.pvd 
+rm OUTPUT/*.png 
+rm OUTPUT/*.pdf
+rm OUTPUT/SWARM/*.vtu
+rm OUTPUT/SWARM/*.ascii
+rm OUTPUT/SWARM/*.pdf
+rm OUTPUT/SWARM/*.png
 rm *.txt
 
 

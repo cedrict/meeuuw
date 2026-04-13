@@ -25,6 +25,7 @@ from compute_strain_rate import *
 from compute_avrg_profiles import *
 from compute_nodal_heat_flux import *
 from compute_nodal_pressure import *
+from uzawa3_solver_L2 import *
 from output_swarm_to_vtu import *
 from output_swarm_to_png import *
 from output_swarm_to_ascii import *
@@ -234,6 +235,8 @@ if geometry=='box': L_ref=(Lx+Lz)/2
 if geometry=='quarter': L_ref=(Rinner+Router)/2
 if geometry=='half': L_ref=(Rinner+Router)/2
 if geometry=='eighth': L_ref=(Rinner+Router)/2
+
+blocks=True
 
 ###############################################################################
 #@@ quadrature rule points and weights
@@ -716,9 +719,10 @@ for iel in range(0,nel):
 print("     -> gx_q (m,M) %.3e %.3e " %(np.min(gx_q),np.max(gx_q)))
 print("     -> gz_q (m,M) %.3e %.3e " %(np.min(gz_q),np.max(gz_q)))
 
-if debug_ascii: np.savetxt('DEBUG/qgravity.ascii',np.array([xq.flatten(),zq.flatten(),gx_q.flatten(),gz_q.flatten()]).T,header='#x,z,gx,gz')
+if debug_ascii: np.savetxt('DEBUG/qgravity.ascii',\
+   np.array([xq.flatten(),zq.flatten(),gx_q.flatten(),gz_q.flatten()]).T,header='#x,z,gx,gz')
 
-print("compute grav at qpts: ........................ %.3f s" % (clock.time()-start))
+print("assign qpts gravity vector: .................. %.3f s" % (clock.time()-start))
 
 ###############################################################################
 #@@ compute gravity on mesh points
@@ -851,8 +855,16 @@ if solve_Stokes:
                m2=icon_P[jkk,iel]
                II_G[counter]=m1
                JJ_G[counter]=m2
-               II_GT[counter]=m2
-               JJ_GT[counter]=m1
+               counter+=1
+
+   counter=0
+   for iel in range(0,nel):
+       for jkk in range(0,m_P):
+           m1=icon_P[jkk,iel]
+           for ikk in range(ndof_V_el):
+               m2=local_to_globalV[ikk,iel]
+               II_GT[counter]=m1
+               JJ_GT[counter]=m2
                counter+=1
 
 print("fill II_G,JJ_G arrays: ....................... %.3f s" % (clock.time()-start))
@@ -1464,6 +1476,8 @@ for istep in range(0,nstep):
 
     ###############################################################################################
     #@@ compute lithostatic pressure a la Jourdon & May, Solid Earth, 2022
+    # spsolve(A, b, permc_spec=None, use_umfpack=True) 
+    # Solve the sparse linear system Ax=b, where b may be a vector or a matrix.
     ###############################################################################################
     start=clock.time()
 
@@ -1489,19 +1503,27 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if solve_Stokes:
-       VV_Stokes,b_fem,VV_K,VV_G,VV_MP=\
+       VV_Stokes,rhs_f,rhs_h,VV_K,VV_G,VV_GT,VV_MP,VV_H=\
        build_matrix_stokes(bignb_Stokes,bignb_K,bignb_P,bignb_G,\
-                           nel,nq_per_element,m_V,m_P,ndof_V,Nfem_V,Nfem,\
+                           nel,nq_per_element,m_V,m_P,ndof_V,Nfem_V,Nfem_P,\
                            ndof_V_el,icon_V,icon_P,rhoq,etaq,JxWq,\
                            local_to_globalV,gx_q,gz_q,N_V,N_P,dNdr_V,dNdt_V,dNdr_P,dNdt_P,\
                            jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
                            eta_ref,L_ref,bc_fix_V,bc_val_V,\
                            bot_element,top_element,bot_free_slip,top_free_slip,\
-                           geometry,theta_V,axisymmetric,xq)
+                           geometry,theta_V,axisymmetric,xq,blocks)
+
+       if debug_solver:
+          print('     -> K block:',np.size(VV_K)*8/1024/1024,'Mb')
+          print('     -> G block:',np.size(VV_G)*8/1024/1024,'Mb')
+          print('     -> GT block:',np.size(VV_GT)*8/1024/1024,'Mb')
+          print('     -> MP block:',np.size(VV_MP)*8/1024/1024,'Mb')
+          print('     -> H block:',np.size(VV_H)*8/1024/1024,'Mb')
 
     if debug_nan and np.isnan(np.sum(VV_Stokes)): exit('nan found in VV_Stokes')
     if debug_nan and np.isnan(np.sum(VV_MP)): exit('nan found in VV_MP')
     if debug_nan and np.isnan(np.sum(VV_G)): exit('nan found in VV_G')
+    if debug_nan and np.isnan(np.sum(VV_GT)): exit('nan found in VV_GT')
     if debug_nan and np.isnan(np.sum(VV_K)): exit('nan found in VV_K')
 
     print("build FE matrix stokes: ...................... %.3f s" % (clock.time()-start)) ; timings[1]+=clock.time()-start
@@ -1514,25 +1536,49 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if solve_Stokes:
-       A_fem=sparse.coo_matrix((VV_Stokes,(II_Stokes,JJ_Stokes)),shape=(Nfem,Nfem)).tocsr()
-       K_fem=sparse.coo_matrix((VV_K,(II_K,JJ_K)),shape=(Nfem_V,Nfem_V)).tocsr()
-       MP_fem=sparse.coo_matrix((VV_MP,(II_MP,JJ_MP)),shape=(Nfem_V,Nfem_V)).tocsr()
-       G_fem=sparse.coo_matrix((VV_G,(II_G,JJ_G)),shape=(Nfem_V,Nfem_P)).tocsr()
-       GT_fem=sparse.coo_matrix((VV_G,(II_GT,JJ_GT)),shape=(Nfem_P,Nfem_V)).tocsr()
+       if blocks:
+          K_fem=sparse.coo_matrix((VV_K,(II_K,JJ_K)),shape=(Nfem_V,Nfem_V)).tocsc()
+          MP_fem=sparse.coo_matrix((VV_MP,(II_MP,JJ_MP)),shape=(Nfem_P,Nfem_P)).tocsc()
+          G_fem=sparse.coo_matrix((VV_G,(II_G,JJ_G)),shape=(Nfem_V,Nfem_P)).tocsr()
+          GT_fem=sparse.coo_matrix((VV_GT,(II_GT,JJ_GT)),shape=(Nfem_P,Nfem_V)).tocsr()
+          H_fem=sparse.coo_matrix((VV_H,(II_GT,JJ_GT)),shape=(Nfem_P,Nfem_V)).tocsr()
+          if debug_solver:
+             print('     -> block K :',np.shape(K_fem))
+             print('     -> block G :',np.shape(G_fem))
+             print('     -> block GT:',np.shape(GT_fem))
+             print('     -> block MP:',np.shape(MP_fem))
+             print('     -> block H :',np.shape(H_fem))
+       else:
+          A_fem=sparse.coo_matrix((VV_Stokes,(II_Stokes,JJ_Stokes)),shape=(Nfem,Nfem)).tocsr()
 
     print("convert fem blocks to csr: ................... %.3f s %d %d" % (clock.time()-start, Nfem, nel)) 
 
     ###############################################################################################
     #@@ solve stokes system
+    # spsolve(A, b, permc_spec=None, use_umfpack=True) 
+    # Solve the sparse linear system Ax=b, where b may be a vector or a matrix.
     ###############################################################################################
     start=clock.time()
 
     if solve_Stokes:
-       sol=sps.linalg.spsolve(A_fem,b_fem)
+       if blocks:
+          sol_V,sol_P,nniter,array_xiV,array_xiP,array_alpha=\
+          uzawa3_solver_L2(K_fem,G_fem,GT_fem,MP_fem,H_fem,rhs_f,rhs_h,Nfem_P)
+          print('     converged in ',nniter,' iterations')
+          if debug_solver:
+             for k in range(0,nniter):
+                 print('     iter %3d xiP= %e xiV= %e' %(k,array_xiP[k],array_xiV[k]))
+          np.savetxt('OUTPUT/solver_convergence_'+str(istep)+'.ascii',np.array([array_xiV[:nniter],array_xiP[:nniter],array_alpha[:nniter]]).T)
+       else:
+          b_fem=np.zeros(Nfem,dtype=np.float64)
+          b_fem[0:Nfem_V]=rhs_f
+          b_fem[Nfem_V:Nfem]=rhs_h
+          sol=sps.linalg.spsolve(A_fem,b_fem)
+          nniter=0
     else:
        sol=np.zeros(Nfem,dtype=np.float64)
 
-    print("solve Stokes system: ......................... %.3f s %d %d" % (clock.time()-start, Nfem, nel)) 
+    print("solve Stokes system: ......................... %.3f s %d %d %d" % (clock.time()-start, Nfem, nel, nniter)) 
     timings[2]+=clock.time()-start
 
     ###############################################################################################
@@ -1540,8 +1586,12 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    u,w=np.reshape(sol[0:Nfem_V],(nn_V,2)).T
-    p=sol[Nfem_V:Nfem]*(eta_ref/L_ref)
+    if blocks:
+       u,w=np.reshape(sol_V[0:Nfem_V],(nn_V,2)).T
+       p=sol_P*(eta_ref/L_ref)
+    else:
+       u,w=np.reshape(sol[0:Nfem_V],(nn_V,2)).T
+       p=sol[Nfem_V:Nfem]*(eta_ref/L_ref)
 
     if debug_nan and np.isnan(np.sum(u)): exit('nan found in u')
     if debug_nan and np.isnan(np.sum(w)): exit('nan found in w')
