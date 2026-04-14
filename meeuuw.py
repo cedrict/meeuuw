@@ -12,6 +12,7 @@ import argparse
 from toolbox import *
 from update_F import *
 from constants import *
+from cd_u_eta import *
 from scipy import sparse
 from PoissonDisc import *
 from pic_functions import *
@@ -1192,8 +1193,7 @@ for istep in range(0,nstep):
     rho_e,eta_e,nparticle_e=\
     project_particles_on_elements(nel,nparticle,swarm_rho,swarm_eta,swarm_iel,averaging)
 
-    if np.min(nparticle_e)==0: 
-       exit('ABORT: an element contains no particle!')
+    if np.min(nparticle_e)==0: exit('ABORT: an element contains no particle!')
 
     ptcl_stats_file.write("%.4e %d %d\n" % (geological_time/time_scale,np.min(nparticle_e),np.max(nparticle_e))) ; ptcl_stats_file.flush()
     etae_file.write("%.4e %.4e %.4e\n" % (geological_time/time_scale,np.min(eta_e),np.max(eta_e))) ; etae_file.flush()
@@ -1503,25 +1503,27 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if solve_Stokes:
-       VV_Stokes,rhs_f,rhs_h,VV_K,VV_G,VV_GT,VV_MP,VV_H=\
+       VV_Stokes,rhs_f,rhs_h,VV_K,VV_G,VV_GT,VV_M,VV_M_eta,VV_H=\
        build_matrix_stokes(bignb_Stokes,bignb_K,bignb_P,bignb_G,\
                            nel,nq_per_element,m_V,m_P,ndof_V,Nfem_V,Nfem_P,\
                            ndof_V_el,icon_V,icon_P,rhoq,etaq,JxWq,\
                            local_to_globalV,gx_q,gz_q,N_V,N_P,dNdr_V,dNdt_V,dNdr_P,dNdt_P,\
-                           jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
+                           jcbi00q,jcbi01q,jcbi10q,jcbi11q,eta_e,\
                            eta_ref,L_ref,bc_fix_V,bc_val_V,\
                            bot_element,top_element,bot_free_slip,top_free_slip,\
                            geometry,theta_V,axisymmetric,xq,blocks)
 
-       if debug_solver:
+       if debug_solver and blocks:
           print('     -> K block:',np.size(VV_K)*8/1024/1024,'Mb')
           print('     -> G block:',np.size(VV_G)*8/1024/1024,'Mb')
           print('     -> GT block:',np.size(VV_GT)*8/1024/1024,'Mb')
-          print('     -> MP block:',np.size(VV_MP)*8/1024/1024,'Mb')
+          print('     -> MP block:',np.size(VV_M)*8/1024/1024,'Mb')
+          print('     -> MP block:',np.size(VV_M_eta)*8/1024/1024,'Mb')
           print('     -> H block:',np.size(VV_H)*8/1024/1024,'Mb')
 
     if debug_nan and np.isnan(np.sum(VV_Stokes)): exit('nan found in VV_Stokes')
-    if debug_nan and np.isnan(np.sum(VV_MP)): exit('nan found in VV_MP')
+    if debug_nan and np.isnan(np.sum(VV_M_eta)): exit('nan found in VV_M_eta')
+    if debug_nan and np.isnan(np.sum(VV_M)): exit('nan found in VV_M')
     if debug_nan and np.isnan(np.sum(VV_G)): exit('nan found in VV_G')
     if debug_nan and np.isnan(np.sum(VV_GT)): exit('nan found in VV_GT')
     if debug_nan and np.isnan(np.sum(VV_K)): exit('nan found in VV_K')
@@ -1538,16 +1540,18 @@ for istep in range(0,nstep):
     if solve_Stokes:
        if blocks:
           K_fem=sparse.coo_matrix((VV_K,(II_K,JJ_K)),shape=(Nfem_V,Nfem_V)).tocsc()
-          MP_fem=sparse.coo_matrix((VV_MP,(II_MP,JJ_MP)),shape=(Nfem_P,Nfem_P)).tocsc()
+          M_fem=sparse.coo_matrix((VV_M,(II_MP,JJ_MP)),shape=(Nfem_P,Nfem_P)).tocsc()
+          M_eta_fem=sparse.coo_matrix((VV_M_eta,(II_MP,JJ_MP)),shape=(Nfem_P,Nfem_P)).tocsc()
           G_fem=sparse.coo_matrix((VV_G,(II_G,JJ_G)),shape=(Nfem_V,Nfem_P)).tocsr()
           GT_fem=sparse.coo_matrix((VV_GT,(II_GT,JJ_GT)),shape=(Nfem_P,Nfem_V)).tocsr()
           H_fem=sparse.coo_matrix((VV_H,(II_GT,JJ_GT)),shape=(Nfem_P,Nfem_V)).tocsr()
           if debug_solver:
-             print('     -> block K :',np.shape(K_fem))
-             print('     -> block G :',np.shape(G_fem))
+             print('     -> block K:',np.shape(K_fem))
+             print('     -> block G:',np.shape(G_fem))
              print('     -> block GT:',np.shape(GT_fem))
-             print('     -> block MP:',np.shape(MP_fem))
-             print('     -> block H :',np.shape(H_fem))
+             print('     -> block M:',np.shape(M_fem))
+             print('     -> block M_eta:',np.shape(M_eta_fem))
+             print('     -> block H:',np.shape(H_fem))
        else:
           A_fem=sparse.coo_matrix((VV_Stokes,(II_Stokes,JJ_Stokes)),shape=(Nfem,Nfem)).tocsr()
 
@@ -1562,8 +1566,12 @@ for istep in range(0,nstep):
 
     if solve_Stokes:
        if blocks:
+          #sol_V,sol_P,nniter,array_xiV,array_xiP,array_alpha=\
+          #uzawa3_solver_L2(K_fem,G_fem,GT_fem,M_fem,H_fem,rhs_f,rhs_h,Nfem_P)
+
           sol_V,sol_P,nniter,array_xiV,array_xiP,array_alpha=\
-          uzawa3_solver_L2(K_fem,G_fem,GT_fem,MP_fem,H_fem,rhs_f,rhs_h,Nfem_P)
+          cd_u_eta(K_fem,G_fem,GT_fem,M_fem,M_eta_fem,H_fem,rhs_f,rhs_h,Nfem_P)
+
           print('     converged in ',nniter,' iterations')
           if debug_solver:
              for k in range(0,nniter):

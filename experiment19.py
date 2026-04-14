@@ -6,7 +6,7 @@ from constants import *
 Lx=1
 Lz=1
 
-nelx=48
+nelx=32
 nelz=nelx
 
 nstep=1
