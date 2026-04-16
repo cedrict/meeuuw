@@ -46,11 +46,37 @@ of freedom or the number of elements in each direction:
 
 \begin{center}
 \includegraphics[width=8cm]{exp19/solve_times1.pdf}
-\includegraphics[width=8cm]{exp19/solve_times2.pdf}
+\includegraphics[width=8cm]{exp19/solve_times2.pdf}\\
+\includegraphics[width=8cm]{exp19/solve_times3.pdf}
+\includegraphics[width=8cm]{exp19/solve_times4.pdf}
 \end{center}
 
-We also find that the different modes 'Performance', 'Balanced', and 'Power Saver'
+Conclusions:
+\begin{itemize}
+\item the different modes 'Performance', 'Balanced', and 'Power Saver'
 in Ubuntu 24 on my laptop do not affect the solver speed at all...
+\item The LU solver approach on the $K$ block results in a solve about 3 times faster
+than the full matrix. 
+\item Using the LU approach on the pressure mass matrix
+delivers additional performance. 
+\item the default tolerance for velocity and pressure is $10^{-6}$.
+If lowered to $10^{-5}$, the solver is barely faster
+\item using CG on $K$ is slow
+\end{itemize}
+
+
+
+\begin{center}
+\includegraphics[width=5.7cm]{exp19/solver_convergence_xiV.pdf}
+\includegraphics[width=5.7cm]{exp19/solver_convergence_xiP.pdf}
+\includegraphics[width=5.7cm]{exp19/solver_convergence_alpha.pdf}
+\end{center}
+
+Conclusions:
+\begin{itemize}
+\item The number of iterations barely changes with resolution (as expected)
+\item The value of $\alpha$ also seems quite stable. 
+\end{itemize}
 
 \newpage
 \begin{center}
