@@ -103,22 +103,52 @@ def compute_Nu(Lx,Lz,nel,top_element,bottom_element,icon_V,T,dTdy_nodal,\
 ###################################################################################################
 # analytical solution
 
-def ms_velocity_x(x,y):
-    val=x*x*(1.-x)**2*(2.*y-6.*y*y+4*y*y*y)
+def ms_velocity_x(x,y,exp):
+    match exp:
+     case 19:
+      val=x*x*(1.-x)**2*(2.*y-6.*y*y+4*y*y*y)
+     case 21:
+      import solcx
+      uu,vv,pp=solcx.SolCxSolution(x,y)
+      val=-uu
+     case 22:
+      import solkz
+      uu,vv,pp=solkz.SolKzSolution(x,y)
+      val=-uu
     return val
 
-def ms_velocity_z(x,y):
-    val=-y*y*(1.-y)**2*(2.*x-6.*x*x+4*x*x*x)
+def ms_velocity_z(x,y,exp):
+    match exp:
+     case 19:
+      val=-y*y*(1.-y)**2*(2.*x-6.*x*x+4*x*x*x)
+     case 21:
+      import solcx
+      uu,vv,pp=solcx.SolCxSolution(x,y)
+      val=-vv
+     case 22:
+      import solkz
+      uu,vv,pp=solkz.SolKzSolution(x,y)
+      val=-vv
     return val
 
-def ms_pressure(x,y):
-    val=x*(1.-x)-1./6.
+def ms_pressure(x,y,exp):
+    match exp:
+     case 19:
+      val=x*(1.-x)-1./6.
+     case 21:
+      import solcx
+      uu,vv,pp=solcx.SolCxSolution(x,y)
+      val=-pp
+     case 22:
+      import solkz
+      uu,vv,pp=solkz.SolKzSolution(x,y)
+      val=-pp
     return val
 
 ###################################################################################################
 
 #@numba.njit
-def compute_discretisation_errors(nel,nq_per_element,xq,zq,uq,wq,pq,volume,JxWq):
+def compute_discretisation_errors(nel,nq_per_element,xq,zq,uq,wq,pq,volume,JxWq,exp):
     """
     Args:
     Returns:
@@ -128,9 +158,9 @@ def compute_discretisation_errors(nel,nq_per_element,xq,zq,uq,wq,pq,volume,JxWq)
     errp=0.
     for iel in range(0,nel):
         for iq in range(0,nq_per_element):
-            errv+=( (uq[iel,iq]-ms_velocity_x(xq[iel,iq],zq[iel,iq]))**2+
-                    (wq[iel,iq]-ms_velocity_z(xq[iel,iq],zq[iel,iq]))**2) * JxWq[iel,iq]
-            errp+=( pq[iel,iq]-ms_pressure(xq[iel,iq],zq[iel,iq]) )**2 * JxWq[iel,iq]
+            errv+=((uq[iel,iq]-ms_velocity_x(xq[iel,iq],zq[iel,iq],exp))**2+
+                   (wq[iel,iq]-ms_velocity_z(xq[iel,iq],zq[iel,iq],exp))**2) * JxWq[iel,iq]
+            errp+=(pq[iel,iq]-ms_pressure(xq[iel,iq],zq[iel,iq],exp))**2     * JxWq[iel,iq]
 
     errv=np.sqrt(errv)
     errp=np.sqrt(errp)

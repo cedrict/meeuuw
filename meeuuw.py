@@ -71,9 +71,12 @@ from set_default_parameters import *
 # experiment 17: sinking sphere 512km with sticky air
 # experiment 18: sinking sphere unit square with sticky air 
 # experiment 19: Donea & Huerta manufactured solution
+# experiment 20: sand box for paper review (SHOULD BE ...?)
+# experiment 21: SolCx
+# experiment 22: SolKz
 ###############################################################################
 
-experiment=19
+experiment=22
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx",type=int,default=0)
@@ -122,6 +125,8 @@ match(experiment):
      case 18: from experiment18 import *
      case 19: from experiment19 import *
      case 20: from experiment20 import *
+     case 21: from experiment21 import *
+     case 22: from experiment22 import *
      case _ : exit('setup - unknown experiment')  
 
 #if int(len(sys.argv)==8): # override these parameters
@@ -237,7 +242,7 @@ if geometry=='quarter': L_ref=(Rinner+Router)/2
 if geometry=='half': L_ref=(Rinner+Router)/2
 if geometry=='eighth': L_ref=(Rinner+Router)/2
 
-blocks=True
+blocks=False
 
 ###############################################################################
 #@@ quadrature rule points and weights
@@ -1569,14 +1574,16 @@ for istep in range(0,nstep):
           #sol_V,sol_P,nniter,array_xiV,array_xiP,array_alpha=\
           #uzawa3_solver_L2(K_fem,G_fem,GT_fem,M_fem,H_fem,rhs_f,rhs_h,Nfem_P)
 
-          sol_V,sol_P,nniter,array_xiV,array_xiP,array_alpha=\
+          sol_V,sol_P,nniter,array_xiV,array_xiP,array_alpha,array_beta=\
           cd_u_eta(K_fem,G_fem,GT_fem,M_fem,M_eta_fem,H_fem,rhs_f,rhs_h,Nfem_P)
 
           print('     converged in ',nniter,' iterations')
           if debug_solver:
              for k in range(0,nniter):
                  print('     iter %3d xiP= %e xiV= %e' %(k,array_xiP[k],array_xiV[k]))
-          np.savetxt('OUTPUT/solver_convergence_'+str(istep)+'.ascii',np.array([array_xiV[:nniter],array_xiP[:nniter],array_alpha[:nniter]]).T)
+          np.savetxt('OUTPUT/solver_convergence_'+str(istep)+'.ascii',\
+                     np.array([array_xiV[:nniter],array_xiP[:nniter],\
+                     array_alpha[:nniter],array_beta[:nniter]]).T)
        else:
           b_fem=np.zeros(Nfem,dtype=np.float64)
           b_fem[0:Nfem_V]=rhs_f
@@ -1802,7 +1809,7 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if compute_L2_errors:
-       errv,errp=compute_discretisation_errors(nel,nq_per_element,xq,zq,uq,wq,pq,volume,JxWq)
+       errv,errp=compute_discretisation_errors(nel,nq_per_element,xq,zq,uq,wq,pq,volume,JxWq,experiment)
 
        print('     -> errv,errp= %.3e %.3e %d' %(errv,errp,nel))
 
@@ -2305,7 +2312,7 @@ for istep in range(0,nstep):
                               u,w,q,T,eta_n,rho_n,exx_n,ezz_n,exz_n,e_n,divv_n,qx_n,qz_n,rho_e,exx_e,ezz_e,exz_e,divv_e,\
                               sigmaxx_n,sigmazz_n,sigmaxz_n,rad_V,theta_V,eta_e,nparticle_e,area,icon_V,\
                               bc_fix_V,bc_fix_T,geometry,gx_n,gz_n,err_n,ett_n,ert_n,vr,vt,plith,\
-                              taurr_n,tautt_n,taurt_n,\
+                              taurr_n,tautt_n,taurt_n,experiment,\
                               particle_rho_projection,particle_eta_projection,ls_rho_a,ls_eta_a)
 
        print("output solution to vtu file: ................. %.3f s" % (clock.time()-start)) ; timings[10]+=clock.time()-start

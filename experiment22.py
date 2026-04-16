@@ -3,42 +3,27 @@ from constants import *
 
 ###################################################################################################
 
-nelz=32
-nelx=32
+Lx=1
+Lz=1
 
-Lx=512*km
-Lz=512*km
+nelx=32
+nelz=nelx
 
 nstep=1
-eta_ref=1e22
-p_scale=1e6 ; p_unit="MPa"
-vel_scale=cm/year ; vel_unit='cm/yr'
-time_scale=year ; time_unit='yr'
+end_time=0
+eta_ref=1
 every_solution_vtu=1
 every_swarm_vtu=1
-nparticle_per_dim=6
-#averaging='arithmetic'
-#averaging='geometric'
-averaging='harmonic'
-debug_ascii=True
+debug_ascii=False
 debug_solver=True
-end_time=120e6*year
-
-eta_mantle=1e21
-rho_mantle=3200
-eta_block=1e21
-rho_block=3208
-
-nsamplepoints=1
-xsamplepoints=[256e3]
-zsamplepoints=[384e3]
+pressure_normalisation='volume'
+RKorder=-1 # particles collocated with quadrature points
+compute_L2_errors=True
 
 ###################################################################################################
 
 def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
                                  hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
-
-    eps=1e-8
 
     bc_fix_V=np.zeros(Nfem_V,dtype=bool) # boundary condition, yes/no
     bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
@@ -59,12 +44,7 @@ def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
 
 def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
-    swarm_mat=np.zeros(nparticle,dtype=np.int32)
-    swarm_mat[:]=1
-
-    for ip in range(0,nparticle):
-        if abs(swarm_x[ip]-Lx/2)<64e3 and abs(swarm_z[ip]-384e3)<64e3:
-           swarm_mat[ip]=2
+    swarm_mat=np.ones(nparticle,dtype=np.int32)
 
     return swarm_mat
 
@@ -79,15 +59,17 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
     swarm_hcapa=0
     swarm_hprod=0
 
-    mask=(swarm_mat==1) ; swarm_eta[mask]=eta_mantle ; swarm_rho[mask]=rho_mantle
-    mask=(swarm_mat==2) ; swarm_eta[mask]=eta_block  ; swarm_rho[mask]=rho_block
+    for i in range(0,nparticle):
+        swarm_rho[i]=np.sin(2.*swarm_z[i])*np.cos(3.*np.pi*swarm_x[i])
+        swarm_eta[i]=np.exp(13.8155*swarm_z[i])
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
 ###################################################################################################
 
-def gravity_model(x,z):
-    return 0.,-10.
+def gravity_model(x,y):
+    gx=0
+    gz=-1
+    return gx,gz
 
 ###################################################################################################
-

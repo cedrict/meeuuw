@@ -18,6 +18,7 @@ def cd_u_eta(K,G,GT,M,M_eta,H,f,h,Nfem_P):
    array_xiV=np.zeros(niter,dtype=np.float64) 
    array_xiP=np.zeros(niter,dtype=np.float64) 
    array_alpha=np.zeros(niter,dtype=np.float64) 
+   array_beta=np.zeros(niter,dtype=np.float64) 
 
    #(A) Initialization
    solP=np.zeros(Nfem_P,dtype=np.float64)
@@ -75,7 +76,7 @@ def cd_u_eta(K,G,GT,M,M_eta,H,f,h,Nfem_P):
        #(K) Conjugate direction                                     #
        numerator=q_kp1.dot(M.dot(w_kp1))                            #
        denominator=q_k.dot(M.dot(w_k))                              #
-       beta=numerator/denominator                                   #
+       beta=numerator/denominator              ; array_beta[k]=beta #
        d_kp1=-w_kp1+beta*d_k                                        #
                                                                     #
        xiP=np.linalg.norm(alpha*d_k)             ; array_xiP[k]=xiP #
@@ -89,6 +90,6 @@ def cd_u_eta(K,G,GT,M,M_eta,H,f,h,Nfem_P):
                                                                     #
    #end for k #-----------------------------------------------------#
     
-   return solV,solP,k+1,array_xiV,array_xiP,array_alpha
+   return solV,solP,k+1,array_xiV,array_xiP,array_alpha,array_beta
 
 ############################################################################### 

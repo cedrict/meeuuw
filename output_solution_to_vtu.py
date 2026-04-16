@@ -13,7 +13,7 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
                            divv_e,sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal,rad_V,theta_V,
                            eta_elemental,nparticle_elemental,area,icon_V,bc_fix_V,bc_fix_T,geometry,
                            gx_nodal,gz_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt,plith,
-                           taurr_nodal,tautt_nodal,taurt_nodal,
+                           taurr_nodal,tautt_nodal,taurt_nodal,exp,
                            particle_rho_projection,particle_eta_projection,ls_rho_a,ls_eta_a):
 
        debug_sol=False
@@ -53,6 +53,19 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
        if solve_Stokes:
           vtufile.write("<DataArray type='Float32' Name='Pressure' Format='ascii'> \n")
           q.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+       #--
+       if solve_Stokes and (exp==19 or exp==21 or exp==22):
+          from postprocessors import ms_pressure
+          vtufile.write("<DataArray type='Float32' Name='Pressure (th)' Format='ascii'> \n")
+          for i in range(0,nn_V):
+              vtufile.write("%.3e \n" %(ms_pressure(x_V[i],z_V[i],exp)))
+          vtufile.write("</DataArray>\n")
+          #--
+          from postprocessors import ms_velocity_x,ms_velocity_z
+          vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Velocity (th)' Format='ascii'> \n")
+          for i in range(0,nn_V):
+              vtufile.write("%.3e %.3e %.1e\n" %(ms_velocity_x(x_V[i],z_V[i],exp),ms_velocity_z(x_V[i],z_V[i],exp),0))
           vtufile.write("</DataArray>\n")
        #--
        vtufile.write("<DataArray type='Float32' Name='Pressure (lith)' Format='ascii'> \n")
