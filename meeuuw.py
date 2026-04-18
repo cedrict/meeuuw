@@ -74,9 +74,10 @@ from set_default_parameters import *
 # experiment 20: sand box for paper review (SHOULD BE ...?)
 # experiment 21: SolCx
 # experiment 22: SolKz
+# experiment 23: cohf19 experiment / Sylas
 ###############################################################################
 
-experiment=22
+experiment=23
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx",type=int,default=0)
@@ -127,6 +128,7 @@ match(experiment):
      case 20: from experiment20 import *
      case 21: from experiment21 import *
      case 22: from experiment22 import *
+     case 23: from experiment23 import *
      case _ : exit('setup - unknown experiment')  
 
 #if int(len(sys.argv)==8): # override these parameters

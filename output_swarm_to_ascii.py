@@ -36,35 +36,36 @@ def output_swarm_to_ascii(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,\
 
     #######################################################
 
-    gnuplot_file=open('OUTPUT/SWARM/gnuplot_script',"w") 
-    gnuplot_file.write("set term png size %d %d font 'Times,8pt' \n" %(int(Lx/Lz*400),400))
+    if False:
 
-    filename2='swarm_{:04d}.ascii'.format(istep)
+       gnuplot_file=open('OUTPUT/SWARM/gnuplot_script',"w") 
+       gnuplot_file.write("set term png size %d %d font 'Times,8pt' \n" %(int(Lx/Lz*400),400))
 
-    filename='gnuplot_swarm_u_{:04d}.png'.format(istep)
-    gnuplot_file.write("set title 'velocity x-component' \n")
-    gnuplot_file.write("set output '"+filename+"' \n")
-    gnuplot_file.write("plot[][] './OUTPUT/SWARM/"+filename2+"' u 1:2:3 palette w d notitle \n") 
+       filename2='swarm_{:04d}.ascii'.format(istep)
 
-    filename='gnuplot_swarm_w_{:04d}.png'.format(istep)
-    gnuplot_file.write("set title 'velocity z-component' \n")
-    gnuplot_file.write("set output '"+filename+"' \n")
-    gnuplot_file.write("plot[][] './OUTPUT/SWARM/"+filename2+"' u 1:2:4 palette w d notitle \n") 
+       filename='gnuplot_swarm_u_{:04d}.png'.format(istep)
+       gnuplot_file.write("set title 'velocity x-component' \n")
+       gnuplot_file.write("set output '"+filename+"' \n")
+       gnuplot_file.write("plot[][] './OUTPUT/SWARM/"+filename2+"' u 1:2:3 palette w d notitle \n") 
 
-    filename='gnuplot_swarm_mat_{:04d}.png'.format(istep)
-    gnuplot_file.write("set title 'material' \n")
-    gnuplot_file.write("set output '"+filename+"' \n")
-    gnuplot_file.write("plot[][] './OUTPUT/SWARM/"+filename2+"' u 1:2:5 palette w d notitle \n") 
+       filename='gnuplot_swarm_w_{:04d}.png'.format(istep)
+       gnuplot_file.write("set title 'velocity z-component' \n")
+       gnuplot_file.write("set output '"+filename+"' \n")
+       gnuplot_file.write("plot[][] './OUTPUT/SWARM/"+filename2+"' u 1:2:4 palette w d notitle \n") 
 
-    filename='gnuplot_swarm_rho_{:04d}.png'.format(istep)
-    gnuplot_file.write("set title 'density' \n")
-    gnuplot_file.write("set output '"+filename+"' \n")
-    gnuplot_file.write("plot[][] './OUTPUT/SWARM/"+filename2+"' u 1:2:6 palette w d notitle \n") 
+       filename='gnuplot_swarm_mat_{:04d}.png'.format(istep)
+       gnuplot_file.write("set title 'material' \n")
+       gnuplot_file.write("set output '"+filename+"' \n")
+       gnuplot_file.write("plot[][] './OUTPUT/SWARM/"+filename2+"' u 1:2:5 palette w d notitle \n") 
 
-    gnuplot_file.close()
+       filename='gnuplot_swarm_rho_{:04d}.png'.format(istep)
+       gnuplot_file.write("set title 'density' \n")
+       gnuplot_file.write("set output '"+filename+"' \n")
+       gnuplot_file.write("plot[][] './OUTPUT/SWARM/"+filename2+"' u 1:2:6 palette w d notitle \n") 
 
-    os.system("gnuplot ./OUTPUT/SWARM/gnuplot_script")
-    os.system("mv gnuplot_swarm*.png OUTPUT/SWARM/")
+       gnuplot_file.close()
 
+       os.system("gnuplot ./OUTPUT/SWARM/gnuplot_script")
+       os.system("mv gnuplot_swarm*.png OUTPUT/SWARM/")
 
 ###################################################################################################

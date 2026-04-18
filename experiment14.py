@@ -17,6 +17,7 @@ vel_scale=cm/year ; vel_unit='cm/yr'
 time_scale=year ; time_unit='yr'
 every_solution_vtu=1
 every_swarm_vtu=1
+every_swarm_png=10
 every_quadpoints_vtu=10
 end_time=120e6*year
 dt_max=1e4*year
