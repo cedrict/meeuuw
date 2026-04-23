@@ -4,8 +4,10 @@ e=13
 nstep=1
 
 for n  in 16 24 32 48 64 80 96 128; do
-    #echo resolution: $n
-    python3 meeuuw.py $e $n $n $nstep 0 1 0 | grep sample >> measurements_exp13.ascii
+    echo resolution: $n
+
+    python3 meeuuw.py --e 13 --nelx $n --nelz $n  | grep sample >> measurements_exp13.ascii
     mv OUTPUT/profile_vertical.ascii OUTPUT/profile_vertical_${n}.ascii
+    mv OUTPUT/solution_0000.vtu OUTPUT/solution_${n}.vtu
 
 done

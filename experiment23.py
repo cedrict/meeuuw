@@ -30,11 +30,13 @@ every_solution_vtu=10
 every_swarm_vtu=1000
 RKorder=-1
            
-nelz=50
+nelz=64
 nelx=int(Lx/Lz*nelz)
-nstep=1000
+nstep=10000
 
 eta_ref=1e22
+
+CFLnb=0.75
 
 ###############################################################################
 
@@ -52,9 +54,9 @@ def initial_temperature(x,z,rad,theta,nn_V):
         else:
            T[i]=Ttop+(Tavrg-Ttop)*scipy.special.erf((Lz-z[i])/2/np.sqrt(age*1e-6))
 
-        T[i]+=0.010*Tavrg*np.cos(13*np.pi*x[i]/Lx)*np.sin(5*np.pi*z[i]/Lz)\
-             +0.015*Tavrg*np.cos(14*np.pi*x[i]/Lx)*np.sin(7*np.pi*z[i]/Lz)\
-             +0.005*Tavrg*np.cos(15*np.pi*x[i]/Lx)*np.sin(9*np.pi*z[i]/Lz)
+        T[i]+=0.010*Tavrg*np.cos(3*np.pi*x[i]/Lx)*np.sin(5*np.pi*z[i]/Lz)\
+             +0.015*Tavrg*np.cos(4*np.pi*x[i]/Lx)*np.sin(4*np.pi*z[i]/Lz)\
+             +0.005*Tavrg*np.cos(5*np.pi*x[i]/Lx)*np.sin(3*np.pi*z[i]/Lz)
 
     return T
 
@@ -108,9 +110,8 @@ def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 # dans le redimensionnement du volume d'activation dans le modèle de 2019. Dans le 
 # sup. mat. tu trouveras 13.8cm3/mol alors qu'en refaisant les calculs on trouve 
 # en réalité 0.7cm3/mol. Dans une exponentielle, ça fait un petit paquet... 
-# Donc si tu tentes de refaire la simu, fais gaffe à ça.
-
-# note that Arnould et al use the lithostatic pressure in the viscosity
+# Donc si tu tentes de refaire la simu, fais gaffe à ça"
+# Note that Arnould et al use the lithostatic pressure in the viscosity
 
 def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
                    swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):

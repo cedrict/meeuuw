@@ -22,6 +22,8 @@ Mantle modelling Early Earth Utrecht University Work-in-progress
 - experiment 5: Trompert & Hansen, Nature 1998.
 - experiment 6: Crameri et al, GJI 2012 (free surface benchmark)
 - experiment 7: Delft workshop, October 2025.
+- experiment 21: SolCx
+- experiment 22: SolKz
 
 ## to do:
 - more accurate heat flux calculations (CBF?)

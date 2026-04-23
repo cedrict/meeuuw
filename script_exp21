@@ -1,0 +1,17 @@
+#! /bin/bash
+
+rm errors.ascii
+rm solve_times.ascii
+
+#for n in 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 36 41 43 48 52 57 60 64 72 80 89 96 105 112 120 128 136 144 150 160 170 180 190 200 220 240 256; do
+
+for n in 16 32 48 64 96 128 160 200 256; do
+
+    echo resolution: $n
+
+    python3 meeuuw.py --e 21 --nelx $n --nelz $n  > opla
+    grep errv opla >> errors.ascii
+    grep solve opla  | grep Stokes >> solve_times.ascii
+    mv OUTPUT/solver_convergence_0.ascii OUTPUT/solver_convergence_$n.ascii
+
+done
