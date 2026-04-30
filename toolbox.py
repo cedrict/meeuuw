@@ -4,6 +4,7 @@
 
 import numpy as np
 import numba
+from scipy import special
 
 ###################################################################################################
 
@@ -123,3 +124,22 @@ def sample_solution_box(nn_V,x_V,z_V,u,w,q,T,nsamplepoints,xsamplepoints,zsample
 
 
 ###################################################################################################
+# half space cooling
+#
+# Tcmb    \
+#          \
+#           \
+# Tm         ----------\
+#                       \
+#                        \
+# Tsurf --|---------------|--------> r
+#         Rcmb            Rsurf
+
+
+def initial_temperature_hsc(r,Rcmb,Rsurf,Tcmb,Tsurf,age_cmb,age_surf,Tm,kappa):
+    val=Tsurf+(Tm-Tsurf)*special.erf((Rsurf-r)/2/np.sqrt(age_surf*kappa))\
+             -(Tcmb-Tm)*(-1+special.erf((r-Rcmb)/2/np.sqrt(age_cmb*kappa)))
+    return val
+
+###################################################################################################
+

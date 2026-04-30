@@ -7,9 +7,8 @@ from constants import *
 ###################################################################################################
 # Murphy & King, JGR, 2024 
 
-
-Lx=2000e3
 Lz=3389e3-1830e3
+Lx=Lz
 solve_T=True
 Tsurf=220
 deltaT = 1.2*1500
@@ -25,14 +24,15 @@ rho0=3500
 hcond=kappa*rho0*hcapa   # kappa = k / (rho0 Cp) heat conductivity
 
 end_time=1000e6*year
-every_solution_vtu=1
+every_solution_vtu=10
+every_swarm_vtu=10
 RKorder=-1
 
-compute_plith=True
+compute_plith=False
            
-nelz=50
-nelx=50
-nstep=100
+nelz=64
+nelx=int(Lx/Lz*nelz)
+nstep=10000
 
 eta_ref=1e22 # purely numerical param ~ avrg viscosity
 
@@ -42,8 +42,8 @@ def initial_temperature(x,z,rad,theta,nn_V):
 
     T=np.zeros(nn_V,dtype=np.float64)
 
-    age = 100e6*365*24*60*60 #in years, converted to seconds
-    Tm = 0.95*Tcmb # 1720 #K  ##Parameter not noted in the paper from King.
+    age = 100e6*year #in years, converted to seconds
+    Tm = 1720 #K see table 1 
 
     for i in range(0,nn_V):
         if z[i] > Lz/2: #Top half
@@ -51,9 +51,9 @@ def initial_temperature(x,z,rad,theta,nn_V):
         else:  #Bottom half
            T[i] = Tcmb - ((Tcmb-Tm) * math.erf(z[i]/(2*np.sqrt(age*kappa))))
 
-        T[i]+=0.0310*Tm*np.cos(3*np.pi*x[i]/Lx)*np.sin(5*np.pi*z[i]/Lz)\
-             +0.0315*Tm*np.cos(4*np.pi*x[i]/Lx)*np.sin(4*np.pi*z[i]/Lz)\
-             +0.0305*Tm*np.cos(5*np.pi*x[i]/Lx)*np.sin(3*np.pi*z[i]/Lz)
+        T[i]+=0.02*Tm*np.cos(3*np.pi*x[i]/Lx)*np.sin(5*np.pi*z[i]/Lz)\
+             +0.03*Tm*np.cos(5*np.pi*x[i]/Lx)*np.sin(4*np.pi*z[i]/Lz)\
+             +0.04*Tm*np.cos(7*np.pi*x[i]/Lx)*np.sin(3*np.pi*z[i]/Lz)
 
     return T
 
@@ -115,10 +115,10 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
 
     swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-Tsurf))
 
-    Ea = 117e3
-    Va = 6.6e-6 #m3 mol/1 (Activation Volume)
+    Ea = 117e3  #J/mol (Activation energy)
+    Va = 6.6e-6 #m3/mol (Activation Volume)
 
-    eta0 = 1.0e20 #Pa s (Reference Viscosity)
+    eta0 = 1e21 #Pa s (Reference Viscosity)
 
     #Add in different layers of viscosity (higher A is stronger layer)
     A=np.zeros(nparticle,dtype=np.float64)
@@ -138,7 +138,7 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
         swarm_eta[i] = A[i] * eta0 * np.exp(a-b) #Pa s
         #Manual cutoffs for when viscosity is too high in the lithosphere, or too low
         swarm_eta[i]=min(swarm_eta[i],1e25)
-        swarm_eta[i]=max(swarm_eta[i],1e20)
+        swarm_eta[i]=max(swarm_eta[i],1e19)
 
     swarm_hcond[:]=hcond
     swarm_hcapa[:]=hcapa

@@ -78,7 +78,7 @@ from set_default_parameters import *
 # experiment 24: murphy & king bsc thesis 
 ###############################################################################
 
-experiment=24
+experiment=23
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx",type=int,default=0)

@@ -1,6 +1,7 @@
 import numpy as np 
 import numba
 import scipy
+from toolbox import *
 from constants import *
 
 ###################################################################################################
@@ -13,17 +14,18 @@ from constants import *
 Lx=4500e3
 Lz=3000e3
 solve_T=True
-Ttop=273
-Tbottom=2390
+Tsurf=273
+Tcmb=2390
 
 vel_scale=cm/year ; vel_unit='cm/yr'
 p_scale=1e6 ; p_unit="MPa"
 
 alphaT=3e-5
-T0=Ttop
+T0=Tsurf
 hcond0=3.15   
 hcapa0=716
 rho0=4400
+kappa=1e-6
 
 end_time=1000e6*year
 every_solution_vtu=10
@@ -32,7 +34,7 @@ RKorder=-1
            
 nelz=64
 nelx=int(Lx/Lz*nelz)
-nstep=10000
+nstep=1
 
 eta_ref=1e22
 
@@ -44,19 +46,22 @@ def initial_temperature(x,z,rad,theta,nn_V):
 
     T=np.zeros(nn_V,dtype=np.float64)
 
-    age=250e6*year
+    age_surf=250e6*year
+    age_cmb=250e6*year
 
-    Tavrg=(Tbottom+Ttop)/2
+    coeff=0.7 
+    Tm=Tsurf+(Tcmb-Tsurf)*coeff
 
     for i in range(0,nn_V):
-        if z[i]<Lz/2:
-           T[i]=Tbottom+(Tavrg-Tbottom)*scipy.special.erf(z[i]/2/np.sqrt(age*1e-6))
-        else:
-           T[i]=Ttop+(Tavrg-Ttop)*scipy.special.erf((Lz-z[i])/2/np.sqrt(age*1e-6))
+        T[i]=initial_temperature_hsc(z[i],0,Lz,Tcmb,Tsurf,age_cmb,age_surf,Tm,kappa)
+        #if z[i]<Lz/2:
+        #   T[i]=Tcmb+(Tavrg-Tcmb)*scipy.special.erf(z[i]/2/np.sqrt(age*1e-6))
+        #else:
+        #   T[i]=Tsurf+(Tavrg-Tsurf)*scipy.special.erf((Lz-z[i])/2/np.sqrt(age*1e-6))
 
-        T[i]+=0.010*Tavrg*np.cos(3*np.pi*x[i]/Lx)*np.sin(5*np.pi*z[i]/Lz)\
-             +0.015*Tavrg*np.cos(4*np.pi*x[i]/Lx)*np.sin(4*np.pi*z[i]/Lz)\
-             +0.005*Tavrg*np.cos(5*np.pi*x[i]/Lx)*np.sin(3*np.pi*z[i]/Lz)
+        T[i]+=0.010*Tm*np.cos(3*np.pi*x[i]/Lx)*np.sin(5*np.pi*z[i]/Lz)\
+             +0.015*Tm*np.cos(4*np.pi*x[i]/Lx)*np.sin(4*np.pi*z[i]/Lz)\
+             +0.005*Tm*np.cos(5*np.pi*x[i]/Lx)*np.sin(3*np.pi*z[i]/Lz)
 
     return T
 
@@ -90,9 +95,9 @@ def assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V):
 
     for i in range(0,nn_V):
         if z_V[i]<eps:
-           bc_fix_T[i]=True ; bc_val_T[i]=Tbottom
+           bc_fix_T[i]=True ; bc_val_T[i]=Tcmb
         if z_V[i]>(Lz-eps):
-           bc_fix_T[i]=True ; bc_val_T[i]=Ttop
+           bc_fix_T[i]=True ; bc_val_T[i]=Tsurf
 
     return bc_fix_T,bc_val_T
 
