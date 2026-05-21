@@ -5,8 +5,8 @@ import numpy as np
 
 ###################################################################################################
 
-def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticle,solve_T,\
-                        vel_scale,swarm_x,swarm_z,swarm_u,swarm_w,swarm_mat,swarm_rho,swarm_eta,\
+def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticle,nmat,solve_T,\
+                        vel_scale,material_names,swarm_x,swarm_z,swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,\
                         swarm_r,swarm_t,swarm_p,swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,\
                         swarm_iel,swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,\
                         swarm_F,swarm_sst):
@@ -71,9 +71,10 @@ def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticl
        swarm_iel.tofile(vtufile,sep=' ')
        vtufile.write("</DataArray>\n")
     #--
-    vtufile.write("<DataArray type='Int32' Name='mat' Format='binary'> \n")
-    swarm_mat.tofile(vtufile,sep=' ')
-    vtufile.write("</DataArray>\n")
+    for imat in range(0,nmat):
+       vtufile.write("<DataArray type='Int32' Name='"+material_names[imat]+"' Format='binary'> \n")
+       swarm_wf[imat,:].tofile(vtufile,sep=' ')
+       vtufile.write("</DataArray>\n")
     #--
     vtufile.write("<DataArray type='Float32' Name='Density' Format='binary'> \n")
     swarm_rho.tofile(vtufile,sep=' ')
@@ -121,6 +122,7 @@ def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticl
        vtufile.write("</DataArray>\n")
     #--
     vtufile.write("<DataArray type='Int32' Name='Paint' Format='binary'> \n")
+    print(np.size(swarm_paint))
     swarm_paint.tofile(vtufile,sep=' ',format='%.3e')
     vtufile.write("</DataArray>\n")
     #--

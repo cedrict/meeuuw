@@ -95,16 +95,18 @@ def assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V):
 
 ###############################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
+def particle_layout(nparticle,nmat,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
-    swarm_mat=np.zeros(nparticle,dtype=np.int32)
-    swarm_mat[:]=1
+    swarm_wf=np.zeros((nmat,nparticle),dtype=np.int32)
+    swarm_wf[:,:]=1
 
-    return swarm_mat
+    material_names=['mantle']
+
+    return swarm_wf,material_names
 
 ###############################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
+def material_model(nparticle,nmat,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
                    swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)

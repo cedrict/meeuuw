@@ -12,23 +12,26 @@ every_solution_png=10
 every_swarm_vtu=5
 every_swarm_png=1
 
+nmat=2
 nelx=48
 nelz=48
 nstep=500
 
 ###################################################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
+def particle_layout(nparticle,nmat,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
-    swarm_mat=np.zeros(nparticle,dtype=np.int32)
+    swarm_wf=np.zeros((nmat,nparticle),dtype=np.int32)
 
     for im in range (0,nparticle):
         if swarm_z[im]<0.2+0.02*np.cos(swarm_x[im]*np.pi/0.9142):
-           swarm_mat[im]=1
+           swarm_wf[0,im]=1
         else:
-           swarm_mat[im]=2
+           swarm_wf[1,im]=1
 
-    return swarm_mat
+    material_names=['mat 1', 'mat 2']
+
+    return swarm_wf,material_names
 
 ###################################################################################################
 
@@ -54,7 +57,7 @@ def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
 
 ###################################################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
+def material_model(nparticle,nmat,swarm_wf,swarm_x,swarm_z,swarm_rad,swarm_theta,\
                    swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
@@ -63,8 +66,8 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
     swarm_hcapa=0
     swarm_hprod=0
 
-    mask=(swarm_mat==1) ; swarm_eta[mask]=100 ; swarm_rho[mask]=1000
-    mask=(swarm_mat==2) ; swarm_eta[mask]=100 ; swarm_rho[mask]=1010
+    swarm_rho[:]=swarm_wf[0,:]*1000+swarm_wf[1,:]*1010
+    swarm_eta[:]=swarm_wf[0,:]*100 +swarm_wf[1,:]*100
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 

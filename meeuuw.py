@@ -78,7 +78,7 @@ from set_default_parameters import *
 # experiment 24: murphy & king bsc thesis 
 ###############################################################################
 
-experiment=23
+experiment=24
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx",type=int,default=0)
@@ -288,25 +288,26 @@ pstats_file.write("#istep,min p, max p\n")
 vstats_file=open('OUTPUT/stats_velocity.ascii',"w") 
 vstats_file.write("#istep,min(u),max(u),min(v),max(v)\n")
 vstats_file.write("# "+vel_unit+"\n")
-srstats_file=open('OUTPUT/stats_strainrate.ascii',"w") 
+srstats_file=open('OUTPUT/stats_strainrate.ascii',"w") ; srstats_file.write("#time min(e_n) max(e_n)\n") 
 dt_file=open('OUTPUT/dt.ascii',"w") ; dt_file.write("#time dt1 dt2 dt\n") ; dt_file.write('#'+time_unit+'\n')
-ptcl_stats_file=open('OUTPUT/stats_particle.ascii',"w")
+ptcl_stats_file=open('OUTPUT/stats_particle.ascii',"w") ; ptcl_stats_file.write("#time min(nparticle_e) max(nparticle_e)\n")
 timings_file=open('timings.ascii',"w")
 TM_file=open('OUTPUT/total_mass.ascii',"w") 
-EK_file=open('OUTPUT/kinetic_energy.ascii',"w") 
+EK_file=open('OUTPUT/kinetic_energy.ascii',"w") ; EK_file.write("# time kinetic_energy\n")
 TVD_file=open('OUTPUT/viscous_dissipation.ascii',"w") 
-WAG_file=open('OUTPUT/work_against_gravity.ascii',"w") 
+WAG_file=open('OUTPUT/work_against_gravity.ascii',"w") ; WAG_file.write("#time WAG\n") 
 T_avrg_file=open('OUTPUT/T_avrg.ascii',"w") 
-eta_avrg_file=open('OUTPUT/eta_avrg.ascii',"w") 
-delta_file=open('OUTPUT/delta_WAG_TVD.ascii',"w") 
+eta_avrg_file=open('OUTPUT/eta_avrg.ascii',"w") ;  eta_avrg_file.write("#time eta_avrg\n")
+delta_file=open('OUTPUT/delta_WAG_TVD.ascii',"w") ; delta_file.write("#time delta max(abs(WAG),TVD)\n")
 pvd_solution_file=open('OUTPUT/solution.pvd',"w")
 pvd_swarm_file=open('OUTPUT/swarm.pvd',"w")
 mats_file=open('OUTPUT/stats_mats.ascii','w')
-etaq_file=open('OUTPUT/stats_eta_q.ascii','w')
-etan_file=open('OUTPUT/stats_eta_n.ascii','w')
-etae_file=open('OUTPUT/stats_eta_e.ascii','w')
+etaq_file=open('OUTPUT/stats_eta_q.ascii','w') ; etaq_file.write("#istep min(eta_q) max(eta_q)\n")
+etan_file=open('OUTPUT/stats_eta_n.ascii','w') ; etan_file.write("#istep min(eta_n) max(eta_n)\n")
+etae_file=open('OUTPUT/stats_eta_e.ascii','w') ; etaq_file.write("#time min(eta_e) max(eta_e)\n")
 if solve_T:
-   corner_q_file=open('OUTPUT/corner_heat_flux.ascii','w')
+   corner_q_file=open('OUTPUT/corner_heat_flux.ascii','w') 
+   corner_q_file.write("# time qx0 qz0 qx1 qz1 qx2 qz2 qx3 qz3\n")
    Tstats_file=open('OUTPUT/stats_temperature.ascii',"w") 
    Nu_file=open('OUTPUT/Nu.ascii',"w") ; Nu_file.write("#time Nu\n")
    avrg_T_bot_file=open('OUTPUT/avrg_T_bot.ascii',"w") 
@@ -1091,11 +1092,14 @@ print("particles paint: ............................. %.3f s" % (clock.time()-st
 ###############################################################################
 start=clock.time()
 
-swarm_mat=particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz)
+swarm_wf,material_names=particle_layout(nparticle,nmat,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz)
 
-print("     -> swarm_mat (m,M) %d %d " %(np.min(swarm_mat),np.max(swarm_mat)))
+for imat in range(0,nmat):
+    print("     -> swarm_weight_fraction of mat %d (m,M) %d %d " %(imat,np.min(swarm_wf[imat,:]),np.max(swarm_wf[imat,:])))
     
-if debug_ascii: np.savetxt('DEBUG/swarm_mat.ascii',np.array([swarm_x,swarm_z,swarm_mat]).T,header='#x,z,mat')
+if debug_ascii: 
+   for imat in range(0,nmat):
+       np.savetxt('DEBUG/swarm_material'+str(imat)+'.ascii',np.array([swarm_x,swarm_z,swarm_wf[imat,:]]).T,header='#x,z,mat')
 
 if use_melting:
    swarm_F=np.zeros(nparticle,dtype=np.float32)
@@ -1177,7 +1181,7 @@ for istep in range(0,nstep):
     start=clock.time()
 
     swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod=\
-    material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
+    material_model(nparticle,nmat,swarm_wf,swarm_x,swarm_z,swarm_rad,swarm_theta,\
                    swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p) 
 
     print("     -> swarm_rho (m,M) %.5e %.5e " %(np.min(swarm_rho),np.max(swarm_rho)))
@@ -2263,26 +2267,22 @@ for istep in range(0,nstep):
 
     ###############################################################################################
     #@@ output min/max coordinates of each material in one single file
+    # THIS IS BROKEN bc swarm_mats -> swarm_weight_fractions
     ###############################################################################################
-    start=clock.time()
-
-    imat=np.min(swarm_mat)
-    jmat=np.max(swarm_mat)
-    mats=np.zeros(4*(jmat-imat+1)+1,dtype=np.float64)
-
-    mats[0]=geological_time/time_scale
-
-    counter=1
-    for i in range(imat,jmat+1):
-        xmin=np.min(swarm_x[swarm_mat==i]) ; mats[counter]=xmin ; counter+=1
-        xmax=np.max(swarm_x[swarm_mat==i]) ; mats[counter]=xmax ; counter+=1
-        zmin=np.min(swarm_z[swarm_mat==i]) ; mats[counter]=zmin ; counter+=1
-        zmax=np.max(swarm_z[swarm_mat==i]) ; mats[counter]=zmax ; counter+=1
-
-    mats.tofile(mats_file,sep=' ',format='%.4e ') ; mats_file.write('\n')
-    mats_file.flush()
-
-    print("write min/max extents: ....................... %.3f s" % (clock.time()-start)) #; timings[16]+=clock.time()-start
+    #start=clock.time()
+    #imat=np.min(swarm_mat)
+    #jmat=np.max(swarm_mat)
+    #mats=np.zeros(4*(jmat-imat+1)+1,dtype=np.float64)
+    #mats[0]=geological_time/time_scale
+    #counter=1
+    #for i in range(imat,jmat+1):
+    #    xmin=np.min(swarm_x[swarm_mat==i]) ; mats[counter]=xmin ; counter+=1
+    #    xmax=np.max(swarm_x[swarm_mat==i]) ; mats[counter]=xmax ; counter+=1
+    #    zmin=np.min(swarm_z[swarm_mat==i]) ; mats[counter]=zmin ; counter+=1
+    #    zmax=np.max(swarm_z[swarm_mat==i]) ; mats[counter]=zmax ; counter+=1
+    #mats.tofile(mats_file,sep=' ',format='%.4e ') ; mats_file.write('\n')
+    #mats_file.flush()
+    #print("write min/max extents: ....................... %.3f s" % (clock.time()-start)) #; timings[16]+=clock.time()-start
 
     ###############################################################################################
     #@@ generate/write in pvd files
@@ -2327,8 +2327,9 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if istep%every_swarm_vtu==0 or istep==nstep-1: 
-       output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticle,solve_T,vel_scale,swarm_x,swarm_z,\
-                           swarm_u,swarm_w,swarm_mat,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
+       output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticle,nmat,solve_T,vel_scale,material_names,
+                           swarm_x,swarm_z,\
+                           swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
                            swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_iel,\
                            swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
 
@@ -2340,8 +2341,8 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if istep%every_swarm_png==0 or istep==nstep-1: 
-       output_swarm_to_png(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,swarm_x,swarm_z,\
-                           swarm_u,swarm_w,swarm_mat,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
+       output_swarm_to_png(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,nmat,material_names,swarm_x,swarm_z,\
+                           swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
                            swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_iel,\
                            swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
 
@@ -2354,7 +2355,7 @@ for istep in range(0,nstep):
 
     if istep%every_swarm_ascii==0 or istep==nstep-1: 
        output_swarm_to_ascii(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,swarm_x,swarm_z,\
-                             swarm_u,swarm_w,swarm_mat,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
+                             swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
                              swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_iel,\
                              swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
 
@@ -2599,7 +2600,8 @@ np.savetxt('OUTPUT/profile_vertical.ascii',np.array([z_V[middleV_nodes],\
                                                      q[middleV_nodes],\
                                                      T[middleV_nodes],\
                                                      rho_n[middleV_nodes],\
-                                                     eta_n[middleV_nodes]]).T)
+                                                     eta_n[middleV_nodes]]).T,\
+                                                     header='#z u w q T rho eta')
 
 np.savetxt('OUTPUT/profile_horizontal.ascii',np.array([x_V[middleH_nodes],\
                                                        u[middleH_nodes],\
@@ -2607,17 +2609,20 @@ np.savetxt('OUTPUT/profile_horizontal.ascii',np.array([x_V[middleH_nodes],\
                                                        q[middleH_nodes],\
                                                        T[middleH_nodes],\
                                                        rho_n[middleH_nodes],\
-                                                       eta_n[middleH_nodes]]).T)
+                                                       eta_n[middleH_nodes]]).T,\
+                                                       header='#x u w q T rho eta')
 
 np.savetxt('OUTPUT/profile_vertical_e.ascii',np.array([z_e[middleV_element],\
                                                        p_e[middleV_element],\
                                                        rho_e[middleV_element],\
-                                                       eta_e[middleV_element]]).T)
+                                                       eta_e[middleV_element]]).T,\
+                                                       header='#z p rho eta')
     
 np.savetxt('OUTPUT/profile_horizontal_e.ascii',np.array([x_e[middleH_element],\
                                                          p_e[middleH_element],\
                                                          rho_e[middleH_element],\
-                                                         eta_e[middleH_element]]).T)
+                                                         eta_e[middleH_element]]).T,\
+                                                         header='#x p rho eta')
 
 
 

@@ -10,8 +10,8 @@ import numpy as np
 # not conserved: the colorbar makes the plotting area shrink and alters the true aspect ratio
 # I would also be in favour of using the same colorscales as in fieldstone for each field.
 
-def output_swarm_to_png(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,\
-                        swarm_x,swarm_z,swarm_u,swarm_w,swarm_mat,swarm_rho,swarm_eta,\
+def output_swarm_to_png(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,nmat,material_names,\
+                        swarm_x,swarm_z,swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,\
                         swarm_r,swarm_t,swarm_p,swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,\
                         swarm_iel,swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,\
                         swarm_F,swarm_sst):
@@ -27,13 +27,13 @@ def output_swarm_to_png(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,\
     nbdpi=250
     markersize=1
 
-    plt.figure(dpi=nbdpi)
-    plt.scatter(swarm_x,swarm_z,c=swarm_mat,s=markersize)
-    plt.gca().set_aspect('equal') ; plt.colorbar(format="%.3e")
-    plt.xlim(0,Lx) ; plt.ylim(0,Lz) ; plt.axis('scaled') 
-    plt.title('material identity') ; plt.xlabel('x-axis') ; plt.ylabel('y-axis')
-    filename='OUTPUT/SWARM/swarm_mat_{:04d}.png'.format(istep)
-    plt.savefig(filename, bbox_inches='tight') ; plt.close()
+    #plt.figure(dpi=nbdpi)
+    #plt.scatter(swarm_x,swarm_z,c=swarm_mat,s=markersize)
+    #plt.gca().set_aspect('equal') ; plt.colorbar(format="%.3e")
+    #plt.xlim(0,Lx) ; plt.ylim(0,Lz) ; plt.axis('scaled') 
+    #plt.title('material identity') ; plt.xlabel('x-axis') ; plt.ylabel('y-axis')
+    #filename='OUTPUT/SWARM/swarm_mat_{:04d}.png'.format(istep)
+    #plt.savefig(filename, bbox_inches='tight') ; plt.close()
 
     plt.figure(dpi=nbdpi)
     plt.scatter(swarm_x,swarm_z,c=swarm_iel,s=markersize)

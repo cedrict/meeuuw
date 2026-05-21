@@ -9,7 +9,7 @@ import os
 ###################################################################################################
 
 def output_swarm_to_ascii(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,\
-                          swarm_x,swarm_z,swarm_u,swarm_w,swarm_mat,swarm_rho,swarm_eta,\
+                          swarm_x,swarm_z,swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,\
                           swarm_r,swarm_t,swarm_p,swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,\
                           swarm_iel,swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,\
                           swarm_F,swarm_sst):
@@ -25,7 +25,7 @@ def output_swarm_to_ascii(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,\
                          swarm_z,\
                          swarm_u,\
                          swarm_w,\
-                         swarm_mat,\
+                         #swarm_mat,\
                          swarm_rho,\
                          swarm_eta,\
                          swarm_paint,\
@@ -53,10 +53,10 @@ def output_swarm_to_ascii(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,\
        gnuplot_file.write("set output '"+filename+"' \n")
        gnuplot_file.write("plot[][] './OUTPUT/SWARM/"+filename2+"' u 1:2:4 palette w d notitle \n") 
 
-       filename='gnuplot_swarm_mat_{:04d}.png'.format(istep)
-       gnuplot_file.write("set title 'material' \n")
-       gnuplot_file.write("set output '"+filename+"' \n")
-       gnuplot_file.write("plot[][] './OUTPUT/SWARM/"+filename2+"' u 1:2:5 palette w d notitle \n") 
+       #filename='gnuplot_swarm_mat_{:04d}.png'.format(istep)
+       #gnuplot_file.write("set title 'material' \n")
+       #gnuplot_file.write("set output '"+filename+"' \n")
+       #gnuplot_file.write("plot[][] './OUTPUT/SWARM/"+filename2+"' u 1:2:5 palette w d notitle \n") 
 
        filename='gnuplot_swarm_rho_{:04d}.png'.format(istep)
        gnuplot_file.write("set title 'density' \n")
