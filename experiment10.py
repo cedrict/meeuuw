@@ -37,7 +37,7 @@ eta_ref=1e21
 p_scale=1e6 ; p_unit="MPa"
 vel_scale=cm/year ; vel_unit='cm/yr'
 time_scale=year ; time_unit='yr'
-every_solution_vtu=1
+every_solution=1
 every_swarm_vtu=1
 particle_distribution=1 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 debug_ascii=False

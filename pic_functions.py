@@ -263,7 +263,7 @@ def advect_particles___eighth(RKorder,dt,nparticle,swarm_x,swarm_z,
     swarm_u=np.zeros(nparticle,dtype=np.float64)
     swarm_w=np.zeros(nparticle,dtype=np.float64)
 
-    if True: #RKorder==1:
+    if RKorder==1:
 
        for ip in range(0,nparticle):
            if swarm_active[ip]:

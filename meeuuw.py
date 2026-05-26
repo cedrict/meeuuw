@@ -106,40 +106,32 @@ if args.e>0:
 print("experiment=",experiment) 
 
 match(experiment):
-     case 0 : from experiment0 import *
-     case 1 : from experiment1 import *
-     case 2 : from experiment2 import *
-     case 3 : from experiment3 import *
-     case 4 : from experiment4 import *
-     case 5 : from experiment5 import *
-     case 6 : from experiment6 import *
-     case 7 : from experiment7 import *
-     case 8 : from experiment8 import *
-     case 9 : from experiment9 import *
-     case 10: from experiment10 import *
-     case 11: from experiment11 import *
-     case 12: from experiment12 import *
-     case 13: from experiment13 import *
-     case 14: from experiment14 import *
-     case 15: from experiment15 import *
-     case 16: from experiment16 import *
-     case 17: from experiment17 import *
-     case 18: from experiment18 import *
-     case 19: from experiment19 import *
-     case 20: from experiment20 import *
-     case 21: from experiment21 import *
-     case 22: from experiment22 import *
-     case 23: from experiment23 import *
-     case 24: from experiment24 import *
-     case _ : exit('setup - unknown experiment')  
-
-#if int(len(sys.argv)==8): # override these parameters
-#   nelx  = int(sys.argv[2])
-#   nelz  = int(sys.argv[3])
-#   nstep = int(sys.argv[4])
-#   axisymmetric=(int(sys.argv[5])==1)
-#   remove_rho_profile=(int(sys.argv[6])==1)
-#   straighten_edges=(int(sys.argv[7])==1)
+ case 0 : from experiment0 import *
+ case 1 : from experiment1 import *
+ case 2 : from experiment2 import *
+ case 3 : from experiment3 import *
+ case 4 : from experiment4 import *
+ case 5 : from experiment5 import *
+ case 6 : from experiment6 import *
+ case 7 : from experiment7 import *
+ case 8 : from experiment8 import *
+ case 9 : from experiment9 import *
+ case 10: from experiment10 import *
+ case 11: from experiment11 import *
+ case 12: from experiment12 import *
+ case 13: from experiment13 import *
+ case 14: from experiment14 import *
+ case 15: from experiment15 import *
+ case 16: from experiment16 import *
+ case 17: from experiment17 import *
+ case 18: from experiment18 import *
+ case 19: from experiment19 import *
+ case 20: from experiment20 import *
+ case 21: from experiment21 import *
+ case 22: from experiment22 import *
+ case 23: from experiment23 import *
+ case 24: from experiment24 import *
+ case _ : exit('setup - unknown experiment')  
 
 if args.nelx>0: nelx=args.nelx
 print("nelx=",nelx) 
@@ -193,8 +185,43 @@ print("RKorder=",args.RKorder)
 
 ###############################################################################
 
-if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-   Lx=1 ; Lz=1 
+match geometry:
+ case 'box': 
+  L_ref=(Lx+Lz)/2
+ case 'eighth': 
+  opening_angle=np.pi/8
+  theta_min=np.pi/4
+  hrad=(Router-Rinner)/nelz
+  htheta=opening_angle/nelx
+  L_ref=(Rinner+Router)/2
+  Lx=1 
+  Lz=1 
+ case 'quarter': 
+  opening_angle=np.pi/2
+  theta_min=0
+  hrad=(Router-Rinner)/nelz
+  htheta=opening_angle/nelx
+  L_ref=(Rinner+Router)/2
+  Lx=1 
+  Lz=1 
+ case 'half': 
+  opening_angle=np.pi
+  theta_min=-np.pi/2
+  hrad=(Router-Rinner)/nelz
+  htheta=opening_angle/nelx
+  L_ref=(Rinner+Router)/2
+  Lx=1 
+  Lz=1 
+ case 'annulus': 
+  opening_angle=2*np.pi
+  theta_min=0
+  hrad=(Router-Rinner)/nelz
+  htheta=opening_angle/nelx
+  L_ref=(Rinner+Router)/2
+  Lx=1 
+  Lz=1 
+ case _ :
+  exit('unknown geometry')
 
 ndof_V=2                   # number of velocity dofs per node
 nel=nelx*nelz              # total number of elements
@@ -218,33 +245,11 @@ Nfem=Nfem_V+Nfem_P # total nb of dofs
 hx=Lx/nelx # element size in x direction
 hz=Lz/nelz # element size in y direction
 
-if geometry=='eighth': 
-   opening_angle=np.pi/8
-   theta_min=np.pi/4
-
-if geometry=='quarter': 
-   opening_angle=np.pi/2
-   theta_min=0
-
-if geometry=='half': 
-   opening_angle=np.pi
-   theta_min=-np.pi/2
-
-if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-   hrad=(Router-Rinner)/nelz
-   htheta=opening_angle/nelx
-
 nparticle_per_element=nparticle_per_dim**2
 nparticle=nel*nparticle_per_element
 
-timings=np.zeros(36+1)
+timings=np.zeros(36+1) 
 timings_mem=np.zeros(36+1)
-
-if geometry=='box': L_ref=(Lx+Lz)/2
-#if geometry=='box': L_ref=(hx+hz)/2
-if geometry=='quarter': L_ref=(Rinner+Router)/2
-if geometry=='half': L_ref=(Rinner+Router)/2
-if geometry=='eighth': L_ref=(Rinner+Router)/2
 
 blocks=False
 
@@ -282,47 +287,77 @@ nq=nq_per_element*nel
 #@@ open output files & write headers
 ###############################################################################
 
-vrms_file=open('OUTPUT/vrms.ascii',"w") ; vrms_file.write("#time,vrms\n")
+vrms_file=open('OUTPUT/vrms.ascii',"w") 
+vrms_file.write("#time,vrms\n")
+
 pstats_file=open('OUTPUT/stats_pressure.ascii',"w") 
 pstats_file.write("#istep,min p, max p\n")
+
 vstats_file=open('OUTPUT/stats_velocity.ascii',"w") 
 vstats_file.write("#istep,min(u),max(u),min(v),max(v)\n")
 vstats_file.write("# "+vel_unit+"\n")
-srstats_file=open('OUTPUT/stats_strainrate.ascii',"w") ; srstats_file.write("#time min(e_n) max(e_n)\n") 
-dt_file=open('OUTPUT/dt.ascii',"w") ; dt_file.write("#time dt1 dt2 dt\n") ; dt_file.write('#'+time_unit+'\n')
-ptcl_stats_file=open('OUTPUT/stats_particle.ascii',"w") ; ptcl_stats_file.write("#time min(nparticle_e) max(nparticle_e)\n")
+
+srstats_file=open('OUTPUT/stats_strainrate.ascii',"w") 
+srstats_file.write("#time min(e_n) max(e_n)\n") 
+
+dt_file=open('OUTPUT/dt.ascii',"w") 
+dt_file.write("#time dt1 dt2 dt\n") 
+dt_file.write('#'+time_unit+'\n')
+
+ptcl_stats_file=open('OUTPUT/stats_particle.ascii',"w") 
+ptcl_stats_file.write("#time min(nparticle_e) max(nparticle_e)\n")
+
 timings_file=open('timings.ascii',"w")
+
 TM_file=open('OUTPUT/total_mass.ascii',"w") 
-EK_file=open('OUTPUT/kinetic_energy.ascii',"w") ; EK_file.write("# time kinetic_energy\n")
-TVD_file=open('OUTPUT/viscous_dissipation.ascii',"w") 
-WAG_file=open('OUTPUT/work_against_gravity.ascii',"w") ; WAG_file.write("#time WAG\n") 
+TM_file.write("# time total mass\n")
+
+EK_file=open('OUTPUT/kinetic_energy.ascii',"w") 
+EK_file.write("# time kinetic_energy\n")
+
+TVD_file=open('OUTPUT/tvd.ascii',"w") 
+TVD_file.write("# time total viscous dissipation\n")
+
+WAG_file=open('OUTPUT/wag.ascii',"w") 
+WAG_file.write("#time WAG\n") 
+
 T_avrg_file=open('OUTPUT/T_avrg.ascii',"w") 
-eta_avrg_file=open('OUTPUT/eta_avrg.ascii',"w") ;  eta_avrg_file.write("#time eta_avrg\n")
-delta_file=open('OUTPUT/delta_WAG_TVD.ascii',"w") ; delta_file.write("#time delta max(abs(WAG),TVD)\n")
+T_avrg_file.write("#time <T>\n") 
+
+eta_avrg_file=open('OUTPUT/eta_avrg.ascii',"w") 
+eta_avrg_file.write("#time eta_avrg\n")
+
+delta_file=open('OUTPUT/delta_wag_tvd.ascii',"w") 
+delta_file.write("#time delta max(abs(WAG),TVD)\n")
+
 pvd_solution_file=open('OUTPUT/solution.pvd',"w")
 pvd_swarm_file=open('OUTPUT/swarm.pvd',"w")
-mats_file=open('OUTPUT/stats_mats.ascii','w')
+
+#mats_file=open('OUTPUT/stats_mats.ascii','w') broken for now
+
 etaq_file=open('OUTPUT/stats_eta_q.ascii','w') ; etaq_file.write("#istep min(eta_q) max(eta_q)\n")
 etan_file=open('OUTPUT/stats_eta_n.ascii','w') ; etan_file.write("#istep min(eta_n) max(eta_n)\n")
 etae_file=open('OUTPUT/stats_eta_e.ascii','w') ; etaq_file.write("#time min(eta_e) max(eta_e)\n")
+
 if solve_T:
    corner_q_file=open('OUTPUT/corner_heat_flux.ascii','w') 
    corner_q_file.write("# time qx0 qz0 qx1 qz1 qx2 qz2 qx3 qz3\n")
    Tstats_file=open('OUTPUT/stats_temperature.ascii',"w") 
    Nu_file=open('OUTPUT/Nu.ascii',"w") ; Nu_file.write("#time Nu\n")
-   avrg_T_bot_file=open('OUTPUT/avrg_T_bot.ascii',"w") 
-   avrg_T_top_file=open('OUTPUT/avrg_T_top.ascii',"w") 
-   avrg_dTdz_bot_file=open('OUTPUT/avrg_dTdz_bot.ascii',"w") 
-   avrg_dTdz_top_file=open('OUTPUT/avrg_dTdz_top.ascii',"w") 
+   avrg_T_bot_file=open('OUTPUT/bottom/avrg_T_bot.ascii',"w") 
+   avrg_T_top_file=open('OUTPUT/top/avrg_T_top.ascii',"w") 
+   avrg_dTdz_bot_file=open('OUTPUT/bottom/avrg_dTdz_bot.ascii',"w") 
+   avrg_dTdz_top_file=open('OUTPUT/top/avrg_dTdz_top.ascii',"w") 
 
 ###############################################################################
 
 if nstep==1: CFLnb=0
 
 if geometry=='box': volume=Lx*Lz
+if geometry=='eighth': volume=np.pi*(Router**2-Rinner**2)/8
 if geometry=='quarter': volume=np.pi*(Router**2-Rinner**2)/4
 if geometry=='half': volume=np.pi*(Router**2-Rinner**2)/2
-if geometry=='eighth': volume=np.pi*(Router**2-Rinner**2)/8
+if geometry=='annulus': volume=np.pi*(Router**2-Rinner**2)
 
 print('axisymmetric=',axisymmetric)
 print('geometry=',geometry)
@@ -345,17 +380,23 @@ print('particle_distribution=',particle_distribution)
 print('RKorder=',RKorder)
 print('nparticle_per_dim=',nparticle_per_dim)
 print('nparticle=',nparticle)
-print('every_solution_vtu',every_solution_vtu)
+print('every_solution',every_solution)
 print('every_swarm_vtu',every_swarm_vtu)
 print('every_quadpoints_vtu',every_quadpoints_vtu)
 print('rho_DT_top',rho_DT_top)
 print('rho_DT_bot',rho_DT_bot)
 print('gravity_npts=',gravity_npts)  
 print('top_free_slip=',top_free_slip,'| bot_free_slip=',bot_free_slip)
-if geometry=='quarter' or geometry=='half' or geometry=='eighth':
+if geometry=='quarter' or geometry=='half' or \
+   geometry=='eighth' or geometry=='annulus':
    print('Rinner,Router=',Rinner,Router)
    print('hrad=',hrad)
 print("======================================================")
+
+###############################################################################
+# if RKorder==-1 I hijack the particles and place them on the quadrature 
+# points so that there is no projection of the particles onto the 
+# quadrature points to speak of.
 
 if RKorder==-1: 
    nparticle_per_dim=nq_per_dim
@@ -369,6 +410,7 @@ if RKorder==-1:
 #@@ build velocity nodes coordinates 
 # BL: bottom left, BR: bottom right, TL: top left, TR: top right
 # if geometry is 'eighth', 'quarter' or 'half' we still need to set Lx=Lz=1
+# Note that in the case of the annulus there are no left or right boundaries.
 ###############################################################################
 start=clock.time()
 
@@ -382,24 +424,30 @@ left_Vnodes=np.zeros(nn_V,dtype=bool)
 right_Vnodes=np.zeros(nn_V,dtype=bool)
 middleH_nodes=np.zeros(nn_V,dtype=bool)
 middleV_nodes=np.zeros(nn_V,dtype=bool)
-hull_nodes=np.zeros(nn_V,dtype=bool)
+hull_Vnodes=np.zeros(nn_V,dtype=bool)
 
-nnx=2*nelx+1 
-nnz=2*nelz+1 
+match geometry:
+ case 'box' | 'eighth' | 'quarter' | 'half' :
+  nnx=2*nelx+1 
+  nnz=2*nelz+1 
+ case 'annulus':
+  nnx=2*nelx
+  nnz=2*nelz
 
 counter=0    
 for j in range(0,2*nelz+1):
     for i in range(0,2*nelx+1):
         x_V[counter]=i*hx/2
         z_V[counter]=j*hz/2
-        if (i==0): left_Vnodes[counter]=True
-        if (i==2*nelx): right_Vnodes[counter]=True
+        if (i==0 and not geometry=='annulus'): left_Vnodes[counter]=True
+        if (i==2*nelx and not geometry=='annunlus'): right_Vnodes[counter]=True
         if (j==0): bot_Vnodes[counter]=True
         if (j==2*nelz): top_Vnodes[counter]=True
         if top_Vnodes[counter] or bot_Vnodes[counter] or\
-           right_Vnodes[counter] or left_Vnodes[counter]: hull_nodes[counter]=True
-        if abs(x_V[counter]/Lx-0.5)<eps: middleV_nodes[counter]=True
-        if abs(z_V[counter]/Lz-0.5)<eps: middleH_nodes[counter]=True
+           right_Vnodes[counter] or left_Vnodes[counter]: hull_Vnodes[counter]=True
+        if abs(x_V[counter]/Lx-0.5)<eps and not geometry=='annulus': middleV_nodes[counter]=True
+        if abs(z_V[counter]/Lz-0.5)<eps and not geometry=='annulus': middleH_nodes[counter]=True
+        # identify which nodes are on the corners of the domain
         if i==0 and j==0: cornerBL=counter
         if i==nnx-1 and j==0: cornerBR=counter
         if i==0 and j==nnz-1: cornerTL=counter
@@ -408,12 +456,15 @@ for j in range(0,2*nelz+1):
     #end for
 #end for
 
-if geometry=='quarter' or geometry=='half' or geometry=='eighth':
+match geometry:
+ case 'eighth' | 'quarter' | 'half' :
    for i in range(0,nn_V):
        rad_V[i]=Rinner+z_V[i]*(Router-Rinner)
        theta_V[i]=np.pi/2-x_V[i]*opening_angle
        x_V[i]=rad_V[i]*np.cos(theta_V[i])
        z_V[i]=rad_V[i]*np.sin(theta_V[i])
+ case 'annulus':
+       exit('not done yet')
 
 if debug_ascii: np.savetxt('DEBUG/mesh_V.ascii',np.array([x_V,z_V]).T,header='# x,z')
 
@@ -432,29 +483,33 @@ right_element=np.zeros(nel,dtype=bool)
 middleH_element=np.zeros(nel,dtype=bool)
 middleV_element=np.zeros(nel,dtype=bool)
 
-counter=0
-for j in range(0,nelz):
-    for i in range(0,nelx):
-        icon_V[0,counter]=i*2+1+j*2*nnx -1
-        icon_V[1,counter]=i*2+3+j*2*nnx -1
-        icon_V[2,counter]=i*2+3+j*2*nnx+nnx*2 -1
-        icon_V[3,counter]=i*2+1+j*2*nnx+nnx*2 -1
-        icon_V[4,counter]=i*2+2+j*2*nnx -1
-        icon_V[5,counter]=i*2+3+j*2*nnx+nnx -1
-        icon_V[6,counter]=i*2+2+j*2*nnx+nnx*2 -1
-        icon_V[7,counter]=i*2+1+j*2*nnx+nnx -1
-        icon_V[8,counter]=i*2+2+j*2*nnx+nnx -1
-        if (i==0): left_element[counter]=True
-        if (i==nelx-1): right_element[counter]=True
-        if (j==0): bot_element[counter]=True
-        if (j==nelz-1): top_element[counter]=True
-        if middleH_nodes[icon_V[0,counter]]: middleH_element[counter]=True
-        if middleH_nodes[icon_V[2,counter]]: middleH_element[counter]=True
-        if middleV_nodes[icon_V[0,counter]]: middleV_element[counter]=True
-        if middleV_nodes[icon_V[1,counter]]: middleV_element[counter]=True
-        counter+=1
-    #end for
-#end for
+match geometry:
+ case 'box' | 'eighth' | 'quarter' | 'half':
+  counter=0
+  for j in range(0,nelz):
+      for i in range(0,nelx):
+          icon_V[0,counter]=i*2+1+j*2*nnx -1
+          icon_V[1,counter]=i*2+3+j*2*nnx -1
+          icon_V[2,counter]=i*2+3+j*2*nnx+nnx*2 -1
+          icon_V[3,counter]=i*2+1+j*2*nnx+nnx*2 -1
+          icon_V[4,counter]=i*2+2+j*2*nnx -1
+          icon_V[5,counter]=i*2+3+j*2*nnx+nnx -1
+          icon_V[6,counter]=i*2+2+j*2*nnx+nnx*2 -1
+          icon_V[7,counter]=i*2+1+j*2*nnx+nnx -1
+          icon_V[8,counter]=i*2+2+j*2*nnx+nnx -1
+          if (i==0): left_element[counter]=True
+          if (i==nelx-1): right_element[counter]=True
+          if (j==0): bot_element[counter]=True
+          if (j==nelz-1): top_element[counter]=True
+          if middleH_nodes[icon_V[0,counter]]: middleH_element[counter]=True
+          if middleH_nodes[icon_V[2,counter]]: middleH_element[counter]=True
+          if middleV_nodes[icon_V[0,counter]]: middleV_element[counter]=True
+          if middleV_nodes[icon_V[1,counter]]: middleV_element[counter]=True
+          counter+=1
+      #end for
+  #end for
+ case 'annulus':
+  exit('not done')
 
 print("build icon_V: ................................ %.3f s" % (clock.time()-start))
 
@@ -466,6 +521,7 @@ print("build icon_V: ................................ %.3f s" % (clock.time()-st
 ###############################################################################
 # in the case of a curved axisymmetric domain, it could be beneficial to 
 # straighten the element sides
+# Note that annulus geometry is not compatible with axisymmetry.
 ###############################################################################
 
 if axisymmetric and straighten_edges and \
@@ -494,23 +550,31 @@ theta_P=np.zeros(nn_P,dtype=np.float64)
 top_Pnodes=np.zeros(nn_P,dtype=bool)
 bot_Pnodes=np.zeros(nn_P,dtype=bool)
 
-counter=0    
-for j in range(0,nelz+1):
-    for i in range(0,nelx+1):
-        x_P[counter]=i*hx
-        z_P[counter]=j*hz
-        if (j==0): bot_Pnodes[counter]=True
-        if (j==nelz): top_Pnodes[counter]=True
-        counter+=1
-    #end for
- #end for
+match geometry:
+ case 'box' | 'eighth' | 'quarter' | 'half':
+  counter=0    
+  for j in range(0,nelz+1):
+      for i in range(0,nelx+1):
+          x_P[counter]=i*hx
+          z_P[counter]=j*hz
+          if (j==0): bot_Pnodes[counter]=True
+          if (j==nelz): top_Pnodes[counter]=True
+          counter+=1
+      #end for
+   #end for
+ case 'annulus':
+  exit('not done')
 
-if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-   for i in range(0,nn_P):
-       rad_P[i]=Rinner+z_P[i]*(Router-Rinner)
-       theta_P[i]=np.pi/2-x_P[i]*opening_angle
-       x_P[i]=rad_P[i]*np.cos(theta_P[i])
-       z_P[i]=rad_P[i]*np.sin(theta_P[i])
+
+match geometry:
+ case 'quarter' | 'half' | 'eighth':
+  for i in range(0,nn_P):
+      rad_P[i]=Rinner+z_P[i]*(Router-Rinner)
+      theta_P[i]=np.pi/2-x_P[i]*opening_angle
+      x_P[i]=rad_P[i]*np.cos(theta_P[i])
+      z_P[i]=rad_P[i]*np.sin(theta_P[i])
+ case 'annulus':
+  exit('not done')
 
 if debug_ascii: np.savetxt('DEBUG/mesh_P.ascii',np.array([x_P,z_P]).T,header='# x,z')
 
@@ -523,16 +587,20 @@ start=clock.time()
 
 icon_P=np.zeros((m_P,nel),dtype=np.int32)
 
-counter=0
-for j in range(0,nelz):
-    for i in range(0,nelx):
-        icon_P[0,counter]=i+j*(nelx+1)
-        icon_P[1,counter]=i+1+j*(nelx+1)
-        icon_P[2,counter]=i+1+(j+1)*(nelx+1)
-        icon_P[3,counter]=i+(j+1)*(nelx+1)
-        counter+=1
-    #end for
-#end for
+match geometry:
+ case 'box' | 'eighth' | 'quarter' | 'half':
+  counter=0
+  for j in range(0,nelz):
+      for i in range(0,nelx):
+          icon_P[0,counter]=i+j*(nelx+1)
+          icon_P[1,counter]=i+1+j*(nelx+1)
+          icon_P[2,counter]=i+1+(j+1)*(nelx+1)
+          icon_P[3,counter]=i+(j+1)*(nelx+1)
+          counter+=1
+      #end for
+  #end for
+ case 'annulus':
+  exit('not done')
 
 print("build icon_P: ................................ %.3f s" % (clock.time()-start))
 
@@ -545,7 +613,7 @@ start=clock.time()
 
 bc_fix_V,bc_val_V=\
 assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
-                             hull_nodes,top_Vnodes,bot_Vnodes,left_Vnodes,right_Vnodes)
+                             hull_Vnodes,top_Vnodes,bot_Vnodes,left_Vnodes,right_Vnodes)
 
 print("velocity b.c.: ............................... %.3f s" % (clock.time()-start))
 
@@ -557,7 +625,9 @@ print("velocity b.c.: ............................... %.3f s" % (clock.time()-st
 start=clock.time()
 
 if solve_T:
-   bc_fix_T,bc_val_T=assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V)
+   bc_fix_T,bc_val_T=assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V,\
+                                                  hull_Vnodes,top_Vnodes,bot_Vnodes,\
+                                                  left_Vnodes,right_Vnodes)
 else:
    bc_fix_T=False
    
@@ -657,9 +727,14 @@ for iel in range(0,nel):
     #end for
     x_e[iel]=x_V[icon_V[8,iel]]
     z_e[iel]=z_V[icon_V[8,iel]]
-    if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-       rad_e[iel]=np.sqrt(x_e[iel]**2+z_e[iel]**2)
-       theta_e[iel]=np.pi/2-np.arctan2(x_e[iel],z_e[iel])
+    match geometry:
+     case 'quarter' | 'half' | 'eighth':
+      rad_e[iel]=np.sqrt(x_e[iel]**2+z_e[iel]**2)
+      theta_e[iel]=np.pi/2-np.arctan2(x_e[iel],z_e[iel])
+     case 'annulus':
+      rad_e[iel]=np.sqrt(x_e[iel]**2+z_e[iel]**2)
+      exit('not done')
+
 #end for
 
 print("     -> area (m,M) %.4e %.4e " %(np.min(area),np.max(area)))
@@ -1040,18 +1115,27 @@ print("     -> swarm_r (m,M) %.3e %.3e " %(np.min(swarm_r),np.max(swarm_r)))
 print("     -> swarm_t (m,M) %.3e %.3e " %(np.min(swarm_t),np.max(swarm_t)))
 print("     -> swarm_iel (m,M) %.3e %.3e " %(np.min(swarm_iel),np.max(swarm_iel)))
 
-if geometry=='quarter' or geometry=='half' or geometry=='eighth':
+match geometry:
+ case 'quarter' | 'half' | 'eighth':
    swarm_rad=np.sqrt(swarm_x**2+swarm_z**2)
    swarm_theta=np.pi/2-np.arctan2(swarm_x,swarm_z)
    print("     -> swarm_rad (m,M) %.3e %.3e " %(np.min(swarm_rad),np.max(swarm_rad)))
    print("     -> swarm_theta (m,M) %.3e %.3e " %(np.min(swarm_theta),np.max(swarm_theta)))
-else:
+ case 'annulus':
+   exit("not done")
+ case _ :
    swarm_rad=0
    swarm_theta=0
 
-swarm_strain=np.zeros(nparticle,dtype=np.float64)
 
 print("particles setup: ............................. %.3f s" % (clock.time()-start))
+
+###############################################################################
+#@@ initial strain setup
+#TODO: I should late implement a generic function to allow initial strain weakening/weak seeds
+###############################################################################
+
+swarm_strain=np.zeros(nparticle,dtype=np.float64)
 
 ###############################################################################
 #@@ particle paint
@@ -1073,7 +1157,7 @@ match(geometry):
           if swarm_z[ip]>i*dz and swarm_z[ip]<(i+1)*dz:
              swarm_paint[ip]+=1
 
- case 'quarter' | 'half' | 'eighth':
+ case 'quarter' | 'half' | 'eighth' | 'annulus':
   for i in [0,2,4,6,8,10,12,14]:
       drad=(Router-Rinner)/16
       for ip in range (0,nparticle):
@@ -1084,6 +1168,8 @@ match(geometry):
       for ip in range (0,nparticle):
           if swarm_theta[ip]>theta_min+i*dtheta and swarm_theta[ip]<theta_min+(i+1)*dtheta:
              swarm_paint[ip]+=1
+ case _:
+  exit('unknown geometry')
 
 print("particles paint: ............................. %.3f s" % (clock.time()-start))
 
@@ -1351,11 +1437,11 @@ for istep in range(0,nstep):
     rho_e_profile/=nelx
 
     if geometry=='box':
-       np.savetxt('OUTPUT/rho_n_profile.ascii',np.array([z_V[left_Vnodes],rho_n_profile]).T,header='# z,rho')
-       np.savetxt('OUTPUT/rho_e_profile.ascii',np.array([z_e[left_element],rho_e_profile]).T,header='# z,rho')
+       np.savetxt('OUTPUT/profiles/rho_n_profile.ascii',np.array([z_V[left_Vnodes],rho_n_profile]).T,header='# z,rho')
+       np.savetxt('OUTPUT/profiles/rho_e_profile.ascii',np.array([z_e[left_element],rho_e_profile]).T,header='# z,rho')
     else:
-       np.savetxt('OUTPUT/rho_n_profile.ascii',np.array([rad_V[left_Vnodes],rho_n_profile]).T,header='# rad,rho')
-       np.savetxt('OUTPUT/rho_e_profile.ascii',np.array([rad_e[left_element],rho_e_profile]).T,header='# rad,rho')
+       np.savetxt('OUTPUT/profiles/rho_n_profile.ascii',np.array([rad_V[left_Vnodes],rho_n_profile]).T,header='# rad,rho')
+       np.savetxt('OUTPUT/profiles/rho_e_profile.ascii',np.array([rad_e[left_element],rho_e_profile]).T,header='# rad,rho')
 
     print("     -> rho_n_profile (m,M) %.3e %.3e " %(np.min(rho_n_profile),np.max(rho_n_profile)))
     print("     -> rho_e_profile (m,M) %.3e %.3e " %(np.min(rho_e_profile),np.max(rho_e_profile)))
@@ -1541,7 +1627,7 @@ for istep in range(0,nstep):
     if debug_nan and np.isnan(np.sum(VV_GT)): exit('nan found in VV_GT')
     if debug_nan and np.isnan(np.sum(VV_K)): exit('nan found in VV_K')
 
-    print("build FE matrix stokes: ...................... %.3f s" % (clock.time()-start)) ; timings[1]+=clock.time()-start
+    print("build FE matrix Stokes: ...................... %.3f s %d %d" % (clock.time()-start,Nfem,nel)) ; timings[1]+=clock.time()-start
 
     ###############################################################################################
     #@@ convert matrix arrays to coo then to csr
@@ -1620,30 +1706,33 @@ for istep in range(0,nstep):
     if debug_nan and np.isnan(np.sum(w)): exit('nan found in w')
     if debug_nan and np.isnan(np.sum(p)): exit('nan found in p')
 
-    if (geometry=='quarter' or geometry=='half' or geometry=='eighth') and top_free_slip:
-       for i in range(0,nn_V):
-           if top_Vnodes[i] and (not bc_fix_V[2*i]) and (not bc_fix_V[2*i+1]):
-              ui=np.cos(theta_V[i])*u[i]-np.sin(theta_V[i])*w[i]
-              wi=np.sin(theta_V[i])*u[i]+np.cos(theta_V[i])*w[i] 
-              u[i]=ui
-              w[i]=wi
-                 
-    if (geometry=='quarter' or geometry=='half' or geometry=='eighth') and bot_free_slip:
-       for i in range(0,nn_V):
-           if bot_Vnodes[i] and (not bc_fix_V[2*i]) and (not bc_fix_V[2*i+1]):
-              ui=np.cos(theta_V[i])*u[i]-np.sin(theta_V[i])*w[i]
-              wi=np.sin(theta_V[i])*u[i]+np.cos(theta_V[i])*w[i] 
-              u[i]=ui
-              w[i]=wi
+    match geometry:
+     case 'quarter' | 'half' | 'eighth' | 'annulus':
+      if top_free_slip:
+         for i in range(0,nn_V):
+             if top_Vnodes[i] and (not bc_fix_V[2*i]) and (not bc_fix_V[2*i+1]):
+                ui=np.cos(theta_V[i])*u[i]-np.sin(theta_V[i])*w[i]
+                wi=np.sin(theta_V[i])*u[i]+np.cos(theta_V[i])*w[i] 
+                u[i]=ui
+                w[i]=wi
+      if bot_free_slip:
+         for i in range(0,nn_V):
+             if bot_Vnodes[i] and (not bc_fix_V[2*i]) and (not bc_fix_V[2*i+1]):
+                ui=np.cos(theta_V[i])*u[i]-np.sin(theta_V[i])*w[i]
+                wi=np.sin(theta_V[i])*u[i]+np.cos(theta_V[i])*w[i] 
+                u[i]=ui
+                w[i]=wi
 
     vel=np.sqrt(u**2+w**2)
 
-    if geometry=='box' and (istep%every_solution_vtu==0 or istep==nstep-1): 
-       np.savetxt('OUTPUT/top_vel_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],vel[top_Vnodes]]).T)
-       np.savetxt('OUTPUT/bot_vel_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],vel[bot_Vnodes]]).T)
-    if (geometry=='quarter' or geometry=='half' or geometry=='eighth') and (istep%every_solution_vtu==0 or istep==nstep-1): 
-       np.savetxt('OUTPUT/top_vel_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],vel[top_Vnodes]]).T)
-       np.savetxt('OUTPUT/bot_vel_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],vel[bot_Vnodes]]).T)
+    if istep%every_solution==0 or istep==nstep-1: 
+       match geometry:
+        case 'box':
+         np.savetxt('OUTPUT/top/top_vel_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],vel[top_Vnodes]]).T)
+         np.savetxt('OUTPUT/bottom/bot_vel_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],vel[bot_Vnodes]]).T)
+        case 'eighth' | 'quarter' | 'half' | 'annulus':
+         np.savetxt('OUTPUT/top/top_vel_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],vel[top_Vnodes]]).T)
+         np.savetxt('OUTPUT/bottom/bot_vel_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],vel[bot_Vnodes]]).T)
 
     print("     -> u (m,M) %.3e %.3e %s" %(np.min(u)/vel_scale,np.max(u)/vel_scale,vel_unit))
     print("     -> w (m,M) %.3e %.3e %s" %(np.min(w)/vel_scale,np.max(w)/vel_scale,vel_unit))
@@ -1653,8 +1742,9 @@ for istep in range(0,nstep):
                                                                                  np.min(w)/vel_scale,np.max(w)/vel_scale))
     vstats_file.flush()
 
-    if debug_ascii: np.savetxt('DEBUG/velocity.ascii',np.array([x_V,z_V,u,w,vel,rad_V,theta_V]).T,header='# x,z,u,w,vel,rad,theta')
-    if debug_ascii: np.savetxt('DEBUG/pressure.ascii',np.array([x_P,z_P,p,rad_P,theta_P]).T,header='# x,z,p,rad,theta')
+    if debug_ascii: 
+       np.savetxt('DEBUG/velocity.ascii',np.array([x_V,z_V,u,w,vel,rad_V,theta_V]).T,header='# x,z,u,w,vel,rad,theta')
+       np.savetxt('DEBUG/pressure.ascii',np.array([x_P,z_P,p,rad_P,theta_P]).T,header='# x,z,p,rad,theta')
 
     print("split sol vector into u,w,p: ................. %.3f s" % (clock.time()-start)) ; timings[14]+=clock.time()-start
 
@@ -1663,22 +1753,24 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-       if axisymmetric:
-          vr=u*np.cos(theta_V)+w*np.sin(theta_V)
-          vt=u*np.sin(theta_V)-w*np.cos(theta_V)
-       else:
-          vr= u*np.cos(theta_V)+w*np.sin(theta_V)
-          vt=-u*np.sin(theta_V)+w*np.cos(theta_V)
-       if debug_ascii: 
-          np.savetxt('DEBUG/velocity_polar.ascii',np.array([x_V,z_V,vr,vt,rad_V,theta_V]).T,header='#x,z,vr,vt,rad,theta')
-          np.savetxt('DEBUG/top_vt.ascii',np.array([theta_V[top_Vnodes],vt[top_Vnodes]]).T,header='#theta,vt')
-          np.savetxt('DEBUG/bot_vt.ascii',np.array([theta_V[bot_Vnodes],vt[bot_Vnodes]]).T,header='#theta,vt')
+    match geometry:
+     case 'quarter' | 'half' | 'eighth' | 'annulus':
+      if axisymmetric:
+         vr=u*np.cos(theta_V)+w*np.sin(theta_V)
+         vt=u*np.sin(theta_V)-w*np.cos(theta_V)
+      else:
+         vr= u*np.cos(theta_V)+w*np.sin(theta_V)
+         vt=-u*np.sin(theta_V)+w*np.cos(theta_V)
+      if debug_ascii: 
+         np.savetxt('DEBUG/velocity_polar.ascii',np.array([x_V,z_V,vr,vt,rad_V,theta_V]).T,header='#x,z,vr,vt,rad,theta')
+         np.savetxt('DEBUG/top_vt.ascii',np.array([theta_V[top_Vnodes],vt[top_Vnodes]]).T,header='#theta,vt')
+         np.savetxt('DEBUG/bot_vt.ascii',np.array([theta_V[bot_Vnodes],vt[bot_Vnodes]]).T,header='#theta,vt')
 
-       print("convert velocity to polar/sph coords: %.3f s" % (clock.time()-start)) ; timings[32]+=clock.time()-start
+      print("convert velocity to polar/sph coords: %.3f s" % (clock.time()-start)) ; timings[32]+=clock.time()-start
 
-    else:
-       vr=0 ; vt=0
+     case _:
+      vr=0 
+      vt=0
     
     ###############################################################################################
     #@@ compute timestep
@@ -1687,10 +1779,11 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if solve_Stokes:
-       if geometry=='box': dt1=CFLnb*min(hx,hz)/np.max(vel)
-       if geometry=='quarter': dt1=CFLnb*hrad/np.max(vel)
-       if geometry=='half': dt1=CFLnb*hrad/np.max(vel)
-       if geometry=='eighth': dt1=CFLnb*hrad/np.max(vel)
+       match geometry:
+        case 'box':
+         dt1=CFLnb*min(hx,hz)/np.max(vel)
+        case 'quarter' | 'half' | 'eighth' | 'annulus': 
+         dt1=CFLnb*hrad/np.max(vel)
     else:
        dt1=0.
 
@@ -1700,10 +1793,11 @@ for istep in range(0,nstep):
        avrg_hcond=np.average(swarm_hcond)
        avrg_hcapa=np.average(swarm_hcapa)
        avrg_rho=np.average(swarm_rho)
-       if geometry=='box': dt2=CFLnb*min(hx,hz)**2/(avrg_hcond/avrg_hcapa/avrg_rho)
-       if geometry=='quarter': dt2=CFLnb*hrad**2/(avrg_hcond/avrg_hcapa/avrg_rho)
-       if geometry=='half': dt2=CFLnb*hrad**2/(avrg_hcond/avrg_hcapa/avrg_rho)
-       if geometry=='eighth': dt2=CFLnb*hrad**2/(avrg_hcond/avrg_hcapa/avrg_rho)
+       match geometry:
+        case 'box':
+         dt2=CFLnb*min(hx,hz)**2/(avrg_hcond/avrg_hcapa/avrg_rho)
+        case 'quarter' | 'half' | 'eighth' | 'annulus': 
+         dt2=CFLnb*hrad**2/(avrg_hcond/avrg_hcapa/avrg_rho)
        print('     -> dt2= %.3e %s' %(dt2/time_scale,time_unit))
     else:
        dt2=1e50
@@ -1746,14 +1840,17 @@ for istep in range(0,nstep):
     pstats_file.write("%d %.3e %.3e\n" % (geological_time/time_scale,np.min(p),np.max(p)))
     pstats_file.flush()
 
-    if geometry=='box' and (istep%every_solution_vtu==0 or istep==nstep-1): 
-       np.savetxt('OUTPUT/top_p_'+str(istep)+'.ascii',np.array([x_P[top_Pnodes],p[top_Pnodes]]).T)
-       np.savetxt('OUTPUT/bot_p_'+str(istep)+'.ascii',np.array([x_P[bot_Pnodes],p[bot_Pnodes]]).T)
-    if (geometry=='quarter' or geometry=='half' or geometry=='eighth') and (istep%every_solution_vtu==0 or istep==nstep-1): 
-       np.savetxt('OUTPUT/top_p_'+str(istep)+'.ascii',np.array([theta_P[top_Pnodes],p[top_Pnodes]]).T)
-       np.savetxt('OUTPUT/bot_p_'+str(istep)+'.ascii',np.array([theta_P[bot_Pnodes],p[bot_Pnodes]]).T)
+    if istep%every_solution==0 or istep==nstep-1: 
+       match geometry:
+        case 'box':
+           np.savetxt('OUTPUT/top/top_p_'+str(istep)+'.ascii',np.array([x_P[top_Pnodes],p[top_Pnodes]]).T)
+           np.savetxt('OUTPUT/bottom/bot_p_'+str(istep)+'.ascii',np.array([x_P[bot_Pnodes],p[bot_Pnodes]]).T)
+        case 'quarter' | 'half' | 'eighth' | 'annulus':
+           np.savetxt('OUTPUT/top/top_p_'+str(istep)+'.ascii',np.array([theta_P[top_Pnodes],p[top_Pnodes]]).T)
+           np.savetxt('OUTPUT/bottom/bot_p_'+str(istep)+'.ascii',np.array([theta_P[bot_Pnodes],p[bot_Pnodes]]).T)
 
-    if debug_ascii: np.savetxt('DEBUG/pressure_normalised.ascii',np.array([x_P,z_P,p,rad_P,theta_P]).T,header='# x,z,p,rad,theta')
+    if debug_ascii: 
+       np.savetxt('DEBUG/pressure_normalised.ascii',np.array([x_P,z_P,p,rad_P,theta_P]).T,header='# x,z,p,rad,theta')
 
     print("normalise pressure: .......................... %.3f s" % (clock.time()-start)) ; timings[12]+=clock.time()-start
 
@@ -1769,12 +1866,14 @@ for istep in range(0,nstep):
 
     print("     -> p_e (m,M) %.3e %.3e %s" %(np.min(p_e)/p_scale,np.max(p_e)/p_scale,p_unit))
 
-    if geometry=='box' and (istep%every_solution_vtu==0 or istep==nstep-1): 
-       np.savetxt('OUTPUT/top_p_e_'+str(istep)+'.ascii',np.array([x_e[top_element],p_e[top_element]]).T)
-       np.savetxt('OUTPUT/bot_p_e_'+str(istep)+'.ascii',np.array([x_e[bot_element],p_e[bot_element]]).T)
-    if (geometry=='quarter' or geometry=='half' or geometry=='eighth') and (istep%every_solution_vtu==0 or istep==nstep-1): 
-       np.savetxt('OUTPUT/top_p_e_'+str(istep)+'.ascii',np.array([theta_e[top_element],p_e[top_element]]).T)
-       np.savetxt('OUTPUT/bot_p_e_'+str(istep)+'.ascii',np.array([theta_e[bot_element],p_e[bot_element]]).T)
+    if istep%every_solution==0 or istep==nstep-1: 
+       match geometry:
+        case 'box':
+         np.savetxt('OUTPUT/top/top_p_e_'+str(istep)+'.ascii',np.array([x_e[top_element],p_e[top_element]]).T)
+         np.savetxt('OUTPUT/bottom/bot_p_e_'+str(istep)+'.ascii',np.array([x_e[bot_element],p_e[bot_element]]).T)
+        case 'quarter' | 'half' | 'eighth' | 'annulus':
+         np.savetxt('OUTPUT/top/top_p_e_'+str(istep)+'.ascii',np.array([theta_e[top_element],p_e[top_element]]).T)
+         np.savetxt('OUTPUT/bottom/bot_p_e_'+str(istep)+'.ascii',np.array([theta_e[bot_element],p_e[bot_element]]).T)
 
     if debug_ascii: np.savetxt('DEBUG/pressure_e.ascii',np.array([x_e,z_e,p_e]).T,header='# x,z,p')
 
@@ -1791,12 +1890,14 @@ for istep in range(0,nstep):
 
     if debug_ascii: np.savetxt('DEBUG/q.ascii',np.array([x_V,z_V,q]).T,header='# x,z,q')
 
-    if geometry=='box' and (istep%every_solution_vtu==0 or istep==nstep-1): 
-       np.savetxt('OUTPUT/top_q_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],q[top_Vnodes]]).T)
-       np.savetxt('OUTPUT/bot_q_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],q[bot_Vnodes]]).T)
-    if (geometry=='quarter' or geometry=='half' or geometry=='eighth') and (istep%every_solution_vtu==0 or istep==nstep-1): 
-       np.savetxt('OUTPUT/top_q_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],q[top_Vnodes]]).T)
-       np.savetxt('OUTPUT/bot_q_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],q[bot_Vnodes]]).T)
+    if istep%every_solution==0 or istep==nstep-1: 
+       match geometry:
+        case 'box':
+         np.savetxt('OUTPUT/top/top_q_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],q[top_Vnodes]]).T)
+         np.savetxt('OUTPUT/bottom/bot_q_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],q[bot_Vnodes]]).T)
+        case 'quarter' | 'half' | 'eighth' | 'annulus':
+         np.savetxt('OUTPUT/top/top_q_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],q[top_Vnodes]]).T)
+         np.savetxt('OUTPUT/bottom/bot_q_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],q[bot_Vnodes]]).T)
 
     print("compute nodal press: ......................... %.3f s" % (clock.time()-start)) ; timings[3]+=clock.time()-start
 
@@ -1931,23 +2032,25 @@ for istep in range(0,nstep):
        np.savetxt('DEBUG/strainrate_cartesian_e.ascii',\
                   np.array([x_e,z_e,exx_e,ezz_e,exz_e,effective(exx_e,ezz_e,exz_e)]).T,header='#x,z,exx,ezz,exz,e')
 
-    if geometry=='quarter' or geometry=='half' or geometry=='eighth':    
-       if axisymmetric:
-          err_e,ett_e,ert_e=convert_tensor_to_spherical_coords(theta_e,exx_e,ezz_e,exz_e)
-          drr_e,dtt_e,drt_e=convert_tensor_to_spherical_coords(theta_e,dxx_e,dzz_e,dxz_e)
-       else:
-          err_e,ett_e,ert_e=convert_tensor_to_polar_coords(theta_e,exx_e,ezz_e,exz_e)
-          drr_e,dtt_e,drt_e=convert_tensor_to_polar_coords(theta_e,dxx_e,dzz_e,dxz_e)
+    match geometry:
+     case 'quarter' | 'half' | 'eighth' | 'annulus':    
+      if axisymmetric:
+         err_e,ett_e,ert_e=convert_tensor_to_spherical_coords(theta_e,exx_e,ezz_e,exz_e)
+         drr_e,dtt_e,drt_e=convert_tensor_to_spherical_coords(theta_e,dxx_e,dzz_e,dxz_e)
+      else:
+         err_e,ett_e,ert_e=convert_tensor_to_polar_coords(theta_e,exx_e,ezz_e,exz_e)
+         drr_e,dtt_e,drt_e=convert_tensor_to_polar_coords(theta_e,dxx_e,dzz_e,dxz_e)
 
-       print("     -> err_e (m,M) %.3e %.3e " %(np.min(err_e),np.max(err_e)))
-       print("     -> ett_e (m,M) %.3e %.3e " %(np.min(ett_e),np.max(ett_e)))
-       print("     -> ert_e (m,M) %.3e %.3e " %(np.min(ert_e),np.max(ert_e)))
+      print("     -> err_e (m,M) %.3e %.3e " %(np.min(err_e),np.max(err_e)))
+      print("     -> ett_e (m,M) %.3e %.3e " %(np.min(ett_e),np.max(ett_e)))
+      print("     -> ert_e (m,M) %.3e %.3e " %(np.min(ert_e),np.max(ert_e)))
 
-       if debug_ascii: 
-          np.savetxt('DEBUG/strainrate_polar_e.ascii',np.array([x_e,z_e,err_e,ett_e,ert_e]).T,header='#x,z,err,ett,ert')
+      if debug_ascii: 
+         np.savetxt('DEBUG/strainrate_polar_e.ascii',np.array([x_e,z_e,err_e,ett_e,ert_e]).T,header='#x,z,err,ett,ert')
 
-       np.savetxt('OUTPUT/top_err_e_'+str(istep)+'.ascii',np.array([theta_e[top_element],err_e[top_element]]).T)
-       np.savetxt('OUTPUT/top_drr_e_'+str(istep)+'.ascii',np.array([theta_e[top_element],drr_e[top_element]]).T)
+      if istep%every_solution==0 or istep==nstep-1: 
+         np.savetxt('OUTPUT/top/top_err_e_'+str(istep)+'.ascii',np.array([theta_e[top_element],err_e[top_element]]).T)
+         np.savetxt('OUTPUT/top/top_drr_e_'+str(istep)+'.ascii',np.array([theta_e[top_element],drr_e[top_element]]).T)
 
     print("compute elemental sr: ........................ %.3f s" % (clock.time()-start)) ; timings[29]+=clock.time()-start
 
@@ -1977,32 +2080,35 @@ for istep in range(0,nstep):
                                np.array([x_V,z_V,exx_n,ezz_n,exz_n,e_n,rad_V,theta_V]).T,\
                                header='#x,z,exx,ezz,exz,e,rad,theta')
 
-    if geometry=='quarter' or geometry=='half' or geometry=='eighth':    
-       if axisymmetric:
-          err_n,ett_n,ert_n=convert_tensor_to_spherical_coords(theta_V,exx_n,ezz_n,exz_n)
-          if debug_ascii: np.savetxt('DEBUG/strainrate_spherical_coords.ascii',\
+    match geometry:
+     case 'box':
+      err_n=0 
+      ett_n=0 
+      ert_n=0
+      if istep%every_solution==0 or istep==nstep-1: 
+         np.savetxt('OUTPUT/top/top_ezz_n'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],ezz_n[top_Vnodes]]).T)
+         np.savetxt('OUTPUT/bottom/bot_ezz_n'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],ezz_n[bot_Vnodes]]).T)
+
+     case 'quarter' | 'half' | 'eighth' | 'annulus':    
+      if axisymmetric:
+         err_n,ett_n,ert_n=convert_tensor_to_spherical_coords(theta_V,exx_n,ezz_n,exz_n)
+         if debug_ascii: np.savetxt('DEBUG/strainrate_spherical_coords.ascii',\
                                      np.array([x_V,z_V,err_n,ett_n,ert_n,rad_V,theta_V]).T,\
                                      header='#x,z,err,ett,ert,rad,theta')
-       else:
-          err_n,ett_n,ert_n=convert_tensor_to_polar_coords(theta_V,exx_n,ezz_n,exz_n)
-          if debug_ascii: np.savetxt('DEBUG/strainrate_polar_coords.ascii',\
+      else:
+         err_n,ett_n,ert_n=convert_tensor_to_polar_coords(theta_V,exx_n,ezz_n,exz_n)
+         if debug_ascii: np.savetxt('DEBUG/strainrate_polar_coords.ascii',\
                                      np.array([x_V,z_V,err_n,ett_n,ert_n,rad_V,theta_V]).T,\
                                      header='#x,z,err,ett,ert,rad,theta')
 
-       print("     -> err_n (m,M) %.3e %.3e " %(np.min(err_n),np.max(err_n)))
-       print("     -> ett_n (m,M) %.3e %.3e " %(np.min(ett_n),np.max(ett_n)))
-       print("     -> ert_n (m,M) %.3e %.3e " %(np.min(ert_n),np.max(ert_n)))
+      print("     -> err_n (m,M) %.3e %.3e " %(np.min(err_n),np.max(err_n)))
+      print("     -> ett_n (m,M) %.3e %.3e " %(np.min(ett_n),np.max(ett_n)))
+      print("     -> ert_n (m,M) %.3e %.3e " %(np.min(ert_n),np.max(ert_n)))
 
-       if istep%every_solution_vtu==0 or istep==nstep-1: 
-          np.savetxt('OUTPUT/top_err_n_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],err_n[top_Vnodes]]).T)
-          np.savetxt('OUTPUT/bot_err_n_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],err_n[bot_Vnodes]]).T)
+      if istep%every_solution==0 or istep==nstep-1: 
+         np.savetxt('OUTPUT/top/top_err_n_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],err_n[top_Vnodes]]).T)
+         np.savetxt('OUTPUT/bottom/bot_err_n_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],err_n[bot_Vnodes]]).T)
 
-    else:
-       err_n=0 ; ett_n=0 ; ert_n=0
-
-       if istep%every_solution_vtu==0 or istep==nstep-1: 
-          np.savetxt('OUTPUT/top_ezz_n'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],ezz_n[top_Vnodes]]).T)
-          np.savetxt('OUTPUT/bot_ezz_n'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],ezz_n[bot_Vnodes]]).T)
 
     print("compute nodal sr: ............................ %.3f s" % (clock.time()-start)) ; timings[11]+=clock.time()-start
 
@@ -2080,22 +2186,27 @@ for istep in range(0,nstep):
        tauzz_n=2*eta_n*dzz_n ; tauzz_e=2*eta_e*dzz_e
        tauxz_n=2*eta_n*dxz_n ; tauxz_e=2*eta_e*dxz_e
 
-       if geometry=='box' and (istep%every_solution_vtu==0 or istep==nstep-1): 
-          np.savetxt('OUTPUT/top_tauzz_n_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],tauzz_n[top_Vnodes]]).T)
-          np.savetxt('OUTPUT/bot_tauzz_n_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],tauzz_n[bot_Vnodes]]).T)
+       if istep%every_solution==0 or istep==nstep-1: 
+          match geometry:
+           case 'box':
+            np.savetxt('OUTPUT/top/top_tauzz_n_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],tauzz_n[top_Vnodes]]).T)
+            np.savetxt('OUTPUT/bottom/bot_tauzz_n_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],tauzz_n[bot_Vnodes]]).T)
+           case 'quarter' | 'half' | 'eighth' | 'annulus':
+            if axisymmetric:
+               taurr_n,tautt_n,taurt_n=convert_tensor_to_spherical_coords(theta_V,tauxx_n,tauzz_n,tauxz_n)
+               taurr_e,tautt_e,taurt_e=convert_tensor_to_spherical_coords(theta_e,tauxx_e,tauzz_e,tauxz_e)
+            else:
+               taurr_n,tautt_n,taurt_n=convert_tensor_to_polar_coords(theta_V,tauxx_n,tauzz_n,tauxz_n)
+               taurr_e,tautt_e,taurt_e=convert_tensor_to_polar_coords(theta_e,tauxx_e,tauzz_e,tauxz_e)
 
-       if (geometry=='quarter' or geometry=='half' or geometry=='eighth') and (istep%every_solution_vtu==0 or istep==nstep-1): 
-          if axisymmetric:
-             taurr_n,tautt_n,taurt_n=convert_tensor_to_spherical_coords(theta_V,tauxx_n,tauzz_n,tauxz_n)
-             taurr_e,tautt_e,taurt_e=convert_tensor_to_spherical_coords(theta_e,tauxx_e,tauzz_e,tauxz_e)
-          else:
-             taurr_n,tautt_n,taurt_n=convert_tensor_to_polar_coords(theta_V,tauxx_n,tauzz_n,tauxz_n)
-             taurr_e,tautt_e,taurt_e=convert_tensor_to_polar_coords(theta_e,tauxx_e,tauzz_e,tauxz_e)
+            print("     -> dxx_n (m,M) %.3e %.3e " %(np.min(taurr_n),np.max(taurr_n)))
+            print("     -> dzz_n (m,M) %.3e %.3e " %(np.min(tautt_n),np.max(tautt_n)))
+            print("     -> dxz_n (m,M) %.3e %.3e " %(np.min(taurt_n),np.max(taurt_n)))
 
-          np.savetxt('OUTPUT/top_taurr_n_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],taurr_n[top_Vnodes]]).T)
-          np.savetxt('OUTPUT/bot_taurr_n_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],taurr_n[bot_Vnodes]]).T)
-          np.savetxt('OUTPUT/top_taurr_e'+str(istep)+'.ascii',np.array([theta_e[top_element],taurr_e[top_element]]).T)
-          np.savetxt('OUTPUT/bot_taurr_e'+str(istep)+'.ascii',np.array([theta_e[bot_element],taurr_e[bot_element]]).T)
+            np.savetxt('OUTPUT/top/top_taurr_n_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],taurr_n[top_Vnodes]]).T)
+            np.savetxt('OUTPUT/bottom/bot_taurr_n_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],taurr_n[bot_Vnodes]]).T)
+            np.savetxt('OUTPUT/top/top_taurr_e_'+str(istep)+'.ascii',np.array([theta_e[top_element],taurr_e[top_element]]).T)
+            np.savetxt('OUTPUT/bottom/bot_taurr_e_'+str(istep)+'.ascii',np.array([theta_e[bot_element],taurr_e[bot_element]]).T)
 
     print("compute deviatoric stress: ................... %.3f s" % (clock.time()-start)) ; timings[27]+=clock.time()-start
 
@@ -2110,25 +2221,25 @@ for istep in range(0,nstep):
        sigmazz_n=-q+tauzz_n ; sigmazz_e=-p_e+tauzz_e
        sigmaxz_n=   tauxz_n ; sigmaxz_e=     tauxz_e
 
-       if geometry=='quarter' or geometry=='half' or geometry=='eighth':
-          if axisymmetric:
-             sigmarr_n,sigmatt_n,sigmart_n=convert_tensor_to_spherical_coords(theta_V,sigmaxx_n,sigmazz_n,sigmaxz_n)
-             sigmarr_e,sigmatt_e,sigmart_e=convert_tensor_to_spherical_coords(theta_e,sigmaxx_e,sigmazz_e,sigmaxz_e)
-          else:
-             sigmarr_n,sigmatt_n,sigmart_n=convert_tensor_to_polar_coords(theta_V,sigmaxx_n,sigmazz_n,sigmaxz_n)
-             sigmarr_e,sigmatt_e,sigmart_e=convert_tensor_to_polar_coords(theta_e,sigmaxx_e,sigmazz_e,sigmaxz_e)
+       if istep%every_solution==0 or istep==nstep-1: 
 
-       if geometry=='box' and (istep%every_solution_vtu==0 or istep==nstep-1): 
-          np.savetxt('OUTPUT/top_sigmazz_n_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],sigmazz_n[top_Vnodes]]).T)
-          np.savetxt('OUTPUT/bot_sigmazz_n_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],sigmazz_n[bot_Vnodes]]).T)
-          np.savetxt('OUTPUT/top_sigmazz_e_'+str(istep)+'.ascii',np.array([x_e[top_element],sigmazz_e[top_element]]).T)
-          np.savetxt('OUTPUT/bot_sigmazz_e_'+str(istep)+'.ascii',np.array([x_e[bot_element],sigmazz_e[bot_element]]).T)
-
-       if (geometry=='quarter' or geometry=='half' or geometry=='eighth') and (istep%every_solution_vtu==0 or istep==nstep-1): 
-          np.savetxt('OUTPUT/top_sigmarr_n_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],sigmarr_n[top_Vnodes]]).T)
-          np.savetxt('OUTPUT/bot_sigmarr_n_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],sigmarr_n[bot_Vnodes]]).T)
-          np.savetxt('OUTPUT/top_sigmarr_e_'+str(istep)+'.ascii',np.array([theta_e[top_element],sigmarr_e[top_element]]).T)
-          np.savetxt('OUTPUT/bot_sigmarr_e_'+str(istep)+'.ascii',np.array([theta_e[bot_element],sigmarr_e[bot_element]]).T)
+          match geometry:
+           case 'box':
+            np.savetxt('OUTPUT/top/top_sigmazz_n_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],sigmazz_n[top_Vnodes]]).T)
+            np.savetxt('OUTPUT/bottom/bot_sigmazz_n_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],sigmazz_n[bot_Vnodes]]).T)
+            np.savetxt('OUTPUT/top/top_sigmazz_e_'+str(istep)+'.ascii',np.array([x_e[top_element],sigmazz_e[top_element]]).T)
+            np.savetxt('OUTPUT/bottom/bot_sigmazz_e_'+str(istep)+'.ascii',np.array([x_e[bot_element],sigmazz_e[bot_element]]).T)
+           case 'quarter' | 'half' | 'eighth' | 'annulus':
+            if axisymmetric:
+               sigmarr_n,sigmatt_n,sigmart_n=convert_tensor_to_spherical_coords(theta_V,sigmaxx_n,sigmazz_n,sigmaxz_n)
+               sigmarr_e,sigmatt_e,sigmart_e=convert_tensor_to_spherical_coords(theta_e,sigmaxx_e,sigmazz_e,sigmaxz_e)
+            else:
+               sigmarr_n,sigmatt_n,sigmart_n=convert_tensor_to_polar_coords(theta_V,sigmaxx_n,sigmazz_n,sigmaxz_n)
+               sigmarr_e,sigmatt_e,sigmart_e=convert_tensor_to_polar_coords(theta_e,sigmaxx_e,sigmazz_e,sigmaxz_e)
+            np.savetxt('OUTPUT/top/top_sigmarr_n_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],sigmarr_n[top_Vnodes]]).T)
+            np.savetxt('OUTPUT/bottom/bot_sigmarr_n_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],sigmarr_n[bot_Vnodes]]).T)
+            np.savetxt('OUTPUT/top/top_sigmarr_e_'+str(istep)+'.ascii',np.array([theta_e[top_element],sigmarr_e[top_element]]).T)
+            np.savetxt('OUTPUT/bottom/bot_sigmarr_e_'+str(istep)+'.ascii',np.array([theta_e[bot_element],sigmarr_e[bot_element]]).T)
 
     else:
        sigmaxx_n=0 ; sigmazz_n=0 ; sigmaxz_n=0
@@ -2146,29 +2257,29 @@ for istep in range(0,nstep):
           #
           avrg_sigmazz=np.average(sigmazz_n[top_Vnodes])
           dyn_topo_top=(sigmazz_n[top_Vnodes]-avrg_sigmazz)/gz_n[top_Vnodes]/(rho_n[top_Vnodes]-rho_DT_top)
-          np.savetxt('OUTPUT/top_dynamic_topography_n_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],dyn_topo_top]).T)
+          np.savetxt('OUTPUT/top/top_dynamic_topography_n_'+str(istep)+'.ascii',np.array([x_V[top_Vnodes],dyn_topo_top]).T)
           #
           avrg_sigmazz=np.average(sigmazz_n[bot_Vnodes])
           dyn_topo_bot=(sigmazz_n[bot_Vnodes]-avrg_sigmazz)/gz_n[bot_Vnodes]/(rho_n[bot_Vnodes]-rho_DT_bot)
-          np.savetxt('OUTPUT/bot_dynamic_topography_n_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],dyn_topo_bot]).T)
+          np.savetxt('OUTPUT/bottom/bot_dynamic_topography_n_'+str(istep)+'.ascii',np.array([x_V[bot_Vnodes],dyn_topo_bot]).T)
 
-       if geometry=='quarter' or geometry=='half':
+       if geometry=='quarter' or geometry=='half' or geometry=='eighth':
           #
           avrg_sigmarr=np.average(sigmarr_n[top_Vnodes])
           dyn_topo_top=(sigmarr_n[top_Vnodes]-avrg_sigmarr)/gr_n[top_Vnodes]/(rho_n[top_Vnodes]-rho_DT_top)
-          np.savetxt('OUTPUT/top_dynamic_topography_n_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],dyn_topo_top]).T)
+          np.savetxt('OUTPUT/top/top_dynamic_topography_n_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],dyn_topo_top]).T)
           #
           avrg_sigmarr=np.average(sigmarr_e[top_element])
           dyn_topo_top=(sigmarr_e[top_element]-avrg_sigmarr)/gr_e[top_element]/(rho_e[top_element]-rho_DT_top)
-          np.savetxt('OUTPUT/top_dynamic_topography_e_'+str(istep)+'.ascii',np.array([theta_e[top_element],dyn_topo_top]).T)
+          np.savetxt('OUTPUT/top/top_dynamic_topography_e_'+str(istep)+'.ascii',np.array([theta_e[top_element],dyn_topo_top]).T)
           #
           avrg_sigmarr=np.average(sigmarr_n[bot_Vnodes])
           dyn_topo_bot=(sigmarr_n[bot_Vnodes]-avrg_sigmarr)/gr_n[bot_Vnodes]/(rho_n[bot_Vnodes]-rho_DT_bot)
-          np.savetxt('OUTPUT/bot_dynamic_topography_n_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],dyn_topo_bot]).T)
+          np.savetxt('OUTPUT/bot/bot_dynamic_topography_n_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],dyn_topo_bot]).T)
           #
           avrg_sigmarr=np.average(sigmarr_e[bot_element])
           dyn_topo_bot=(sigmarr_e[bot_element]-avrg_sigmarr)/gr_e[bot_element]/(rho_e[bot_element]-rho_DT_bot)
-          np.savetxt('OUTPUT/bot_dynamic_topography_e_'+str(istep)+'.ascii',np.array([theta_e[bot_element],dyn_topo_bot]).T)
+          np.savetxt('OUTPUT/bottom/bot_dynamic_topography_e_'+str(istep)+'.ascii',np.array([theta_e[bot_element],dyn_topo_bot]).T)
 
     print("compute dynamic topo: ........................ %.3f s" % (clock.time()-start)) ; timings[26]+=clock.time()-start
 
@@ -2239,7 +2350,7 @@ for istep in range(0,nstep):
      case 'box' :
       swarm_r,swarm_t,swarm_iel=\
       locate_particles___box(nparticle,swarm_x,swarm_z,hx,hz,x_V,z_V,icon_V,nelx)
-     case 'quarter' | 'half' | 'eighth':
+     case 'quarter' | 'half' | 'eighth' | 'annulus':
       swarm_r,swarm_t,swarm_iel=\
       locate_particles___annulus(nparticle,swarm_rad,swarm_theta,hrad,htheta,rad_V,theta_V,icon_V,nelx,Rinner)
      case _ :
@@ -2296,7 +2407,7 @@ for istep in range(0,nstep):
        pvd_swarm_file.write('<VTKFile type="Collection" version="0.1" ByteOrder="LittleEndian"> \n')
        pvd_swarm_file.write('  <Collection> \n')
     
-    if istep%every_solution_vtu==0 or istep==nstep-1: 
+    if istep%every_solution==0 or istep==nstep-1: 
        pvd_solution_file.write('    <DataSet timestep="%s" group="" part="0" file="solution_%04d.vtu"/>  \n'\
                              %(geological_time,istep))
        pvd_solution_file.flush()
@@ -2311,11 +2422,13 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    if istep%every_solution_vtu==0 or istep==nstep-1: 
-       output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel_unit,TKelvin,x_V,z_V,\
-                              u,w,q,T,eta_n,rho_n,exx_n,ezz_n,exz_n,e_n,divv_n,qx_n,qz_n,rho_e,exx_e,ezz_e,exz_e,divv_e,\
+    if istep%every_solution==0 or istep==nstep-1: 
+       output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel_unit,TKelvin,\
+                              x_V,z_V,u,w,q,T,eta_n,rho_n,exx_n,ezz_n,exz_n,e_n,divv_n,qx_n,qz_n,\
+                              rho_e,exx_e,ezz_e,exz_e,divv_e,\
                               sigmaxx_n,sigmazz_n,sigmaxz_n,rad_V,theta_V,eta_e,nparticle_e,area,icon_V,\
                               bc_fix_V,bc_fix_T,geometry,gx_n,gz_n,err_n,ett_n,ert_n,vr,vt,plith,\
+                              top_Vnodes,bot_Vnodes,left_Vnodes,right_Vnodes,\
                               taurr_n,tautt_n,taurt_n,experiment,\
                               particle_rho_projection,particle_eta_projection,ls_rho_a,ls_eta_a)
 
@@ -2367,7 +2480,8 @@ for istep in range(0,nstep):
     start=clock.time()
 
     if istep%every_quadpoints_vtu==0 or istep==nstep-1: 
-       output_quadpoints_to_vtu(istep,nel,nq_per_element,nq,solve_T,xq,zq,rhoq,etaq,Tq,hcondq,hcapaq,dpdxq,dpdzq,gx_q,gz_q)
+       output_quadpoints_to_vtu(istep,nel,nq_per_element,nq,solve_T,xq,zq,rhoq,etaq,\
+                                Tq,hcondq,hcapaq,dpdxq,dpdzq,gx_q,gz_q)
 
        print("output quad pts to vtu file: ................. %.3f s" % (clock.time()-start)) ; timings[22]+=clock.time()-start
 
@@ -2376,9 +2490,10 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    if istep%every_solution_png==0 or istep==nstep-1: 
-       output_solution_to_png(geometry,solve_Stokes,solve_T,istep,vel_scale,vel_unit,TKelvin,nelx,nelz,\
-                              Lx,Lz,x_V,z_V,u,w,q,T,eta_n,rho_n,exx_n,ezz_n,exz_n,e_n,divv_n,qx_n,qz_n) 
+    if istep%every_solution==0 or istep==nstep-1: 
+       output_solution_to_png(geometry,solve_Stokes,solve_T,istep,vel_scale,vel_unit,TKelvin,\
+                              nelx,nelz,Lx,Lz,x_V,z_V,u,w,q,T,eta_n,rho_n,exx_n,ezz_n,exz_n,\
+                              e_n,divv_n,qx_n,qz_n) 
 
        print("output solution to png file: ................. %.3f s" % (clock.time()-start)) ; timings[34]+=clock.time()-start
 
@@ -2388,13 +2503,14 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    if istep%every_solution_vtu==0 or istep==nstep-1: 
+    if istep%every_solution==0 or istep==nstep-1: 
 
-       T_profile,vel_profile,eta_profile,coord_profile=compute_avrg_profiles(geometry,nnx,nnz,T,eta_n,u,w,z_V,rad_V)
+       T_profile,vel_profile,eta_profile,q_profile,coord_profile=compute_avrg_profiles(geometry,nnx,nnz,T,eta_n,u,w,q,z_V,rad_V)
 
-       np.savetxt('OUTPUT/avrg_profile_T_'+str(istep)+'.ascii',np.array([coord_profile,T_profile]).T,header='#z,T')
-       np.savetxt('OUTPUT/avrg_profile_eta_'+str(istep)+'.ascii',np.array([coord_profile,eta_profile]).T,header='#z,eta')
-       np.savetxt('OUTPUT/avrg_profile_vel_'+str(istep)+'.ascii',np.array([coord_profile,vel_profile]).T,header='#z,vel')
+       np.savetxt('OUTPUT/profiles/avrg_profile_q_'+str(istep)+'.ascii',np.array([coord_profile,q_profile]).T,header='#z,T')
+       np.savetxt('OUTPUT/profiles/avrg_profile_T_'+str(istep)+'.ascii',np.array([coord_profile,T_profile]).T,header='#z,T')
+       np.savetxt('OUTPUT/profiles/avrg_profile_eta_'+str(istep)+'.ascii',np.array([coord_profile,eta_profile]).T,header='#z,eta')
+       np.savetxt('OUTPUT/profiles/avrg_profile_vel_'+str(istep)+'.ascii',np.array([coord_profile,vel_profile]).T,header='#z,vel')
 
     print("compute avrg profile: ........................ %.3f s" % (clock.time()-start)) ; timings[9]+=clock.time()-start
 
@@ -2594,7 +2710,7 @@ pvd_swarm_file.write('</VTKFile>\n')
 ###############################################################################
 start=clock.time()
 
-np.savetxt('OUTPUT/profile_vertical.ascii',np.array([z_V[middleV_nodes],\
+np.savetxt('OUTPUT/profiles/profile_vertical.ascii',np.array([z_V[middleV_nodes],\
                                                      u[middleV_nodes],\
                                                      w[middleV_nodes],\
                                                      q[middleV_nodes],\
@@ -2603,7 +2719,7 @@ np.savetxt('OUTPUT/profile_vertical.ascii',np.array([z_V[middleV_nodes],\
                                                      eta_n[middleV_nodes]]).T,\
                                                      header='#z u w q T rho eta')
 
-np.savetxt('OUTPUT/profile_horizontal.ascii',np.array([x_V[middleH_nodes],\
+np.savetxt('OUTPUT/profiles/profile_horizontal.ascii',np.array([x_V[middleH_nodes],\
                                                        u[middleH_nodes],\
                                                        w[middleH_nodes],\
                                                        q[middleH_nodes],\
@@ -2612,13 +2728,13 @@ np.savetxt('OUTPUT/profile_horizontal.ascii',np.array([x_V[middleH_nodes],\
                                                        eta_n[middleH_nodes]]).T,\
                                                        header='#x u w q T rho eta')
 
-np.savetxt('OUTPUT/profile_vertical_e.ascii',np.array([z_e[middleV_element],\
+np.savetxt('OUTPUT/profiles/profile_vertical_e.ascii',np.array([z_e[middleV_element],\
                                                        p_e[middleV_element],\
                                                        rho_e[middleV_element],\
                                                        eta_e[middleV_element]]).T,\
                                                        header='#z p rho eta')
     
-np.savetxt('OUTPUT/profile_horizontal_e.ascii',np.array([x_e[middleH_element],\
+np.savetxt('OUTPUT/profiles/profile_horizontal_e.ascii',np.array([x_e[middleH_element],\
                                                          p_e[middleH_element],\
                                                          rho_e[middleH_element],\
                                                          eta_e[middleH_element]]).T,\

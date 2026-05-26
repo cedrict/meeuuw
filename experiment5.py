@@ -30,7 +30,7 @@ eta_star=1e-5
 eta_ref=1e-2
 
 end_time=10.25
-every_solution_vtu=20
+every_solution=20
 every_swarm_vtu=10000
 debug_ascii=False
 RKorder=-1

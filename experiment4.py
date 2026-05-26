@@ -28,7 +28,7 @@ TKelvin=273.15
 end_time=1e9*year
 Tbottom=3000+TKelvin
 Ttop=0+TKelvin
-every_solution_vtu=1
+every_solution=1
 every_swarm_vtu=1
 
 use_melting=True

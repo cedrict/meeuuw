@@ -11,7 +11,7 @@ Lz=1.0
 
 CFLnb=0.
 eta_ref=1
-every_solution_vtu=1
+every_solution=1
 every_swarm_vtu=1
 
 nsamplepoints=1

@@ -14,7 +14,7 @@ hcapa = 1  # heat capacity
 rho0 = 1
 every_Nu = 1
 end_time = 0.25
-every_solution_vtu = 10
+every_solution = 10
 every_solution_png = 500
 every_swarm_vtu = 100
 RKorder = -1
@@ -29,8 +29,8 @@ match icase:
     case "1a":
         Lx = 1
         Ra = 1e4
-        nelx = 64
-        nelz = 64
+        nelx = 128
+        nelz = 128
     case "1b":
         Lx = 1
         Ra = 1e5

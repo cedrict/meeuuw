@@ -13,6 +13,7 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
                            divv_e,sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal,rad_V,theta_V,
                            eta_elemental,nparticle_elemental,area,icon_V,bc_fix_V,bc_fix_T,geometry,
                            gx_nodal,gz_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt,plith,
+                           top_Vnodes,bot_Vnodes,left_Vnodes,right_Vnodes,\
                            taurr_nodal,tautt_nodal,taurt_nodal,exp,
                            particle_rho_projection,particle_eta_projection,ls_rho_a,ls_eta_a):
 
@@ -81,6 +82,36 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
           for i in range(0,nn_V):
               vtufile.write("%.4e \n" %(T[i]-TKelvin))
           vtufile.write("</DataArray>\n")
+
+       if debug_sol and solve_Stokes:
+          vtufile.write("<DataArray type='Int32' Name='Vnodes top' Format='ascii'> \n")
+          for i in range(0,nn_V):
+              if top_Vnodes[i]: 
+                 vtufile.write("%d " % 1)
+              else:
+                 vtufile.write("%d " % 0)
+          vtufile.write("</DataArray>\n")
+          vtufile.write("<DataArray type='Int32' Name='Vnodes bot' Format='ascii'> \n")
+          for i in range(0,nn_V):
+              if bot_Vnodes[i]: 
+                 vtufile.write("%d " % 1)
+              else:
+                 vtufile.write("%d " % 0)
+          vtufile.write("</DataArray>\n")
+          vtufile.write("<DataArray type='Int32' Name='Vnodes left' Format='ascii'> \n")
+          for i in range(0,nn_V):
+              if left_Vnodes[i]: 
+                 vtufile.write("%d " % 1)
+              else:
+                 vtufile.write("%d " % 0)
+          vtufile.write("</DataArray>\n")
+          vtufile.write("<DataArray type='Int32' Name='Vnodes right' Format='ascii'> \n")
+          for i in range(0,nn_V):
+              if right_Vnodes[i]: 
+                 vtufile.write("%d " % 1)
+              else:
+                 vtufile.write("%d " % 0)
+          vtufile.write("</DataArray>\n")
        #--
        if debug_sol and solve_Stokes:
           vtufile.write("<DataArray type='Float32' NumberOfComponents='3' Name='Gravity vector' Format='ascii'> \n")
@@ -98,7 +129,7 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
               vtufile.write("%d \n" % val)
           vtufile.write("</DataArray>\n")
           #--
-          vtufile.write("<DataArray type='Int32' Name='fix bc v' Format='ascii'> \n")
+          vtufile.write("<DataArray type='Int32' Name='fix bc w' Format='ascii'> \n")
           for i in range(0,nn_V):
               if bc_fix_V[2*i+1]: 
                  val=1
@@ -156,7 +187,7 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
           e_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
        #--
-       if solve_Stokes and (geometry=='quarter' or geometry=='half'): 
+       if solve_Stokes and (geometry=='quarter' or geometry=='half' or geometry=='eighth'): 
           vtufile.write("<DataArray type='Float32' Name='err' Format='ascii'> \n")
           err_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")

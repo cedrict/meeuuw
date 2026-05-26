@@ -7,8 +7,34 @@ from constants import *
 ###################################################################################################
 # Murphy & King, JGR, 2024 
 
-Lz=3389e3-1830e3
-Lx=Lz
+geometry='box'
+#geometry='quarter'
+#geometry='eighth'
+#geometry='half'
+
+nelz=48
+
+match geometry:
+ case 'box':
+   Lz=3389e3-1830e3
+   Lx=Lz
+   nelx=int(Lx/Lz*nelz)
+ case 'eighth':
+   Router=3389.5e3
+   Rinner=1830e3
+   Rmean=(Rinner+Router)/2
+   nelx=int(2*np.pi*Rmean/8/(Router-Rinner)*nelz)
+ case 'quarter':
+   Router=3389.5e3
+   Rinner=1830e3
+   Rmean=(Rinner+Router)/2
+   nelx=int(2*np.pi*Rmean/4/(Router-Rinner)*nelz)
+ case 'half':
+   Router=3389.5e3
+   Rinner=1830e3
+   Rmean=(Rinner+Router)/2
+   nelx=int(2*np.pi*Rmean/2/(Router-Rinner)*nelz)
+
 solve_T=True
 Tsurf=220
 deltaT = 1.2*1500
@@ -24,17 +50,22 @@ rho0=3500
 hcond=kappa*rho0*hcapa   # kappa = k / (rho0 Cp) heat conductivity
 
 end_time=1000e6*year
-every_solution_vtu=10
+every_solution=1
 every_swarm_vtu=10
 RKorder=-1
 
 compute_plith=False
            
-nelz=64
-nelx=int(Lx/Lz*nelz)
-nstep=10000
+nstep=10
 
 eta_ref=1e22 # purely numerical param ~ avrg viscosity
+
+if geometry=='box':
+   Ra=rho0*3.72*alphaT*1500*Lz**3/kappa/1e21
+else:
+   Ra=rho0*3.72*alphaT*1500*Router**3/kappa/1e21
+
+print('Ra=',Ra)
 
 ###############################################################################
 
@@ -45,16 +76,25 @@ def initial_temperature(x,z,rad,theta,nn_V):
     age = 100e6*year #in years, converted to seconds
     Tm = 1720 #K see table 1 
 
-    for i in range(0,nn_V):
-        if z[i] > Lz/2: #Top half
-           T[i] = Tsurf + ((Tm-Tsurf) * math.erf((Lz-z[i])/(2*np.sqrt(age*kappa))))
-        else:  #Bottom half
-           T[i] = Tcmb - ((Tcmb-Tm) * math.erf(z[i]/(2*np.sqrt(age*kappa))))
+    match geometry:
+     case 'box':
+      for i in range(0,nn_V):
+          if z[i] > Lz/2: #Top half
+             T[i] = Tsurf + ((Tm-Tsurf) * math.erf((Lz-z[i])/(2*np.sqrt(age*kappa))))
+          else:  #Bottom half
+             T[i] = Tcmb - ((Tcmb-Tm) * math.erf(z[i]/(2*np.sqrt(age*kappa))))
+          T[i]+=0.02*Tm*np.cos(3*np.pi*x[i]/Lx)*np.sin(5*np.pi*z[i]/Lz)\
+               +0.03*Tm*np.cos(5*np.pi*x[i]/Lx)*np.sin(4*np.pi*z[i]/Lz)\
+               +0.04*Tm*np.cos(7*np.pi*x[i]/Lx)*np.sin(3*np.pi*z[i]/Lz)
 
-        T[i]+=0.02*Tm*np.cos(3*np.pi*x[i]/Lx)*np.sin(5*np.pi*z[i]/Lz)\
-             +0.03*Tm*np.cos(5*np.pi*x[i]/Lx)*np.sin(4*np.pi*z[i]/Lz)\
-             +0.04*Tm*np.cos(7*np.pi*x[i]/Lx)*np.sin(3*np.pi*z[i]/Lz)
-
+     case 'quarter' | 'half' | 'eighth' | 'annulus':
+      for i in range(0,nn_V):
+          if rad[i] > Rmean: #Top half
+             T[i] = Tsurf + ((Tm-Tsurf) * math.erf((Router-rad[i])/(2*np.sqrt(age*kappa))))
+          else:  #Bottom half
+             T[i] = Tcmb - ((Tcmb-Tm) * math.erf((rad[i]-Rinner)/(2*np.sqrt(age*kappa))))
+          T[i]+=0.02*Tm*np.sin(3*theta[i])\
+               +0.03*Tm*np.sin(7*theta[i])
     return T
 
 ###############################################################################
@@ -66,29 +106,70 @@ def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
     bc_fix_V=np.zeros(Nfem_V,dtype=bool) # boundary condition, yes/no
     bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
 
-    for i in range(0,nn_V):
-        if x_V[i]/Lx<eps:
-           bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if x_V[i]/Lx>(1-eps):
-           bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if z_V[i]/Lz<eps:
-           bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-        if z_V[i]/Lz>(1-eps):
-           bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+    match geometry:
+     case 'box':
+       for i in range(0,nn_V):
+           if x_V[i]/Lx<eps:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           if x_V[i]/Lx>(1-eps):
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           if z_V[i]/Lz<eps:
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if z_V[i]/Lz>(1-eps):
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+
+     case 'eighth':
+       for i in range(0,nn_V):
+           if left_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           if right_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if bot_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if top_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+
+     case 'quarter':
+       for i in range(0,nn_V):
+           if x_V[i]/Rinner<eps:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           if z_V[i]/Rinner<eps:
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if bot_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if top_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+
+     case 'half':
+       for i in range(0,nn_V):
+           if x_V[i]/Rinner<eps:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           if bot_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if top_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
     return bc_fix_V,bc_val_V
 
 ###############################################################################
 
-def assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V):
+def assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V,\
+                                 hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
 
     bc_fix_T=np.zeros(Nfem_T,dtype=bool)  
     bc_val_T=np.zeros(Nfem_T,dtype=np.float64) 
 
     for i in range(0,nn_V):
-        if z_V[i]<eps:
+        if bot_nodes[i]:
            bc_fix_T[i]=True ; bc_val_T[i]=Tcmb
-        if z_V[i]>(Lz-eps):
+        if top_nodes[i]:
            bc_fix_T[i]=True ; bc_val_T[i]=Tsurf
 
     return bc_fix_T,bc_val_T
@@ -125,22 +206,33 @@ def material_model(nparticle,nmat,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_thet
     #Add in different layers of viscosity (higher A is stronger layer)
     A=np.zeros(nparticle,dtype=np.float64)
 
-    for i in range(nparticle):
-        if Lz-swarm_z[i] > 1000e3:
-           A[i] = 10
-        elif Lz-swarm_z[i] > 100e3:
-           A[i] = 0.1
-        else:
-           A[i] = 10
+    match geometry:
+     case 'box':
+      for i in range(nparticle):
+          if Lz-swarm_z[i] > 1000e3:
+             A[i] = 10
+          elif Lz-swarm_z[i] > 100e3:
+             A[i] = 0.1
+          else:
+             A[i] = 10
+     case 'quarter' | 'half' | 'eighth' | 'annulus':
+      for i in range(nparticle):
+          if Router-swarm_rad[i] > 1000e3:
+             A[i] = 10
+          elif Router-swarm_rad[i] > 100e3:
+             A[i] = 0.1
+          else:
+             A[i] = 10
 
     #Temperature and pressure dependent eta
     for i in range(nparticle):
         a = (Ea + swarm_p[i]*Va)/(Rgas*swarm_T[i]) 
         b = (Ea + swarm_p[i]*Va)/(Rgas*(deltaT + Tsurf))                                  
         swarm_eta[i] = A[i] * eta0 * np.exp(a-b) #Pa s
-        #Manual cutoffs for when viscosity is too high in the lithosphere, or too low
+        #Manual cutoffs for when viscosity is too high 
+        #in the lithosphere, or too low
         swarm_eta[i]=min(swarm_eta[i],1e25)
-        swarm_eta[i]=max(swarm_eta[i],1e19)
+        swarm_eta[i]=max(swarm_eta[i],1e18)
 
     swarm_hcond[:]=hcond
     swarm_hcapa[:]=hcapa
@@ -149,10 +241,15 @@ def material_model(nparticle,nmat,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_thet
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
 ###############################################################################
-
-def gravity_model(x,y):
-    gx=0
-    gz=-3.72
+def gravity_model(x,z):
+    match geometry:
+     case 'box':
+        gx=0
+        gz=-3.72
+     case 'quarter' | 'half' | 'eighth' | 'annulus':
+        g0=3.72
+        gx=-x/np.sqrt(x**2+z**2)*g0
+        gz=-z/np.sqrt(x**2+z**2)*g0
     return gx,gz
 
 ###############################################################################

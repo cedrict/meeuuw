@@ -1,4 +1,5 @@
 import numpy as np
+import numba
 from constants import *
 
 ###################################################################################################
@@ -9,12 +10,13 @@ nelx=32
 Lx=512*km
 Lz=512*km
 
+nmat=2
 nstep=1
 eta_ref=1e22
 p_scale=1e6 ; p_unit="MPa"
 vel_scale=cm/year ; vel_unit='cm/yr'
 time_scale=year ; time_unit='yr'
-every_solution_vtu=1
+every_solution=1
 every_swarm_vtu=1
 nparticle_per_dim=6
 #averaging='arithmetic'
@@ -57,20 +59,24 @@ def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
 
 ###################################################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
+def particle_layout(nparticle,nmat,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
-    swarm_mat=np.zeros(nparticle,dtype=np.int32)
-    swarm_mat[:]=1
+    swarm_wf=np.zeros((nmat,nparticle),dtype=np.int32)
+
+    material_names=['mantle','block']
 
     for ip in range(0,nparticle):
         if abs(swarm_x[ip]-Lx/2)<64e3 and abs(swarm_z[ip]-384e3)<64e3:
-           swarm_mat[ip]=2
+           swarm_wf[1,ip]=1
+        else:
+           swarm_wf[0,ip]=1
 
-    return swarm_mat
+    return swarm_wf,material_names
 
 ###################################################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
+@numba.njit
+def material_model(nparticle,nmat,swarm_wf,swarm_x,swarm_z,swarm_rad,swarm_theta,\
                    swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
     swarm_rho=np.zeros(nparticle,dtype=np.float64)
@@ -79,8 +85,12 @@ def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
     swarm_hcapa=0
     swarm_hprod=0
 
-    mask=(swarm_mat==1) ; swarm_eta[mask]=eta_mantle ; swarm_rho[mask]=rho_mantle
-    mask=(swarm_mat==2) ; swarm_eta[mask]=eta_block  ; swarm_rho[mask]=rho_block
+    for ip in range(0,nparticle):
+        swarm_rho[ip]=swarm_wf[0,ip]*rho_mantle+swarm_wf[1,ip]*rho_block
+        swarm_eta[ip]=swarm_wf[0,ip]*eta_mantle+swarm_wf[1,ip]*eta_block
+
+    #mask=(swarm_mat==1) ; swarm_eta[mask]=eta_mantle ; swarm_rho[mask]=rho_mantle
+    #mask=(swarm_mat==2) ; swarm_eta[mask]=eta_block  ; swarm_rho[mask]=rho_block
 
     return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
@@ -90,4 +100,3 @@ def gravity_model(x,z):
     return 0.,-10.
 
 ###################################################################################################
-
