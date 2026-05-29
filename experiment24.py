@@ -7,12 +7,13 @@ from constants import *
 ###################################################################################################
 # Murphy & King, JGR, 2024 
 
-geometry='box'
+#geometry='box'
 #geometry='quarter'
-#geometry='eighth'
+geometry='eighth'
 #geometry='half'
+#geometry='annulus'
 
-nelz=48
+nelz=40
 
 match geometry:
  case 'box':
@@ -34,12 +35,18 @@ match geometry:
    Rinner=1830e3
    Rmean=(Rinner+Router)/2
    nelx=int(2*np.pi*Rmean/2/(Router-Rinner)*nelz)
+ case 'annulus':
+   Router=3389.5e3
+   Rinner=1830e3
+   Rmean=(Rinner+Router)/2
+   nelx=int(2*np.pi*Rmean/1/(Router-Rinner)*nelz)
 
 solve_T=True
 Tsurf=220
 deltaT = 1.2*1500
 Tcmb=Tsurf+deltaT
 
+time_scale=year ; time_unit='yr'
 vel_scale=cm/year ; vel_unit='cm/yr'
 p_scale=1e6 ; p_unit="MPa"
 
@@ -47,16 +54,16 @@ alphaT=2e-5 # thermal exp
 hcapa=1250  # C_p
 kappa=1e-6  # heat diff
 rho0=3500   
-hcond=kappa*rho0*hcapa   # kappa = k / (rho0 Cp) heat conductivity
+hcond=kappa*rho0*hcapa   # since kappa = k / (rho0 Cp) heat conductivity
 
-end_time=1000e6*year
-every_solution=1
+end_time=5000e6*year
+every_solution=10
 every_swarm_vtu=10
 RKorder=-1
 
 compute_plith=False
            
-nstep=10
+nstep=50001
 
 eta_ref=1e22 # purely numerical param ~ avrg viscosity
 
@@ -65,7 +72,7 @@ if geometry=='box':
 else:
    Ra=rho0*3.72*alphaT*1500*Router**3/kappa/1e21
 
-print('Ra=',Ra)
+print('Rayleigh number=',Ra)
 
 ###############################################################################
 
@@ -93,12 +100,11 @@ def initial_temperature(x,z,rad,theta,nn_V):
              T[i] = Tsurf + ((Tm-Tsurf) * math.erf((Router-rad[i])/(2*np.sqrt(age*kappa))))
           else:  #Bottom half
              T[i] = Tcmb - ((Tcmb-Tm) * math.erf((rad[i]-Rinner)/(2*np.sqrt(age*kappa))))
-          T[i]+=0.02*Tm*np.sin(3*theta[i])\
-               +0.03*Tm*np.sin(7*theta[i])
+          T[i]+=0.03*Tm*np.sin(3*theta[i])\
+               +0.04*Tm*np.sin(7*theta[i])
     return T
 
 ###############################################################################
-# free slip on all sides
 
 def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
                                  hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
@@ -123,13 +129,13 @@ def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
            if left_nodes[i]:
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
            if right_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
            if bot_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
            if top_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
      case 'quarter':
@@ -139,10 +145,10 @@ def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
            if z_V[i]/Rinner<eps:
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
            if bot_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
            if top_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
      case 'half':
@@ -150,10 +156,10 @@ def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
            if x_V[i]/Rinner<eps:
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
            if bot_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
            if top_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
     return bc_fix_V,bc_val_V
@@ -199,8 +205,8 @@ def material_model(nparticle,nmat,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_thet
     swarm_rho[:]=rho0*(1-alphaT*(swarm_T[:]-Tsurf))
 
     Ea = 117e3  #J/mol (Activation energy)
+    #Ea = 350e3  #J/mol (Activation energy)
     Va = 6.6e-6 #m3/mol (Activation Volume)
-
     eta0 = 1e21 #Pa s (Reference Viscosity)
 
     #Add in different layers of viscosity (higher A is stronger layer)

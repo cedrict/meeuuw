@@ -289,6 +289,39 @@ def advect_particles___eighth(RKorder,dt,nparticle,swarm_x,swarm_z,
 ###################################################################################################
 
 @numba.njit
+def advect_particles___annulus(RKorder,dt,nparticle,swarm_x,swarm_z,
+                               swarm_rad,swarm_theta,swarm_active,u,w,
+                               Rinner,Router,hrad,htheta,nelx,icon,rad_V,theta_V):
+
+    swarm_u=np.zeros(nparticle,dtype=np.float64)
+    swarm_w=np.zeros(nparticle,dtype=np.float64)
+
+    if RKorder==1:
+
+       for ip in range(0,nparticle):
+           if swarm_active[ip]:
+              swarm_u[ip],swarm_w[ip],iel=\
+              interpolate_vel_on_pt___annulus(swarm_x[ip],swarm_z[ip],u,w,\
+                                              hrad,htheta,nelx,icon,rad_V,theta_V,Rinner)
+              swarm_x[ip]+=swarm_u[ip]*dt
+              swarm_z[ip]+=swarm_w[ip]*dt
+              swarm_rad[ip]=np.sqrt(swarm_x[ip]**2+swarm_z[ip]**2)
+              swarm_theta[ip]=np.pi/2-np.arctan2(swarm_x[ip],swarm_z[ip])
+              if swarm_x[ip]<0 or swarm_rad[ip]<Rinner or swarm_rad[ip]>Router or swarm_z[ip]<swarm_x[ip]:
+                 swarm_active[ip]=False
+           # end if active
+       # end for ip
+
+    for ip in range(0,nparticle):
+        if not swarm_active[ip]:
+           swarm_x[ip]=0
+           swarm_z[ip]=0
+
+    return swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_u,swarm_w,swarm_active
+
+###################################################################################################
+
+@numba.njit
 def advect_particles___quarter(RKorder,dt,nparticle,swarm_x,swarm_z,
                                swarm_rad,swarm_theta,swarm_active,u,w,
                                Rinner,Router,hrad,htheta,nelx,icon,rad_V,theta_V):

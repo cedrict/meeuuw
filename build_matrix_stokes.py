@@ -114,7 +114,7 @@ def build_matrix_stokes(bignb_Stokes,bignb_K,bignb_M,bignb_G,nel,nq_per_element,
         # impose boundary conditions 
         #----------------------------
 
-        if geometry=='quarter' or geometry=='half' or geometry=='eighth':
+        if geometry=='quarter' or geometry=='half' or geometry=='eighth' or geometry=='annulus':
            if top_element[iel] and top_free_slip: # free slip on top boundary
               for i in [2,3,6]:
                   inode=icon_V[i,iel] 

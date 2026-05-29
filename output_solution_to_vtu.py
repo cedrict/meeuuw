@@ -17,7 +17,7 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
                            taurr_nodal,tautt_nodal,taurt_nodal,exp,
                            particle_rho_projection,particle_eta_projection,ls_rho_a,ls_eta_a):
 
-       debug_sol=False
+       debug_sol=True
 
        filename = 'OUTPUT/solution_{:04d}.vtu'.format(istep)
        vtufile=open(filename,"w")
@@ -217,14 +217,16 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
           taurt_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
        #--
-       if debug_sol and (geometry=='quarter' or geometry=='half'):  
-          vtufile.write("<DataArray type='Float32' Name='rad' Format='ascii'> \n")
-          rad_V.tofile(vtufile,sep=' ',format='%.4e')
-          vtufile.write("</DataArray>\n")
-          #--
-          vtufile.write("<DataArray type='Float32' Name='theta' Format='ascii'> \n")
-          theta_V.tofile(vtufile,sep=' ',format='%.4e')
-          vtufile.write("</DataArray>\n")
+       if debug_sol:
+          match geometry:
+           case  'quarter' | 'half' | 'eighth' | 'annulus' :  
+            vtufile.write("<DataArray type='Float32' Name='rad' Format='ascii'> \n")
+            rad_V.tofile(vtufile,sep=' ',format='%.4e')
+            vtufile.write("</DataArray>\n")
+            thetaa=theta_V/np.pi
+            vtufile.write("<DataArray type='Float32' Name='theta/pi' Format='ascii'> \n")
+            thetaa.tofile(vtufile,sep=' ',format='%.4e')
+            vtufile.write("</DataArray>\n")
        #--
        if solve_Stokes:
           if particle_eta_projection=='nodal':
@@ -303,19 +305,6 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
        vtufile.write("<DataArray type='Int32' Name='nb particles' Format='ascii'> \n")
        nparticle_elemental.tofile(vtufile,sep=' ',format='%d')
        vtufile.write("</DataArray>\n")
-       #--
-       if debug_sol and solve_Stokes and (not (geometry=='quarter' or geometry=='half')): 
-          vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
-          exx.tofile(vtufile,sep=' ',format='%.5e')
-          vtufile.write("</DataArray>\n")
-          #--
-          vtufile.write("<DataArray type='Float32' Name='ezz' Format='ascii'> \n")
-          ezz.tofile(vtufile,sep=' ',format='%.5e')
-          vtufile.write("</DataArray>\n")
-          #--
-          vtufile.write("<DataArray type='Float32' Name='exz' Format='ascii'> \n")
-          exz.tofile(vtufile,sep=' ',format='%.5e')
-          vtufile.write("</DataArray>\n")
        #--
        if debug_sol:
           vtufile.write("<DataArray type='Float32' Name='area' Format='ascii'> \n")

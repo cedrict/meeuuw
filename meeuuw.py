@@ -21,6 +21,7 @@ from build_matrix_plith import *
 from build_matrix_stokes import *
 from build_matrix_energy import *
 from define_mapping import * 
+from remove_net_rotation import *
 from compute_normals import *
 from compute_strain_rate import *
 from compute_avrg_profiles import *
@@ -78,7 +79,7 @@ from set_default_parameters import *
 # experiment 24: murphy & king bsc thesis 
 ###############################################################################
 
-experiment=24
+experiment=23
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx",type=int,default=0)
@@ -188,8 +189,12 @@ print("RKorder=",args.RKorder)
 match geometry:
  case 'box': 
   L_ref=(Lx+Lz)/2
+  nn_V=(2*nelx+1)*(2*nelz+1) # number of V nodes
+  nn_P=(nelx+1)*(nelz+1)     # number of P nodes
  case 'eighth': 
-  opening_angle=np.pi/8
+  nn_V=(2*nelx+1)*(2*nelz+1) # number of V nodes
+  nn_P=(nelx+1)*(nelz+1)     # number of P nodes
+  opening_angle=np.pi/4
   theta_min=np.pi/4
   hrad=(Router-Rinner)/nelz
   htheta=opening_angle/nelx
@@ -197,6 +202,8 @@ match geometry:
   Lx=1 
   Lz=1 
  case 'quarter': 
+  nn_V=(2*nelx+1)*(2*nelz+1) # number of V nodes
+  nn_P=(nelx+1)*(nelz+1)     # number of P nodes
   opening_angle=np.pi/2
   theta_min=0
   hrad=(Router-Rinner)/nelz
@@ -205,6 +212,8 @@ match geometry:
   Lx=1 
   Lz=1 
  case 'half': 
+  nn_V=(2*nelx+1)*(2*nelz+1) # number of V nodes
+  nn_P=(nelx+1)*(nelz+1)     # number of P nodes
   opening_angle=np.pi
   theta_min=-np.pi/2
   hrad=(Router-Rinner)/nelz
@@ -213,6 +222,8 @@ match geometry:
   Lx=1 
   Lz=1 
  case 'annulus': 
+  nn_V=(2*nelx)*(2*nelz+1) # number of V nodes
+  nn_P=nelx*(nelz+1)       # number of P nodes
   opening_angle=2*np.pi
   theta_min=0
   hrad=(Router-Rinner)/nelz
@@ -225,8 +236,6 @@ match geometry:
 
 ndof_V=2                   # number of velocity dofs per node
 nel=nelx*nelz              # total number of elements
-nn_V=(2*nelx+1)*(2*nelz+1) # number of V nodes
-nn_P=(nelx+1)*(nelz+1)     # number of P nodes
 
 m_V=9 # number of velocity nodes per element
 m_P=4 # number of pressure nodes per element
@@ -251,7 +260,7 @@ nparticle=nel*nparticle_per_element
 timings=np.zeros(36+1) 
 timings_mem=np.zeros(36+1)
 
-blocks=False
+blocks=False # TODO change name & fix !
 
 ###############################################################################
 #@@ quadrature rule points and weights
@@ -432,29 +441,49 @@ match geometry:
   nnz=2*nelz+1 
  case 'annulus':
   nnx=2*nelx
-  nnz=2*nelz
+  nnz=2*nelz+1
 
-counter=0    
-for j in range(0,2*nelz+1):
-    for i in range(0,2*nelx+1):
-        x_V[counter]=i*hx/2
-        z_V[counter]=j*hz/2
-        if (i==0 and not geometry=='annulus'): left_Vnodes[counter]=True
-        if (i==2*nelx and not geometry=='annunlus'): right_Vnodes[counter]=True
-        if (j==0): bot_Vnodes[counter]=True
-        if (j==2*nelz): top_Vnodes[counter]=True
-        if top_Vnodes[counter] or bot_Vnodes[counter] or\
-           right_Vnodes[counter] or left_Vnodes[counter]: hull_Vnodes[counter]=True
-        if abs(x_V[counter]/Lx-0.5)<eps and not geometry=='annulus': middleV_nodes[counter]=True
-        if abs(z_V[counter]/Lz-0.5)<eps and not geometry=='annulus': middleH_nodes[counter]=True
-        # identify which nodes are on the corners of the domain
-        if i==0 and j==0: cornerBL=counter
-        if i==nnx-1 and j==0: cornerBR=counter
-        if i==0 and j==nnz-1: cornerTL=counter
-        if i==nnx-1 and j==nnz-1: cornerTR=counter
-        counter+=1
-    #end for
-#end for
+match geometry:
+ case 'box' | 'eighth' | 'quarter' | 'half' :
+  counter=0    
+  for j in range(0,2*nelz+1):
+      for i in range(0,2*nelx+1):
+          x_V[counter]=i*hx/2
+          z_V[counter]=j*hz/2
+          if (i==0): left_Vnodes[counter]=True
+          if (i==2*nelx): right_Vnodes[counter]=True
+          if (j==0): bot_Vnodes[counter]=True
+          if (j==2*nelz): top_Vnodes[counter]=True
+          if top_Vnodes[counter] or bot_Vnodes[counter] or\
+             right_Vnodes[counter] or left_Vnodes[counter]: hull_Vnodes[counter]=True
+          if abs(x_V[counter]/Lx-0.5)<eps: middleV_nodes[counter]=True
+          if abs(z_V[counter]/Lz-0.5)<eps: middleH_nodes[counter]=True
+          # identify which nodes are on the corners of the domain
+          if i==0 and j==0: cornerBL=counter
+          if i==nnx-1 and j==0: cornerBR=counter
+          if i==0 and j==nnz-1: cornerTL=counter
+          if i==nnx-1 and j==nnz-1: cornerTR=counter
+          counter+=1
+      #end for
+  #end for
+ case 'annulus':
+  counter=0
+  for j in range(0,2*nelz+1):
+      for i in range(0,2*nelx):
+          x_V[counter]=i*hx/2
+          z_V[counter]=j*hz/2
+          if (j==0): bot_Vnodes[counter]=True
+          if (j==2*nelz): top_Vnodes[counter]=True
+          if top_Vnodes[counter] or bot_Vnodes[counter]: hull_Vnodes[counter]=True
+          counter += 1
+      #end for
+  #end for
+  cornerBL=0
+  cornerBR=0
+  cornerTL=0
+  cornerTR=0
+ case _:
+  exit('unknown geometry')
 
 match geometry:
  case 'eighth' | 'quarter' | 'half' :
@@ -464,7 +493,17 @@ match geometry:
        x_V[i]=rad_V[i]*np.cos(theta_V[i])
        z_V[i]=rad_V[i]*np.sin(theta_V[i])
  case 'annulus':
-       exit('not done yet')
+   for i in range(0,nn_V):
+       xi=x_V[i]
+       zi=z_V[i]
+       t=xi*2*np.pi
+       x_V[i]=np.cos(t)*(Rinner+zi*(Router-Rinner))
+       z_V[i]=np.sin(t)*(Rinner+zi*(Router-Rinner))
+       rad_V[i]=Rinner+zi*(Router-Rinner)
+       theta_V[i]=np.arctan2(z_V[i],x_V[i])
+       if theta_V[i]<0.:
+          theta_V[i]+=2.*np.pi
+
 
 if debug_ascii: np.savetxt('DEBUG/mesh_V.ascii',np.array([x_V,z_V]).T,header='# x,z')
 
@@ -509,7 +548,28 @@ match geometry:
       #end for
   #end for
  case 'annulus':
-  exit('not done')
+  nelt=nelx
+  nelr=nelz
+  counter=0
+  for j in range(0,nelr):
+      for i in range(0,nelt):
+          icon_V[0,counter]=2*counter+2 +2*j*nelt
+          icon_V[1,counter]=2*counter   +2*j*nelt
+          icon_V[2,counter]=icon_V[1,counter]+4*nelt
+          icon_V[3,counter]=icon_V[1,counter]+4*nelt+2
+          icon_V[4,counter]=icon_V[0,counter]-1
+          icon_V[5,counter]=icon_V[1,counter]+2*nelt
+          icon_V[6,counter]=icon_V[2,counter]+1
+          icon_V[7,counter]=icon_V[5,counter]+2
+          icon_V[8,counter]=icon_V[5,counter]+1
+          if i==nelt-1:
+             icon_V[0,counter]-=2*nelt
+             icon_V[7,counter]-=2*nelt
+             icon_V[3,counter]-=2*nelt
+          #print(j,i,counter,'|',icon_V[0:m_V,counter])
+          if (j==0): bot_element[counter]=True
+          if (j==nelr-1): top_element[counter]=True
+          counter+=1
 
 print("build icon_V: ................................ %.3f s" % (clock.time()-start))
 
@@ -563,8 +623,16 @@ match geometry:
       #end for
    #end for
  case 'annulus':
-  exit('not done')
-
+  counter=0    
+  for j in range(0,nelz+1):
+      for i in range(0,nelx):
+          x_P[counter]=i*hx
+          z_P[counter]=j*hz
+          if (j==0): bot_Pnodes[counter]=True
+          if (j==nelz): top_Pnodes[counter]=True
+          counter+=1
+      #end for
+  #end for
 
 match geometry:
  case 'quarter' | 'half' | 'eighth':
@@ -574,7 +642,16 @@ match geometry:
       x_P[i]=rad_P[i]*np.cos(theta_P[i])
       z_P[i]=rad_P[i]*np.sin(theta_P[i])
  case 'annulus':
-  exit('not done')
+  for i in range(0,nn_P):
+      xi=x_P[i]
+      zi=z_P[i]
+      t=xi*2*np.pi
+      x_P[i]=np.cos(t)*(Rinner+zi*(Router-Rinner))
+      z_P[i]=np.sin(t)*(Rinner+zi*(Router-Rinner))
+      rad_P[i]=Rinner+zi*(Router-Rinner)
+      theta_P[i]=np.arctan2(z_P[i],x_P[i])
+      if theta_P[i]<0.:
+         theta_P[i]+=2.*np.pi
 
 if debug_ascii: np.savetxt('DEBUG/mesh_P.ascii',np.array([x_P,z_P]).T,header='# x,z')
 
@@ -600,7 +677,22 @@ match geometry:
       #end for
   #end for
  case 'annulus':
-  exit('not done')
+  counter = 0
+  for j in range(0, nelr):
+      for i in range(0, nelt):
+          icon1=counter
+          icon2=counter+1
+          icon3=i+(j+1)*nelt+1
+          icon4=i+(j+1)*nelt
+          if i==nelt-1:
+             icon2-=nelt
+             icon3-=nelt
+          icon_P[0,counter] = icon2 
+          icon_P[1,counter] = icon1
+          icon_P[2,counter] = icon4
+          icon_P[3,counter] = icon3
+          counter += 1 
+      #end for
 
 print("build icon_P: ................................ %.3f s" % (clock.time()-start))
 
@@ -733,7 +825,7 @@ for iel in range(0,nel):
       theta_e[iel]=np.pi/2-np.arctan2(x_e[iel],z_e[iel])
      case 'annulus':
       rad_e[iel]=np.sqrt(x_e[iel]**2+z_e[iel]**2)
-      exit('not done')
+      theta_e[iel]=np.arctan2(z_e[iel],x_e[iel])
 
 #end for
 
@@ -1122,7 +1214,8 @@ match geometry:
    print("     -> swarm_rad (m,M) %.3e %.3e " %(np.min(swarm_rad),np.max(swarm_rad)))
    print("     -> swarm_theta (m,M) %.3e %.3e " %(np.min(swarm_theta),np.max(swarm_theta)))
  case 'annulus':
-   exit("not done")
+   swarm_rad=np.sqrt(swarm_x**2+swarm_z**2)
+   swarm_theta=np.arctan2(swarm_z,swarm_x)
  case _ :
    swarm_rad=0
    swarm_theta=0
@@ -1419,9 +1512,29 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    rho_n_profile=np.zeros(nnz,dtype=np.float64)
-    rho_e_profile=np.zeros(nelz,dtype=np.float64)
+    coords_n_profile=np.zeros(nnz,dtype=np.float64)
+    counter=0
+    for j in range(0,nnz):
+        for i in range(0,nnx):
+            if i==0:
+               if geometry=='box': 
+                  coords_n_profile[j]=z_V[counter]
+               else:
+                  coords_n_profile[j]=rad_V[counter]
+            counter+=1
 
+    coords_e_profile=np.zeros(nelz,dtype=np.float64)
+    counter=0
+    for j in range(0,nelz):
+        for i in range(0,nelx):
+            if i==0:
+               if geometry=='box':
+                  coords_e_profile[j]=z_e[counter]
+               else:
+                  coords_e_profile[j]=rad_e[counter]
+            counter+=1
+
+    rho_n_profile=np.zeros(nnz,dtype=np.float64)
     counter=0    
     for j in range(0,nnz):
         for i in range(0,nnx):
@@ -1429,6 +1542,7 @@ for istep in range(0,nstep):
             counter+=1
     rho_n_profile/=nnx
 
+    rho_e_profile=np.zeros(nelz,dtype=np.float64)
     counter=0
     for j in range(0,nelz):
         for i in range(0,nelx):
@@ -1436,12 +1550,8 @@ for istep in range(0,nstep):
             counter+=1
     rho_e_profile/=nelx
 
-    if geometry=='box':
-       np.savetxt('OUTPUT/profiles/rho_n_profile.ascii',np.array([z_V[left_Vnodes],rho_n_profile]).T,header='# z,rho')
-       np.savetxt('OUTPUT/profiles/rho_e_profile.ascii',np.array([z_e[left_element],rho_e_profile]).T,header='# z,rho')
-    else:
-       np.savetxt('OUTPUT/profiles/rho_n_profile.ascii',np.array([rad_V[left_Vnodes],rho_n_profile]).T,header='# rad,rho')
-       np.savetxt('OUTPUT/profiles/rho_e_profile.ascii',np.array([rad_e[left_element],rho_e_profile]).T,header='# rad,rho')
+    #np.savetxt('OUTPUT/profiles/rho_n_profile.ascii',np.array([coords_n_profile,rho_n_profile]).T,header='# z,rho')
+    #np.savetxt('OUTPUT/profiles/rho_e_profile.ascii',np.array([coords_e_profile,rho_e_profile]).T,header='# z,rho')
 
     print("     -> rho_n_profile (m,M) %.3e %.3e " %(np.min(rho_n_profile),np.max(rho_n_profile)))
     print("     -> rho_e_profile (m,M) %.3e %.3e " %(np.min(rho_e_profile),np.max(rho_e_profile)))
@@ -1722,6 +1832,12 @@ for istep in range(0,nstep):
                 wi=np.sin(theta_V[i])*u[i]+np.cos(theta_V[i])*w[i] 
                 u[i]=ui
                 w[i]=wi
+
+    if geometry=='annulus' and top_free_slip and bot_free_slip: # nullspace!
+       print("     -> u (m,M) %.3e %.3e %s" %(np.min(u)/vel_scale,np.max(u)/vel_scale,vel_unit))
+       print("     -> w (m,M) %.3e %.3e %s" %(np.min(w)/vel_scale,np.max(w)/vel_scale,vel_unit))
+       u,w=remove_net_rotation(nq_per_element,nel,icon_V,xq,zq,u,w,nn_V,N_V,x_V,z_V,JxWq)
+
 
     vel=np.sqrt(u**2+w**2)
 
@@ -2199,9 +2315,9 @@ for istep in range(0,nstep):
                taurr_n,tautt_n,taurt_n=convert_tensor_to_polar_coords(theta_V,tauxx_n,tauzz_n,tauxz_n)
                taurr_e,tautt_e,taurt_e=convert_tensor_to_polar_coords(theta_e,tauxx_e,tauzz_e,tauxz_e)
 
-            print("     -> dxx_n (m,M) %.3e %.3e " %(np.min(taurr_n),np.max(taurr_n)))
-            print("     -> dzz_n (m,M) %.3e %.3e " %(np.min(tautt_n),np.max(tautt_n)))
-            print("     -> dxz_n (m,M) %.3e %.3e " %(np.min(taurt_n),np.max(taurt_n)))
+            #print("     -> dxx_n (m,M) %.3e %.3e " %(np.min(taurr_n),np.max(taurr_n)))
+            #print("     -> dzz_n (m,M) %.3e %.3e " %(np.min(tautt_n),np.max(tautt_n)))
+            #print("     -> dxz_n (m,M) %.3e %.3e " %(np.min(taurt_n),np.max(taurt_n)))
 
             np.savetxt('OUTPUT/top/top_taurr_n_'+str(istep)+'.ascii',np.array([theta_V[top_Vnodes],taurr_n[top_Vnodes]]).T)
             np.savetxt('OUTPUT/bottom/bot_taurr_n_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],taurr_n[bot_Vnodes]]).T)
@@ -2325,8 +2441,11 @@ for istep in range(0,nstep):
          advect_particles___eighth(RKorder,dt,nparticle,swarm_x,swarm_z,
                                    swarm_rad,swarm_theta,swarm_active,u,w,
                                    Rinner,Router,hrad,htheta,nelx,icon_V,rad_V,theta_V)
-        case _ :
-         exit('advect_particles not implemented for this geometry')
+        case 'annulus' :
+         swarm_x,swarm_z,swarm_rad,swarm_theta,swarm_u,swarm_w,swarm_active=\
+         advect_particles___annulus(RKorder,dt,nparticle,swarm_x,swarm_z,
+                                    swarm_rad,swarm_theta,swarm_active,u,w,
+                                    Rinner,Router,hrad,htheta,nelx,icon_V,rad_V,theta_V)
 
        if debug_ascii: np.savetxt('DEBUG/swarm.ascii',np.array([swarm_x,swarm_z]).T,header='#x,z')
 
@@ -2350,9 +2469,11 @@ for istep in range(0,nstep):
      case 'box' :
       swarm_r,swarm_t,swarm_iel=\
       locate_particles___box(nparticle,swarm_x,swarm_z,hx,hz,x_V,z_V,icon_V,nelx)
-     case 'quarter' | 'half' | 'eighth' | 'annulus':
+     case 'quarter' | 'half' | 'eighth' :
       swarm_r,swarm_t,swarm_iel=\
       locate_particles___annulus(nparticle,swarm_rad,swarm_theta,hrad,htheta,rad_V,theta_V,icon_V,nelx,Rinner)
+     case 'annulus' :
+      1
      case _ :
       exit('locate particles not implemented for ths geometry')
 
@@ -2505,11 +2626,13 @@ for istep in range(0,nstep):
 
     if istep%every_solution==0 or istep==nstep-1: 
 
-       T_profile,vel_profile,eta_profile,q_profile,coord_profile=compute_avrg_profiles(geometry,nnx,nnz,T,eta_n,u,w,q,z_V,rad_V)
+       T_profile,vel_profile,eta_profile,q_profile,rho_profile,coord_profile=\
+       compute_avrg_profiles(geometry,nnx,nnz,T,rho_n,eta_n,u,w,q,z_V,rad_V)
 
        np.savetxt('OUTPUT/profiles/avrg_profile_q_'+str(istep)+'.ascii',np.array([coord_profile,q_profile]).T,header='#z,T')
        np.savetxt('OUTPUT/profiles/avrg_profile_T_'+str(istep)+'.ascii',np.array([coord_profile,T_profile]).T,header='#z,T')
        np.savetxt('OUTPUT/profiles/avrg_profile_eta_'+str(istep)+'.ascii',np.array([coord_profile,eta_profile]).T,header='#z,eta')
+       np.savetxt('OUTPUT/profiles/avrg_profile_rho_'+str(istep)+'.ascii',np.array([coord_profile,rho_profile]).T,header='#z,rho')
        np.savetxt('OUTPUT/profiles/avrg_profile_vel_'+str(istep)+'.ascii',np.array([coord_profile,vel_profile]).T,header='#z,vel')
 
     print("compute avrg profile: ........................ %.3f s" % (clock.time()-start)) ; timings[9]+=clock.time()-start

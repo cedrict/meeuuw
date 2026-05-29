@@ -10,11 +10,12 @@ from constants import *
 # TODO: plasticity
 
 #geometry='box'
-#geometry='quarter'
 #geometry='eighth'
-geometry='half'
+#geometry='quarter'
+#geometry='half'
+geometry='annulus'
 
-nelz=40
+nelz=16
 
 match geometry:
  case 'box':
@@ -26,21 +27,37 @@ match geometry:
    Rinner=Router-3000e3
    Rmean=(Rinner+Router)/2
    nelx=int(2*np.pi*Rmean/8/(Router-Rinner)*nelz)
+   top_free_slip=True
+   bot_free_slip=True
  case 'quarter':
    Router=6370e3
    Rinner=Router-3000e3
    Rmean=(Rinner+Router)/2
    nelx=int(2*np.pi*Rmean/4/(Router-Rinner)*nelz)
+   top_free_slip=True
+   bot_free_slip=True
  case 'half':
    Router=6370e3
    Rinner=Router-3000e3
    Rmean=(Rinner+Router)/2
    nelx=int(2*np.pi*Rmean/2/(Router-Rinner)*nelz)
+   top_free_slip=True
+   bot_free_slip=True
+ case 'annulus':
+   Router=6370e3
+   Rinner=Router-3000e3
+   Rmean=(Rinner+Router)/2
+   nelx=int(2*np.pi*Rmean/1/(Router-Rinner)*nelz)
+   top_free_slip=True
+   bot_free_slip=True
+
+debug_ascii=False
 
 solve_T=True
 Tsurf=273
 Tcmb=2390
 
+time_scale=year ; time_unit='yr'
 vel_scale=cm/year ; vel_unit='cm/yr'
 p_scale=1e6 ; p_unit="MPa"
 
@@ -56,7 +73,7 @@ every_solution=10
 every_swarm_vtu=1000
 RKorder=-1
            
-nstep=2001
+nstep=1
 
 eta_ref=1e22
 
@@ -85,8 +102,9 @@ def initial_temperature(x,z,rad,theta,nn_V):
      case 'quarter' | 'half' | 'eighth' | 'annulus':
        for i in range(0,nn_V):
            T[i]=initial_temperature_hsc(rad[i],Rinner,Router,Tcmb,Tsurf,age_cmb,age_surf,Tm,kappa)
-           T[i]+=0.02*Tm*np.sin(3*theta[i])\
-                +0.03*Tm*np.sin(7*theta[i])
+           T[i]+=0.01*Tm*np.sin(3*theta[i])\
+                +0.02*Tm*np.sin(7*theta[i])\
+                +0.03*Tm*np.sin(9*theta[i])
 
     return T
 
@@ -111,42 +129,57 @@ def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
            if z_V[i]/Lz>(1-eps):
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
-     case 'eighth':
-       for i in range(0,nn_V):
-           if left_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-           if right_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-           if bot_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-           if top_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+     #case 'eighth' :
+     #  for i in range(0,nn_V):
+     #      if left_nodes[i]:
+     #         bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+     #      if right_nodes[i]:
+     #         bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
+     #         bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+     #      if bot_nodes[i]:
+     #         bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
+     #         bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+     #      if top_nodes[i]:
+     #         bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
+     #         bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
-     case 'quarter':
+     case 'eighth' | 'quarter' | 'half':
        for i in range(0,nn_V):
            if x_V[i]/Rinner<eps:
               bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-           if z_V[i]/Rinner<eps:
+           if geometry=='quarter' and z_V[i]/Rinner<eps:
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-           if bot_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           if geometry=='eighth' and right_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-           if top_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           # top and bottom
+           if not bot_free_slip and bot_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if not top_free_slip and top_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           #pin all four corners to u=w=0
+           if left_nodes[i] and bot_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if right_nodes[i] and bot_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if left_nodes[i] and top_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
+              bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+           if right_nodes[i] and top_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
-     case 'half':
+     case 'annulus':
        for i in range(0,nn_V):
-           if x_V[i]/Rinner<eps:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-           if bot_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           if not bot_free_slip and bot_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-           if top_nodes[i]:
-              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
+           if not top_free_slip and top_nodes[i]:
+              bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0. # no slip
               bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
 
     return bc_fix_V,bc_val_V
@@ -201,7 +234,7 @@ def material_model(nparticle,nmat,swarm_wf,swarm_x,swarm_z,swarm_rad,swarm_theta
     swarm_hprod=np.zeros(nparticle,dtype=np.float64)
 
     E_a=160e3
-    V_a=0.1e-6 # 13.8e-6
+    V_a=0.3e-6 # 13.8e-6
     T_0=1530
     djump=100e3/2
 
