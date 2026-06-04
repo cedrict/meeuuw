@@ -1,0 +1,82 @@
+\section{Experiment=25: convection in a box, BA vs EBA}
+
+By choosing the following parameters
+\begin{lstlisting}
+Lx = 3000e3
+Lz = 3000e3
+Ttop = 0
+Tbottom = 3000
+alphaT = 1e-5  
+hcond = 3  
+hcapa = 1200 
+rho0 = 2500
+g0 = 10
+eta0 = 2.025e24
+\end{lstlisting}
+we can make sure that the Rayleigh number, the 
+thermal diffusivity and the dissipation number are
+assigned the correct value
+\begin{lstlisting}
+Di = alphaT * g0 * Lz / hcapa
+kappa = hcond / rho0 / hcapa
+Ra = alphaT * rho0 * g0 * (Lz**3) * (Tbottom - Ttop) / kappa / eta0
+
+print("     -> Di=", Di)
+print("     -> kappa=", kappa)
+print("     -> Ra=", Ra)
+\end{lstlisting}
+which yields
+\begin{verbatim}
+-> Di= 0.25
+-> kappa= 1e-06
+-> Ra= 10000.000000000002
+\end{verbatim}
+
+In all the following figures time is rendered dimensionless
+by diving it by the ref time 
+\begin{lstlisting}
+reftime=rho0*hcapa*Lz**2/hcond
+\end{lstlisting}
+Same for velocities with 
+\begin{lstlisting}
+refvel=Lz/reftime
+\end{lstlisting}
+
+%---------------------------
+\subsection{BA formulation}
+
+\begin{center}
+\includegraphics[width=5.7cm]{exp25/BA/Nu.pdf}
+\includegraphics[width=5.7cm]{exp25/BA/vrms.pdf}
+\includegraphics[width=5.7cm]{exp25/BA/wag.pdf}
+\includegraphics[width=5.7cm]{exp25/BA/tvd.pdf}
+\includegraphics[width=5.7cm]{exp25/BA/kinetic_energy.pdf}
+\includegraphics[width=5.7cm]{exp25/BA/Tavrg.pdf}
+\end{center}
+
+
+
+
+
+
+%---------------------------
+\subsection{EBA formulation}
+
+\begin{center}
+\includegraphics[width=15cm]{exp25/EBA/kilv10}\\
+Taken from \textcite{kilv10} (2010).
+\end{center}
+
+\begin{center}
+\includegraphics[width=5.7cm]{exp25/EBA/Nu.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/vrms.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/wag.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/tvd.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/kinetic_energy.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Tavrg.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/avrg_dTdz_top.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/avrg_dTdz_bottom.pdf}
+\end{center}
+
+Conclusion: MEEUUW and ASPECT agree nicely, but not with King et al.
+
