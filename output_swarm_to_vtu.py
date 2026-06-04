@@ -8,7 +8,7 @@ import numpy as np
 def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticle,nmat,solve_T,\
                         vel_scale,material_names,swarm_x,swarm_z,swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,\
                         swarm_r,swarm_t,swarm_p,swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,\
-                        swarm_iel,swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,\
+                        swarm_iel,swarm_hcond,swarm_hcapa,swarm_alpha,swarm_rad,swarm_theta,swarm_strain,\
                         swarm_F,swarm_sst):
 
     """

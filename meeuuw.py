@@ -77,9 +77,10 @@ from set_default_parameters import *
 # experiment 22: SolKz
 # experiment 23: cohf19 experiment / Sylas
 # experiment 24: murphy & king bsc thesis 
+# experiment 25: BA vs EBA box
 ###############################################################################
 
-experiment=23
+experiment=25
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx",type=int,default=0)
@@ -132,6 +133,7 @@ match(experiment):
  case 22: from experiment22 import *
  case 23: from experiment23 import *
  case 24: from experiment24 import *
+ case 25: from experiment25 import *
  case _ : exit('setup - unknown experiment')  
 
 if args.nelx>0: nelx=args.nelx
@@ -390,7 +392,7 @@ print('RKorder=',RKorder)
 print('nparticle_per_dim=',nparticle_per_dim)
 print('nparticle=',nparticle)
 print('every_solution',every_solution)
-print('every_swarm_vtu',every_swarm_vtu)
+print('every_swarm',every_swarm)
 print('every_quadpoints_vtu',every_quadpoints_vtu)
 print('rho_DT_top',rho_DT_top)
 print('rho_DT_bot',rho_DT_bot)
@@ -1359,7 +1361,7 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod=\
+    swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod,swarm_alpha=\
     material_model(nparticle,nmat,swarm_wf,swarm_x,swarm_z,swarm_rad,swarm_theta,\
                    swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p) 
 
@@ -1370,6 +1372,7 @@ for istep in range(0,nstep):
        print("     -> swarm_hcapa (m,M) %.4e %.4e " %(np.min(swarm_hcapa),np.max(swarm_hcapa)))
        print("     -> swarm_hcond (m,M) %.4e %.4e " %(np.min(swarm_hcond),np.max(swarm_hcond)))
        print("     -> swarm_hprod (m,M) %.4e %.4e " %(np.min(swarm_hprod),np.max(swarm_hprod)))
+       print("     -> swarm_alpha (m,M) %.4e %.4e " %(np.min(swarm_alpha),np.max(swarm_alpha)))
 
     if debug_ascii: np.savetxt('DEBUG/swarm_rho.ascii',np.array([swarm_x,swarm_z,swarm_rho]).T,header='# x,z,rho')
     if debug_ascii: np.savetxt('DEBUG/swarm_eta.ascii',np.array([swarm_x,swarm_z,swarm_eta]).T,header='# x,z,eta')
@@ -1496,6 +1499,7 @@ for istep in range(0,nstep):
        hcond_n=project_particle_field_on_nodes_2(nel,nn_V,nparticle,swarm_hcond,icon_V,swarm_iel,swarm_r,swarm_t,'arithmetic')
        hcapa_n=project_particle_field_on_nodes_2(nel,nn_V,nparticle,swarm_hcapa,icon_V,swarm_iel,swarm_r,swarm_t,'arithmetic')
        hprod_n=project_particle_field_on_nodes_2(nel,nn_V,nparticle,swarm_hprod,icon_V,swarm_iel,swarm_r,swarm_t,'arithmetic')
+       alpha_n=project_particle_field_on_nodes_2(nel,nn_V,nparticle,swarm_alpha,icon_V,swarm_iel,swarm_r,swarm_t,'arithmetic')
 
        print("     -> hcond_n (m,M) %.3e %.3e " %(np.min(hcond_n),np.max(hcond_n)))
        print("     -> hcapa_n (m,M) %.3e %.3e " %(np.min(hcapa_n),np.max(hcapa_n)))
@@ -1654,11 +1658,13 @@ for istep in range(0,nstep):
        hcapaq=Q1_project_nodal_field_onto_qpoints(hcapa_n,nq_per_element,nel,N_P,icon_V)
        hcondq=Q1_project_nodal_field_onto_qpoints(hcond_n,nq_per_element,nel,N_P,icon_V)
        hprodq=Q1_project_nodal_field_onto_qpoints(hprod_n,nq_per_element,nel,N_P,icon_V)
+       alphaq=Q1_project_nodal_field_onto_qpoints(alpha_n,nq_per_element,nel,N_P,icon_V)
     else:
        Tq=np.zeros((nel,nq_per_element),dtype=np.float64)
        hcapaq=np.zeros((nel,nq_per_element),dtype=np.float64)
        hcondq=np.zeros((nel,nq_per_element),dtype=np.float64)
        hprodq=np.zeros((nel,nq_per_element),dtype=np.float64)
+       alphaq=np.zeros((nel,nq_per_element),dtype=np.float64)
 
     print("     -> rhoq (m,M) %.5e %.5e " %(np.min(rhoq),np.max(rhoq)))
     print("     -> etaq (m,M) %.5e %.5e " %(np.min(etaq),np.max(etaq)))
@@ -1671,6 +1677,7 @@ for istep in range(0,nstep):
        print("     -> hcapaq (m,M) %.5e %.5e " %(np.min(hcapaq),np.max(hcapaq)))
        print("     -> hcondq (m,M) %.5e %.5e " %(np.min(hcondq),np.max(hcondq)))
        print("     -> hprodq (m,M) %.5e %.5e " %(np.min(hprodq),np.max(hprodq)))
+       print("     -> alphaq (m,M) %.5e %.5e " %(np.min(alphaq),np.max(alphaq)))
 
     if debug_ascii: np.savetxt('DEBUG/rhoq.ascii',np.array([xq.flatten(),zq.flatten(),rhoq.flatten()]).T,header='#x,z,rho')
     if debug_ascii: np.savetxt('DEBUG/etaq.ascii',np.array([xq.flatten(),zq.flatten(),etaq.flatten()]).T,header='#x,z,eta')
@@ -1678,6 +1685,7 @@ for istep in range(0,nstep):
     if debug_ascii and solve_T: np.savetxt('DEBUG/hcapaq.ascii',np.array([xq.flatten(),zq.flatten(),hcapaq.flatten()]).T,header='#x,z,hcapa')
     if debug_ascii and solve_T: np.savetxt('DEBUG/hcondq.ascii',np.array([xq.flatten(),zq.flatten(),hcondq.flatten()]).T,header='#x,z,hcond')
     if debug_ascii and solve_T: np.savetxt('DEBUG/hprodq.ascii',np.array([xq.flatten(),zq.flatten(),hprodq.flatten()]).T,header='#x,z,hprod')
+    if debug_ascii and solve_T: np.savetxt('DEBUG/alphaq.ascii',np.array([xq.flatten(),zq.flatten(),alphaq.flatten()]).T,header='#x,z,alpha')
 
     print("project nodal fields onto qpts: .............. %.3f s" % (clock.time()-start)) ; timings[21]+=clock.time()-start
 
@@ -2047,8 +2055,8 @@ for istep in range(0,nstep):
 
     if solve_T: 
        VV_T,rhs=build_matrix_energy(bignb_T,nel,nq_per_element,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,wq,\
-                                    hcondq,hcapaq,exxq,ezzq,exzq,dpdxq,dpdzq,JxWq,N_V,dNdr_V,dNdt_V,\
-                                    jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
+                                    hcondq,hcapaq,alphaq,hprodq,exxq,ezzq,exzq,dpdxq,dpdzq,JxWq,\
+                                    N_V,dNdr_V,dNdt_V,jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
                                     bc_fix_T,bc_val_T,dt,formulation,rho0)
 
        print("build FE matrix : ............................ %.3f s" % (clock.time()-start)) ; timings[4]+=clock.time()-start
@@ -2119,6 +2127,8 @@ for istep in range(0,nstep):
        print("     -> <T> (bot,top)= %.3e %.3e " %(avrg_T_bot,avrg_T_top))
        print("     -> <dTdz> (bot,top)= %.3e %.3e " %(avrg_dTdz_bot,avrg_dTdz_top))
        print("     -> Nusselt= %.3e " %(Nu))
+
+       exit()
 
        Nu_file.write("%e %e \n" % (geological_time/time_scale,Nu)) ; Nu_file.flush()
        avrg_T_bot_file.write("%e %e \n" % (geological_time/time_scale,avrg_T_bot)) ; avrg_T_bot_file.flush()
@@ -2267,7 +2277,8 @@ for istep in range(0,nstep):
     start=clock.time()
 
     vrms,EK,WAG,TVD,GPE,ITE,TM,T_avrg,eta_avrg=\
-    compute_global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,etaq,exxq,ezzq,exzq,volume,JxWq,gx_q,gz_q)
+    compute_global_quantities(nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,alphaq,etaq,\
+                              exxq,ezzq,exzq,dxxq,dzzq,dxzq,volume,JxWq,gx_q,gz_q)
 
     delta=WAG+TVD # see tosn15
 
@@ -2533,7 +2544,7 @@ for istep in range(0,nstep):
                              %(geological_time,istep))
        pvd_solution_file.flush()
 
-    if istep%every_swarm_vtu==0 or istep==nstep-1: 
+    if istep%every_swarm==0 or istep==nstep-1: 
        pvd_swarm_file.write('    <DataSet timestep="%s" group="" part="0" file="swarm_%04d.vtu"/>  \n'\
                              %(geological_time,istep))
        pvd_swarm_file.flush()
@@ -2560,12 +2571,12 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    if istep%every_swarm_vtu==0 or istep==nstep-1: 
+    if istep%every_swarm==0 or istep==nstep-1: 
        output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticle,nmat,solve_T,vel_scale,material_names,
                            swarm_x,swarm_z,\
                            swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
                            swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_iel,\
-                           swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
+                           swarm_hcond,swarm_hcapa,swarm_alpha,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
 
        print("output particles to vtu file: ................ %.3f s" % (clock.time()-start)) ; timings[20]+=clock.time()-start
 
@@ -2578,7 +2589,7 @@ for istep in range(0,nstep):
        output_swarm_to_png(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,nmat,material_names,swarm_x,swarm_z,\
                            swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
                            swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_iel,\
-                           swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
+                           swarm_hcond,swarm_hcapa,swarm_alpha,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
 
        print("output particles to png file: ................ %.3f s" % (clock.time()-start)) ; timings[35]+=clock.time()-start
 
@@ -2591,7 +2602,7 @@ for istep in range(0,nstep):
        output_swarm_to_ascii(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,swarm_x,swarm_z,\
                              swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
                              swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_iel,\
-                             swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
+                             swarm_hcond,swarm_hcapa,swarm_alpha,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
 
        print("output particles to ascii file: .............. %.3f s" % (clock.time()-start)) ; timings[36]+=clock.time()-start
 

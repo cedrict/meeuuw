@@ -15,7 +15,7 @@ from constants import *
 #geometry='half'
 geometry='annulus'
 
-nelz=16
+nelz=24
 
 match geometry:
  case 'box':
@@ -73,7 +73,7 @@ every_solution=10
 every_swarm_vtu=1000
 RKorder=-1
            
-nstep=1
+nstep=1000
 
 eta_ref=1e22
 

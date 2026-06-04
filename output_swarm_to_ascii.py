@@ -11,7 +11,7 @@ import os
 def output_swarm_to_ascii(Lx,Lz,solve_Stokes,solve_T,istep,geometry,nparticle,\
                           swarm_x,swarm_z,swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,\
                           swarm_r,swarm_t,swarm_p,swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,\
-                          swarm_iel,swarm_hcond,swarm_hcapa,swarm_rad,swarm_theta,swarm_strain,\
+                          swarm_iel,swarm_hcond,swarm_hcapa,swarm_alpha,swarm_rad,swarm_theta,swarm_strain,\
                           swarm_F,swarm_sst):
 
     """

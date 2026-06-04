@@ -18,8 +18,7 @@ every_solution = 10
 every_solution_png = 500
 every_swarm_vtu = 100
 RKorder = -1
-nstep = 50
-CFLnb = 0.75
+nstep = 500
 
 ###################################################################################################
 
@@ -29,8 +28,8 @@ match icase:
     case "1a":
         Lx = 1
         Ra = 1e4
-        nelx = 128
-        nelz = 128
+        nelx = 16
+        nelz = 16
     case "1b":
         Lx = 1
         Ra = 1e5
@@ -165,7 +164,19 @@ def assign_boundary_conditions_V(
 ###################################################################################################
 
 
-def assign_boundary_conditions_T(x_V, z_V, rad_V, theta_V, Nfem_T, nn_V):
+def assign_boundary_conditions_T(
+    x_V,
+    z_V,
+    rad_V,
+    theta_V,
+    Nfem_T,
+    nn_V,
+    hull_nodes,
+    top_nodes,
+    bot_nodes,
+    left_nodes,
+    right_nodes,
+):
 
     eps = 1e-8
 

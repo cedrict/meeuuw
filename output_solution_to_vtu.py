@@ -17,7 +17,7 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
                            taurr_nodal,tautt_nodal,taurt_nodal,exp,
                            particle_rho_projection,particle_eta_projection,ls_rho_a,ls_eta_a):
 
-       debug_sol=True
+       debug_sol=False
 
        filename = 'OUTPUT/solution_{:04d}.vtu'.format(istep)
        vtufile=open(filename,"w")

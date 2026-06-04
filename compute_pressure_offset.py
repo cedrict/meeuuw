@@ -44,8 +44,8 @@ def compute_pressure_offset(geometry,pressure_normalisation,axisymmetric,top_ele
                     pressure_offset+=np.dot(N_P[iq,:],p[icon_P[:,iel]])*JxWq[iel,iq]
             pressure_offset/=volume
 
-     #case _ :
-     # exit('pressure_normalisation: unknown value')
+     case _ :
+         raise ValueError('pressure_normalisation: unknown value')
 
     return pressure_offset
 

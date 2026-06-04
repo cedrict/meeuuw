@@ -12,8 +12,8 @@ import numba
 
 @numba.njit
 def build_matrix_energy(bignb,nel,nq_per_element,m_T,Nfem_T,T,icon_V,rhoq,etaq,Tq,uq,wq,\
-                        hcondq,hcapaq,exxq,ezzq,exzq,dpdxq,dpdzq,JxWq,N_V,dNdr_V,dNds_V,\
-                        jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
+                        hcondq,hcapaq,alphaq,hprodq,exxq,ezzq,exzq,dpdxq,dpdzq,JxWq,\
+                        N_V,dNdr_V,dNds_V,jcbi00q,jcbi01q,jcbi10q,jcbi11q,\
                         bc_fix_T,bc_val_T,dt,formulation,rho0):
 
     VV_T=np.zeros(bignb,dtype=np.float64)    
@@ -52,14 +52,20 @@ def build_matrix_energy(bignb,nel,nq_per_element,m_T,Nfem_T,T,icon_V,rhoq,etaq,T
             
             Ka+=np.outer(N,velq.dot(B))*rho0*hcapaq[iel,iq]*JxWq[iel,iq] # advection matrix
 
-            #if formulation=='EBA':
-               #viscous dissipation
-            #   b_el[:]+=N[:]*JxWq[iq]*2*etaq[iel,iq]*\
-            #            (2./3.*(exxq[iel,iq]**2+ezzq[iel,iq]**2)-exxq[iel,iq]*ezzq[iel,iq]/3+2*exzq[iel,iq]**2)
-               #adiabatic heating
-            #   b_el[:]+=N[:]*JxWq[iq]*alphaTq[iel,iq]*Tq*(velq[0,0]*dpdxq[iel,iq]+velq[0,1]*dpdzq[iel,iq])  
+            b_el[:]+=N[:]*hprodq[iel,iq]*JxWq[iel,iq]
 
+            if formulation=='EBA':
+               #viscous dissipation
+               b_el[:]+=N[:]*2*etaq[iel,iq]*\
+                       (2./3.*exxq[iel,iq]**2\
+                       +2./3.*ezzq[iel,iq]**2\
+                       -2./3.*exxq[iel,iq]*ezzq[iel,iq]\
+                       +2*exzq[iel,iq]**2)*JxWq[iel,iq]
+               #adiabatic heating
+               b_el[:]+=N[:]*alphaq[iel,iq]*Tq[iel,iq]*(velq[0,0]*dpdxq[iel,iq]+velq[0,1]*dpdzq[iel,iq]) *JxWq[iel,iq] 
+               #print(etaq[iel,iq],exxq[iel,iq],ezzq[iel,iq],exzq[iel,iq],alphaq[iel,iq],Tq[iel,iq],dpdxq[iel,iq],dpdzq[iel,iq],velq)
         #end for
+        b_el*=dt
 
         A_el+=MM+(Ka+Kd)*dt*0.5
         b_el+=(MM-(Ka+Kd)*dt*0.5).dot(Tvect)
