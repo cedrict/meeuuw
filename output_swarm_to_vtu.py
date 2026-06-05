@@ -8,8 +8,8 @@ import numpy as np
 def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticle,nmat,solve_T,\
                         vel_scale,material_names,swarm_x,swarm_z,swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,\
                         swarm_r,swarm_t,swarm_p,swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,\
-                        swarm_iel,swarm_hcond,swarm_hcapa,swarm_alpha,swarm_rad,swarm_theta,swarm_strain,\
-                        swarm_F,swarm_sst):
+                        swarm_iel,swarm_hcond,swarm_hcapa,swarm_alpha,swarm_mechanism,\
+                        swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst):
 
     """
     Args:
@@ -98,7 +98,7 @@ def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticl
     swarm_strain.tofile(vtufile,sep=' ',format='%.3e')
     vtufile.write("</DataArray>\n")
     #--
-    if debug_swarm and geometry=='quarter':
+    if debug_swarm and (geometry=='quarter' or geometry=='half' or geometry=='annulus'):
        vtufile.write("<DataArray type='Float32' Name='rad' Format='binary'> \n")
        swarm_rad.tofile(vtufile,sep=' ',format='%.3e')
        vtufile.write("</DataArray>\n")
@@ -120,9 +120,17 @@ def output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticl
        vtufile.write("<DataArray type='Float32' Name='hcapa' Format='binary'> \n")
        swarm_hcapa.tofile(vtufile,sep=' ',format='%.3e')
        vtufile.write("</DataArray>\n")
+       #--
+       vtufile.write("<DataArray type='Float32' Name='alpha' Format='binary'> \n")
+       swarm_alpha.tofile(vtufile,sep=' ',format='%.3e')
+       vtufile.write("</DataArray>\n")
     #--
     vtufile.write("<DataArray type='Int32' Name='Paint' Format='binary'> \n")
-    swarm_paint.tofile(vtufile,sep=' ',format='%.3e')
+    swarm_paint.tofile(vtufile,sep=' ',format='%d')
+    vtufile.write("</DataArray>\n")
+    #--
+    vtufile.write("<DataArray type='Int32' Name='Mechanism' Format='binary'> \n")
+    swarm_mechanism.tofile(vtufile,sep=' ',format='%d')
     vtufile.write("</DataArray>\n")
     #--
     vtufile.write("</PointData>\n")

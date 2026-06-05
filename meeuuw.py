@@ -80,7 +80,7 @@ from set_default_parameters import *
 # experiment 25: BA vs EBA box
 ###############################################################################
 
-experiment=25
+experiment=23
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx",type=int,default=0)
@@ -1361,7 +1361,7 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod,swarm_alpha=\
+    swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod,swarm_alpha,swarm_mechanism=\
     material_model(nparticle,nmat,swarm_wf,swarm_x,swarm_z,swarm_rad,swarm_theta,\
                    swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p) 
 
@@ -2128,8 +2128,6 @@ for istep in range(0,nstep):
        print("     -> <dTdz> (bot,top)= %.3e %.3e " %(avrg_dTdz_bot,avrg_dTdz_top))
        print("     -> Nusselt= %.3e " %(Nu))
 
-       exit()
-
        Nu_file.write("%e %e \n" % (geological_time/time_scale,Nu)) ; Nu_file.flush()
        avrg_T_bot_file.write("%e %e \n" % (geological_time/time_scale,avrg_T_bot)) ; avrg_T_bot_file.flush()
        avrg_T_top_file.write("%e %e \n" % (geological_time/time_scale,avrg_T_top)) ; avrg_T_top_file.flush()
@@ -2300,12 +2298,6 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    taurr_n=0
-    tautt_n=0
-    taurt_n=0
-    taurr_e=0
-    tautt_e=0
-    taurt_e=0
 
     if solve_Stokes:
 
@@ -2334,6 +2326,22 @@ for istep in range(0,nstep):
             np.savetxt('OUTPUT/bottom/bot_taurr_n_'+str(istep)+'.ascii',np.array([theta_V[bot_Vnodes],taurr_n[bot_Vnodes]]).T)
             np.savetxt('OUTPUT/top/top_taurr_e_'+str(istep)+'.ascii',np.array([theta_e[top_element],taurr_e[top_element]]).T)
             np.savetxt('OUTPUT/bottom/bot_taurr_e_'+str(istep)+'.ascii',np.array([theta_e[bot_element],taurr_e[bot_element]]).T)
+
+    else:
+
+       taurr_n=0
+       tautt_n=0
+       taurt_n=0
+       taurr_e=0
+       tautt_e=0
+       taurt_e=0
+       tauxx_n=0
+       tauxz_n=0
+       tauzz_n=0
+       tauxx_e=0
+       tauxz_e=0
+       tauzz_e=0
+
 
     print("compute deviatoric stress: ................... %.3f s" % (clock.time()-start)) ; timings[27]+=clock.time()-start
 
@@ -2558,6 +2566,7 @@ for istep in range(0,nstep):
        output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel_unit,TKelvin,\
                               x_V,z_V,u,w,q,T,eta_n,rho_n,exx_n,ezz_n,exz_n,e_n,divv_n,qx_n,qz_n,\
                               rho_e,exx_e,ezz_e,exz_e,divv_e,\
+                              tauxx_n,tauzz_n,tauxz_n,\
                               sigmaxx_n,sigmazz_n,sigmaxz_n,rad_V,theta_V,eta_e,nparticle_e,area,icon_V,\
                               bc_fix_V,bc_fix_T,geometry,gx_n,gz_n,err_n,ett_n,ert_n,vr,vt,plith,\
                               top_Vnodes,bot_Vnodes,left_Vnodes,right_Vnodes,\
@@ -2571,12 +2580,13 @@ for istep in range(0,nstep):
     ###############################################################################################
     start=clock.time()
 
-    if istep%every_swarm==0 or istep==nstep-1: 
+    if istep%every_swarm_vtu==0 or istep==nstep-1: 
        output_swarm_to_vtu(solve_Stokes,use_melting,TKelvin,istep,geometry,nparticle,nmat,solve_T,vel_scale,material_names,
                            swarm_x,swarm_z,\
                            swarm_u,swarm_w,swarm_wf,swarm_rho,swarm_eta,swarm_r,swarm_t,swarm_p,\
                            swarm_paint,swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_iel,\
-                           swarm_hcond,swarm_hcapa,swarm_alpha,swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
+                           swarm_hcond,swarm_hcapa,swarm_alpha,swarm_mechanism,\
+                           swarm_rad,swarm_theta,swarm_strain,swarm_F,swarm_sst) 
 
        print("output particles to vtu file: ................ %.3f s" % (clock.time()-start)) ; timings[20]+=clock.time()-start
 

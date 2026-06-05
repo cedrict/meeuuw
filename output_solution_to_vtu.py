@@ -10,7 +10,8 @@ from toolbox import *
 def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel_unit,TKelvin,\
                            x_V,z_V,u,w,q,T,eta_nodal,rho_nodal,exx_nodal,ezz_nodal,exz_nodal,\
                            e_nodal,divv_nodal,qx_nodal,qz_nodal,rho_elemental,exx_e,ezz_e,exz_e,\
-                           divv_e,sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal,rad_V,theta_V,
+                           divv_e,tauxx_nodal,tauzz_nodal,tauxz_nodal,\
+                           sigmaxx_nodal,sigmazz_nodal,sigmaxz_nodal,rad_V,theta_V,
                            eta_elemental,nparticle_elemental,area,icon_V,bc_fix_V,bc_fix_T,geometry,
                            gx_nodal,gz_nodal,err_nodal,ett_nodal,ert_nodal,vr,vt,plith,
                            top_Vnodes,bot_Vnodes,left_Vnodes,right_Vnodes,\
@@ -148,15 +149,13 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
               vtufile.write("%d \n" % val)
           vtufile.write("</DataArray>\n")
        #--
-       if solve_Stokes and (not (geometry=='quarter' or geometry=='half' or geometry=='eighth')): 
+       if solve_Stokes:
           vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
           exx_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
-          #--
           vtufile.write("<DataArray type='Float32' Name='ezz' Format='ascii'> \n")
           ezz_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
-          #--
           vtufile.write("<DataArray type='Float32' Name='exz' Format='ascii'> \n")
           exz_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
@@ -173,13 +172,25 @@ def output_solution_to_vtu(solve_Stokes,istep,nel,nn_V,m_V,solve_T,vel_scale,vel
           vtufile.write("<DataArray type='Float32' Name='sigmaxx' Format='ascii'> \n")
           sigmaxx_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
-          #--
           vtufile.write("<DataArray type='Float32' Name='sigmazz' Format='ascii'> \n")
           sigmazz_nodal.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
-          #--
           vtufile.write("<DataArray type='Float32' Name='sigmaxz' Format='ascii'> \n")
           sigmaxz_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          #--
+          vtufile.write("<DataArray type='Float32' Name='tauxx' Format='ascii'> \n")
+          tauxx_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          vtufile.write("<DataArray type='Float32' Name='tauzz' Format='ascii'> \n")
+          tauzz_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          vtufile.write("<DataArray type='Float32' Name='tauxz' Format='ascii'> \n")
+          tauxz_nodal.tofile(vtufile,sep=' ',format='%.4e')
+          vtufile.write("</DataArray>\n")
+          tau_n=effective(tauxx_nodal,tauzz_nodal,tauxz_nodal)
+          vtufile.write("<DataArray type='Float32' Name='tau' Format='ascii'> \n")
+          tau_n.tofile(vtufile,sep=' ',format='%.4e')
           vtufile.write("</DataArray>\n")
        #--
        if solve_Stokes:

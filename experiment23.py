@@ -11,11 +11,11 @@ from constants import *
 
 #geometry='box'
 #geometry='eighth'
-#geometry='quarter'
+geometry='quarter'
 #geometry='half'
-geometry='annulus'
+#geometry='annulus'
 
-nelz=24
+nelz=30
 
 match geometry:
  case 'box':
@@ -70,10 +70,10 @@ kappa=1e-6
 
 end_time=1000e6*year
 every_solution=10
-every_swarm_vtu=1000
+every_swarm_vtu=10
 RKorder=-1
            
-nstep=1000
+nstep=10000
 
 eta_ref=1e22
 
@@ -232,32 +232,68 @@ def material_model(nparticle,nmat,swarm_wf,swarm_x,swarm_z,swarm_rad,swarm_theta
     swarm_hcond=np.zeros(nparticle,dtype=np.float64)
     swarm_hcapa=np.zeros(nparticle,dtype=np.float64)
     swarm_hprod=np.zeros(nparticle,dtype=np.float64)
+    swarm_alpha=np.zeros(nparticle, dtype=np.float64)
+    swarm_mechanism=np.zeros(nparticle, dtype=np.int32)
 
     E_a=160e3
-    V_a=0.3e-6 # 13.8e-6
+    V_a=0.2e-6 # 13.8e-6
     T_0=1530
     djump=100e3/2
+    alpha1=1e-5
+    alpha2=2e-5
+    alpha3=2.5e-5
+    alpha4=4e-5
+    sigma_y=61e6
+    min_strainrate=1e-21
 
     match geometry:
      case 'box':
-       d0=Lz-660e3
+       zjump=Lz-660e3
        for i in range(nparticle):
-           swarm_eta[i]=1e21*np.exp(np.log(30)*(1-0.5*(1-np.tanh((d0-swarm_z[i])/djump)))) \
+           swarm_eta[i]=1e21*np.exp(np.log(30)*(1-0.5*(1-np.tanh((zjump-swarm_z[i])/djump)))) \
                        * np.exp((E_a + swarm_p[i]*V_a)/Rgas/swarm_T[i] - E_a/Rgas/T_0)
            swarm_eta[i]=min(swarm_eta[i],1e25)
            swarm_eta[i]=max(swarm_eta[i],1e20)
-           alpha_i=alphaT*(1-(Lz-swarm_z[i])/Lz*2./3)
+           #alpha_i=alphaT*(1-(Lz-swarm_z[i])/Lz*2./3) linear bottom-top
+           if swarm_z[i]>zjump: # upper mantle
+              alpha_i=(alpha4-alpha2)/(Lz-zjump)*(swarm_z[i]-zjump)+alpha2
+           else:
+              alpha_i=(alpha3-alpha1)/(zjump)*swarm_z[i]+alpha1
            swarm_rho[i]=rho0*(1-alpha_i*(swarm_T[i]-T0))
+           swarm_alpha[i] = alpha_i
            #print(swarm_z[i],alpha_i)
      case 'quarter' | 'half' | 'eighth' | 'annulus':
-       d0=Router-660e3
+       Rjump=Router-660e3
        for i in range(nparticle):
-           swarm_eta[i]=1e21*np.exp(np.log(30)*(1-0.5*(1-np.tanh((d0-swarm_rad[i])/djump)))) \
-                       * np.exp((E_a + swarm_p[i]*V_a)/Rgas/swarm_T[i] - E_a/Rgas/T_0)
+
+           eff_strainrate=np.sqrt(0.5*(swarm_exx[i]**2+swarm_ezz[i]**2)+swarm_exz[i]**2)
+           eff_strainrate=max(min_strainrate, eff_strainrate)
+
+           # plasticity only present in lithosphere ~ 120km thick
+           if swarm_rad[i]<Router-120e3:
+              eta_p=1e40
+           else:  
+              eta_p=( sigma_y+1000*(Router-swarm_rad[i]) )/2/eff_strainrate  
+
+           eta_v=1e21*np.exp(np.log(30)*(1-0.5*(1-np.tanh((Rjump-swarm_rad[i])/djump)))) \
+                * np.exp((E_a + swarm_p[i]*V_a)/Rgas/swarm_T[i] - E_a/Rgas/T_0)
+
+           if eta_v<eta_p:
+              swarm_eta[i]=eta_v
+              swarm_mechanism[i]=1
+           else:
+              swarm_eta[i]=eta_p
+              swarm_mechanism[i]=2
+
            swarm_eta[i]=min(swarm_eta[i],1e25)
-           swarm_eta[i]=max(swarm_eta[i],1e20)
-           alpha_i=alphaT*(1.-(Router-swarm_rad[i])/(Router-Rinner)*2./3.)
+           swarm_eta[i]=max(swarm_eta[i],1e19)
+           #alpha_i=alphaT*(1.-(Router-swarm_rad[i])/(Router-Rinner)*2./3.) # linear top-botom
+           if swarm_rad[i]>Rjump: # upper mantle
+              alpha_i=(alpha4-alpha2)/(Router-Rjump)*(swarm_rad[i]-Rjump)+alpha2
+           else:
+              alpha_i=(alpha3-alpha1)/(Rjump-Rinner)*(swarm_rad[i]-Rinner)+alpha1
            swarm_rho[i]=rho0*(1-alpha_i*(swarm_T[i]-T0))
+           swarm_alpha[i] = alpha_i
            #print(swarm_rad[i],alpha_i)
      case _:
        exit("unknown geometry")
@@ -266,7 +302,7 @@ def material_model(nparticle,nmat,swarm_wf,swarm_x,swarm_z,swarm_rad,swarm_theta
     swarm_hcapa[:]=hcapa0
     swarm_hprod[:]=0
 
-    return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 ###############################################################################
 
