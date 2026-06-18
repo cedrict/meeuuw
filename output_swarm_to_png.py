@@ -21,6 +21,7 @@ def output_swarm_to_png(
     nparticle,
     nmat,
     material_names,
+    swarm_active,
     swarm_x,
     swarm_z,
     swarm_u,
@@ -66,7 +67,7 @@ def output_swarm_to_png(
     # plt.savefig(filename, bbox_inches='tight') ; plt.close()
 
     plt.figure(dpi=nbdpi)
-    plt.scatter(swarm_x, swarm_z, c=swarm_iel, s=markersize)
+    plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=swarm_iel[swarm_active], s=markersize)
     plt.gca().set_aspect("equal")
     plt.colorbar(format="%.3e")
     plt.xlim(0, Lx)
@@ -80,7 +81,7 @@ def output_swarm_to_png(
     plt.close()
 
     plt.figure(dpi=nbdpi)
-    plt.scatter(swarm_x, swarm_z, c=swarm_paint, s=markersize)
+    plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=swarm_paint[swarm_active], s=markersize)
     plt.gca().set_aspect("equal")
     plt.colorbar(format="%.3e")
     plt.xlim(0, Lx)
@@ -94,7 +95,7 @@ def output_swarm_to_png(
     plt.close()
 
     plt.figure(dpi=nbdpi)
-    plt.scatter(swarm_x, swarm_z, c=swarm_u, s=markersize)
+    plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=swarm_u[swarm_active], s=markersize)
     plt.gca().set_aspect("equal")
     plt.colorbar(format="%.3e")
     plt.xlim(0, Lx)
@@ -108,7 +109,7 @@ def output_swarm_to_png(
     plt.close()
 
     plt.figure(dpi=nbdpi)
-    plt.scatter(swarm_x, swarm_z, c=swarm_w, s=markersize)
+    plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=swarm_w[swarm_active], s=markersize)
     plt.gca().set_aspect("equal")
     plt.colorbar(format="%.3e")
     plt.xlim(0, Lx)
@@ -122,7 +123,7 @@ def output_swarm_to_png(
     plt.close()
 
     plt.figure(dpi=nbdpi)
-    plt.scatter(swarm_x, swarm_z, c=swarm_rho, s=markersize)
+    plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=swarm_rho[swarm_active], s=markersize)
     plt.gca().set_aspect("equal")
     plt.colorbar(format="%.3e")
     plt.xlim(0, Lx)
@@ -136,7 +137,7 @@ def output_swarm_to_png(
     plt.close()
 
     plt.figure(dpi=nbdpi)
-    plt.scatter(swarm_x, swarm_z, c=np.log10(swarm_eta), s=markersize)
+    plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=np.log10(swarm_eta[swarm_active]), s=markersize)
     plt.gca().set_aspect("equal")
     plt.colorbar(format="%.3e")
     plt.xlim(0, Lx)
@@ -150,7 +151,7 @@ def output_swarm_to_png(
     plt.close()
 
     plt.figure(dpi=nbdpi)
-    plt.scatter(swarm_x, swarm_z, c=swarm_exx, s=markersize)
+    plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=swarm_exx[swarm_active], s=markersize)
     plt.gca().set_aspect("equal")
     plt.colorbar(format="%.3e")
     plt.xlim(0, Lx)
@@ -164,7 +165,7 @@ def output_swarm_to_png(
     plt.close()
 
     plt.figure(dpi=nbdpi)
-    plt.scatter(swarm_x, swarm_z, c=swarm_ezz, s=markersize)
+    plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=swarm_ezz[swarm_active], s=markersize)
     plt.gca().set_aspect("equal")
     plt.colorbar(format="%.3e")
     plt.xlim(0, Lx)
@@ -178,7 +179,7 @@ def output_swarm_to_png(
     plt.close()
 
     plt.figure(dpi=nbdpi)
-    plt.scatter(swarm_x, swarm_z, c=swarm_exz, s=markersize)
+    plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=swarm_exz[swarm_active], s=markersize)
     plt.gca().set_aspect("equal")
     plt.colorbar(format="%.3e")
     plt.xlim(0, Lx)
@@ -192,7 +193,7 @@ def output_swarm_to_png(
     plt.close()
 
     plt.figure(dpi=nbdpi)
-    plt.scatter(swarm_x, swarm_z, c=swarm_p, s=markersize)
+    plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=swarm_p[swarm_active], s=markersize)
     plt.gca().set_aspect("equal")
     plt.colorbar(format="%.3e")
     plt.xlim(0, Lx)
@@ -207,7 +208,7 @@ def output_swarm_to_png(
 
     if solve_T:
         plt.figure(dpi=nbdpi)
-        plt.scatter(swarm_x, swarm_z, c=swarm_T, s=markersize)
+        plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=swarm_T[swarm_active], s=markersize)
         plt.gca().set_aspect("equal")
         plt.colorbar(format="%.3e")
         plt.xlim(0, Lx)
@@ -221,7 +222,7 @@ def output_swarm_to_png(
         plt.close()
 
         plt.figure(dpi=nbdpi)
-        plt.scatter(swarm_x, swarm_z, c=swarm_hcond, s=markersize)
+        plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=swarm_hcond[swarm_active], s=markersize)
         plt.gca().set_aspect("equal")
         plt.colorbar(format="%.3e")
         plt.xlim(0, Lx)
@@ -235,7 +236,7 @@ def output_swarm_to_png(
         plt.close()
 
         plt.figure(dpi=nbdpi)
-        plt.scatter(swarm_x, swarm_z, c=swarm_hcapa, s=markersize)
+        plt.scatter(swarm_x[swarm_active], swarm_z[swarm_active], c=swarm_hcapa[swarm_active], s=markersize)
         plt.gca().set_aspect("equal")
         plt.colorbar(format="%.3e")
         plt.xlim(0, Lx)

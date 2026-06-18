@@ -12,7 +12,6 @@ alphaT = 1e-2  # thermal expansion coefficient
 hcond = 1  # thermal conductivity
 hcapa = 1  # heat capacity
 rho0 = 1
-every_Nu = 1
 end_time = 0.25
 every_solution = 10
 every_solution_png = 500
@@ -89,9 +88,7 @@ def initial_temperature(x, z, rad, theta, nn_V):
             T[i] = (
                 (Tbottom - Ttop) * (Router - rad[i]) / (Router - Rinner)
                 + Ttop
-                + 0.1
-                * np.cos(2 * theta[i])
-                * np.sin(np.pi * (rad[i] - Rinner) / (Router - Rinner))
+                + 0.1 * np.cos(2 * theta[i]) * np.sin(np.pi * (rad[i] - Rinner) / (Router - Rinner))
             )
     return T
 
@@ -209,7 +206,7 @@ def assign_boundary_conditions_T(
 
 def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-    swarm_wf = np.zeros((nmat, nparticle), dtype=np.int32)
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
     swarm_wf[:, :] = 1
 
     material_names = ["mantle"]
@@ -240,6 +237,8 @@ def material_model(
     swarm_hcond = np.zeros(nparticle, dtype=np.float64)
     swarm_hcapa = np.zeros(nparticle, dtype=np.float64)
     swarm_hprod = np.zeros(nparticle, dtype=np.float64)
+    swarm_alpha = np.zeros(nparticle, dtype=np.float64)
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
     swarm_rho[:] = rho0 * (1 - alphaT * swarm_T[:])
 
@@ -249,8 +248,9 @@ def material_model(
     swarm_hcond[:] = 1
     swarm_hcapa[:] = 1
     swarm_hprod[:] = 0
+    swarm_alpha[:] = alphaT
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################

@@ -4,190 +4,243 @@ from constants import *
 
 ###################################################################################################
 
+
 def assign_parameters(icase):
-    Ra=1e2
-    match(icase):
-         case 1 :
-             sigma_y=1.
-             gamma_y=np.log(1.)
-         case 2 :
-             sigma_y = 1
-             gamma_y=np.log(1.)
-         case 3 :
-             sigma_y = 1
-             gamma_y=np.log(10.)
-         case 4 :
-             sigma_y = 1
-             gamma_y=np.log(10.)
-         case 5 :
-             sigma_y=4.
-             gamma_y=np.log(10.)
-         case _ :
-             exit('pb in assign_parameters')
-    return Ra,sigma_y,gamma_y
+    Ra = 1e2
+    match icase:
+        case 1:
+            sigma_y = 1.0
+            gamma_y = np.log(1.0)
+        case 2:
+            sigma_y = 1
+            gamma_y = np.log(1.0)
+        case 3:
+            sigma_y = 1
+            gamma_y = np.log(10.0)
+        case 4:
+            sigma_y = 1
+            gamma_y = np.log(10.0)
+        case 5:
+            sigma_y = 4.0
+            gamma_y = np.log(10.0)
+        case _:
+            exit("pb in assign_parameters")
+    return Ra, sigma_y, gamma_y
+
 
 ###################################################################################################
 
-case_tosi=1
-Lx=1
-Lz=1
-eta_ref=1
-solve_T=True
-Ttop=0
-Tbottom=1
-alphaT=1e-4
-hcond=1  
-hcapa=1 
-rho0=1
-Ra=1e4
-end_time=0.25
-gamma_T=np.log(1e5)
-eta_star=1e-3 
-eta_ref=1e-2
-Ra,sigma_y,gamma_y=assign_parameters(case_tosi)
-eta_min=1e-5
-eta_max=1
-every_Nu=10
-every_solution=100
-every_swarm_vtu=10000
-RKorder=-1
-CFLnb=0.75
+case_tosi = 1
+Lx = 1
+Lz = 1
+eta_ref = 1
+solve_T = True
+Ttop = 0
+Tbottom = 1
+alphaT = 1e-4
+hcond = 1
+hcapa = 1
+rho0 = 1
+Ra = 1e4
+end_time = 0.25
+gamma_T = np.log(1e5)
+eta_star = 1e-3
+eta_ref = 1e-2
+Ra, sigma_y, gamma_y = assign_parameters(case_tosi)
+eta_min = 1e-5
+eta_max = 1
+every_solution = 100
+every_swarm_vtu = 10000
+RKorder = -1
+CFLnb = 0.75
 
-debug_nan=True
+debug_nan = True
 
-nelx=64
-nelz=nelx
-nstep=1500
+nelx = 64
+nelz = nelx
+nstep = 1500
 
 ###################################################################################################
+
 
 @numba.njit
-def viscosity(T,exx,eyy,exy,y,gamma_T,gamma_y,sigma_y,eta_star,icase):
-    #-------------------
+def viscosity(T, exx, eyy, exy, y, gamma_T, gamma_y, sigma_y, eta_star, icase):
+    # -------------------
     # tosi et al, case 1
-    #-------------------
-    if icase==1:
-       val=np.exp(-gamma_T*T)
-    #-------------------
+    # -------------------
+    if icase == 1:
+        val = np.exp(-gamma_T * T)
+    # -------------------
     # tosi et al, case 2
-    #-------------------
-    elif icase==2:
-       e=np.sqrt(0.5*(exx**2+eyy**2)+exy**2)
-       e=max(e,1e-12)
-       eta_lin=np.exp(-gamma_T*T)
-       eta_plast=eta_star + sigma_y/(np.sqrt(2.)*e)
-       val=2./(1./eta_lin + 1./eta_plast)
-    #-------------------
+    # -------------------
+    elif icase == 2:
+        e = np.sqrt(0.5 * (exx**2 + eyy**2) + exy**2)
+        e = max(e, 1e-12)
+        eta_lin = np.exp(-gamma_T * T)
+        eta_plast = eta_star + sigma_y / (np.sqrt(2.0) * e)
+        val = 2.0 / (1.0 / eta_lin + 1.0 / eta_plast)
+    # -------------------
     # tosi et al, case 3
-    #-------------------
-    elif icase==3:
-       val=np.exp(-gamma_T*T+gamma_y*(1-y))
-    #-------------------
+    # -------------------
+    elif icase == 3:
+        val = np.exp(-gamma_T * T + gamma_y * (1 - y))
+    # -------------------
     # tosi et al, case 4
-    #-------------------
-    elif icase==4:
-       e=np.sqrt(0.5*(exx**2+eyy**2)+exy**2)
-       e=max(e,1e-12)
-       eta_lin=np.exp(-gamma_T*T+gamma_y*(1-y))
-       eta_plast=eta_star + sigma_y/(np.sqrt(2)*e)
-       val=2/(1/eta_lin + 1/eta_plast)
-    #-------------------
+    # -------------------
+    elif icase == 4:
+        e = np.sqrt(0.5 * (exx**2 + eyy**2) + exy**2)
+        e = max(e, 1e-12)
+        eta_lin = np.exp(-gamma_T * T + gamma_y * (1 - y))
+        eta_plast = eta_star + sigma_y / (np.sqrt(2) * e)
+        val = 2 / (1 / eta_lin + 1 / eta_plast)
+    # -------------------
     # tosi et al, case 5
-    #-------------------
-    elif icase==5:
-       e=np.sqrt(0.5*(exx**2+eyy**2)+exy**2) 
-       e=max(e,1e-12)
-       eta_lin=np.exp(-gamma_T*T+gamma_y*(1-y))
-       eta_plast=eta_star + sigma_y/(np.sqrt(2)*e)
-       val=2/(1/eta_lin + 1/eta_plast)
-    val=min(2.0,val)
-    val=max(1.e-5,val)
+    # -------------------
+    elif icase == 5:
+        e = np.sqrt(0.5 * (exx**2 + eyy**2) + exy**2)
+        e = max(e, 1e-12)
+        eta_lin = np.exp(-gamma_T * T + gamma_y * (1 - y))
+        eta_plast = eta_star + sigma_y / (np.sqrt(2) * e)
+        val = 2 / (1 / eta_lin + 1 / eta_plast)
+    val = min(2.0, val)
+    val = max(1.0e-5, val)
     return val
+
 
 ###################################################################################################
 
-def initial_temperature(x,z,rad,theta,nn_V):
 
-    T=np.zeros(nn_V,dtype=np.float64)
+def initial_temperature(x, z, rad, theta, nn_V):
 
-    for i in range(0,nn_V):
-        T[i]=(Tbottom-Ttop)*(Lz-z[i])/Lz+Ttop\
-             +0.01*np.cos(np.pi*x[i]/Lx)*np.sin(np.pi*z[i]/Lz)
+    T = np.zeros(nn_V, dtype=np.float64)
+
+    for i in range(0, nn_V):
+        T[i] = (Tbottom - Ttop) * (Lz - z[i]) / Lz + Ttop + 0.01 * np.cos(np.pi * x[i] / Lx) * np.sin(np.pi * z[i] / Lz)
 
     return T
+
 
 ###################################################################################################
 # free slip on all sides
 
-def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
-                                 hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
 
-    bc_fix_V=np.zeros(Nfem_V,dtype=bool) # boundary condition, yes/no
-    bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
+def assign_boundary_conditions_V(
+    x_V,
+    z_V,
+    rad_V,
+    theta_V,
+    ndof_V,
+    Nfem_V,
+    nn_V,
+    hull_nodes,
+    top_nodes,
+    bot_nodes,
+    left_nodes,
+    right_nodes,
+):
 
-    for i in range(0,nn_V):
-        if x_V[i]/Lx<eps:
-           bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if x_V[i]/Lx>(1-eps):
-           bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if z_V[i]/Lz<eps:
-           bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-        if z_V[i]/Lz>(1-eps):
-           bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+    bc_fix_V = np.zeros(Nfem_V, dtype=bool)  # boundary condition, yes/no
+    bc_val_V = np.zeros(Nfem_V, dtype=np.float64)  # boundary condition, value
 
-    return bc_fix_V,bc_val_V
+    for i in range(0, nn_V):
+        if x_V[i] / Lx < eps:
+            bc_fix_V[i * ndof_V] = True
+            bc_val_V[i * ndof_V] = 0.0
+        if x_V[i] / Lx > (1 - eps):
+            bc_fix_V[i * ndof_V] = True
+            bc_val_V[i * ndof_V] = 0.0
+        if z_V[i] / Lz < eps:
+            bc_fix_V[i * ndof_V + 1] = True
+            bc_val_V[i * ndof_V + 1] = 0.0
+        if z_V[i] / Lz > (1 - eps):
+            bc_fix_V[i * ndof_V + 1] = True
+            bc_val_V[i * ndof_V + 1] = 0.0
+
+    return bc_fix_V, bc_val_V
+
 
 ###################################################################################################
 
-def assign_boundary_conditions_T(x_V,z_V,rad_V,theta_V,Nfem_T,nn_V):
 
-    bc_fix_T=np.zeros(Nfem_T,dtype=bool)  
-    bc_val_T=np.zeros(Nfem_T,dtype=np.float64) 
+def assign_boundary_conditions_T(x_V, z_V, rad_V, theta_V, Nfem_T, nn_V):
 
-    for i in range(0,nn_V):
-        if z_V[i]<eps:
-           bc_fix_T[i]=True ; bc_val_T[i]=Tbottom
-        if z_V[i]>(Lz-eps):
-           bc_fix_T[i]=True ; bc_val_T[i]=Ttop
+    bc_fix_T = np.zeros(Nfem_T, dtype=bool)
+    bc_val_T = np.zeros(Nfem_T, dtype=np.float64)
 
-    return bc_fix_T,bc_val_T
+    for i in range(0, nn_V):
+        if z_V[i] < eps:
+            bc_fix_T[i] = True
+            bc_val_T[i] = Tbottom
+        if z_V[i] > (Lz - eps):
+            bc_fix_T[i] = True
+            bc_val_T[i] = Ttop
+
+    return bc_fix_T, bc_val_T
+
 
 ###################################################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
-    swarm_mat=np.zeros(nparticle,dtype=np.int32)
-    swarm_mat[:]=1
+def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
+
+    swarm_mat = np.zeros(nparticle, dtype=np.int32)
+    swarm_mat[:] = 1
 
     return swarm_mat
 
-###################################################################################################
-
-def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
-                   swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
-
-    swarm_rho=np.zeros(nparticle,dtype=np.float64)
-    swarm_eta=np.zeros(nparticle,dtype=np.float64)
-    swarm_hcond=np.zeros(nparticle,dtype=np.float64)
-    swarm_hcapa=np.zeros(nparticle,dtype=np.float64)
-    swarm_hprod=np.zeros(nparticle,dtype=np.float64)
-
-    swarm_rho[:]=rho0*(1-alphaT*swarm_T[:])
-
-    for ip in range(0,nparticle):
-        swarm_eta[ip]=viscosity(swarm_T[ip],swarm_exx[ip],swarm_ezz[ip],swarm_exz[ip],swarm_z[ip],\
-                                gamma_T,gamma_y,sigma_y,eta_star,case_tosi)
-    swarm_hcond[:]=1
-    swarm_hcapa[:]=1
-    swarm_hprod[:]=0
-
-    return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
 
 ###################################################################################################
 
-def gravity_model(x,z):
-    gx=0
-    gz=-Ra/alphaT 
-    return gx,gz
+
+def material_model(
+    nparticle,
+    swarm_mat,
+    swarm_x,
+    swarm_z,
+    swarm_rad,
+    swarm_theta,
+    swarm_exx,
+    swarm_ezz,
+    swarm_exz,
+    swarm_T,
+    swarm_p,
+):
+
+    swarm_rho = np.zeros(nparticle, dtype=np.float64)
+    swarm_eta = np.zeros(nparticle, dtype=np.float64)
+    swarm_hcond = np.zeros(nparticle, dtype=np.float64)
+    swarm_hcapa = np.zeros(nparticle, dtype=np.float64)
+    swarm_hprod = np.zeros(nparticle, dtype=np.float64)
+
+    swarm_rho[:] = rho0 * (1 - alphaT * swarm_T[:])
+
+    for ip in range(0, nparticle):
+        swarm_eta[ip] = viscosity(
+            swarm_T[ip],
+            swarm_exx[ip],
+            swarm_ezz[ip],
+            swarm_exz[ip],
+            swarm_z[ip],
+            gamma_T,
+            gamma_y,
+            sigma_y,
+            eta_star,
+            case_tosi,
+        )
+    swarm_hcond[:] = 1
+    swarm_hcapa[:] = 1
+    swarm_hprod[:] = 0
+
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+
+
+###################################################################################################
+
+
+def gravity_model(x, z):
+    gx = 0
+    gz = -Ra / alphaT
+    return gx, gz
+
 
 ###################################################################################################

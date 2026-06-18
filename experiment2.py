@@ -1,91 +1,133 @@
-
 import numpy as np
 from constants import *
 
 ###################################################################################################
 
-Lx=3000e3
-Lz=750e3
-eta_ref=1e21
-p_scale=1e6 ; p_unit="MPa"
-vel_scale=cm/year ; vel_unit='cm/yr'
-time_scale=year ; time_unit='yr'
-end_time=50e6*year
-every_solution=1
-every_solution_png=10
-every_swarm_vtu=1
-every_swarm_png=10
-every_swarm_ascii=10
-averaging='arithmetic'
-debug_ascii=False
-nparticle_per_dim=7
-particle_distribution=0 # 0: random, 1: reg
-#remove_rho_profile=True
+Lx = 3000e3
+Lz = 750e3
+eta_ref = 1e21
+p_scale = 1e6
+p_unit = "MPa"
+vel_scale = cm / year
+vel_unit = "cm/yr"
+time_scale = year
+time_unit = "yr"
+end_time = 50e6 * year
+every_solution = 1
+every_solution_png = 10
+every_swarm_vtu = 1
+every_swarm_png = 10
+every_swarm_ascii = 10
+averaging = "arithmetic"
+debug_ascii = False
+nparticle_per_dim = 7
+particle_distribution = 0  # 0: random, 1: reg
+# remove_rho_profile=True
 
-nelz=80
-nelx=int(Lx/Lz*nelz*1.25)
-nstep=20
+nelz = 80
+nelx = int(Lx / Lz * nelz * 1.25)
+nstep = 20
 
 ###################################################################################################
 
-def particle_layout(nparticle,swarm_x,swarm_z,swarm_rad,swarm_theta,Lx,Lz):
 
-    swarm_mat=np.zeros(nparticle,dtype=np.int32)
+def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-    swarm_mat[:]=2 # mantle 
+    swarm_mat = np.zeros(nparticle, dtype=np.int32)
 
-    for ip in range(0,nparticle):
-        if swarm_z[ip]>Lz-50e3:
-           swarm_mat[ip]=1 # sticky air
-        if swarm_x[ip]>1000e3 and swarm_z[ip]<Lz-50e3 and swarm_z[ip]>Lz-150e3: 
-           swarm_mat[ip]=3 # lithosphere
-        if swarm_x[ip]>1000e3 and swarm_x[ip]<1100e3 and\
-           swarm_z[ip]>Lz-250e3 and swarm_z[ip]<Lz-50e3:
-           swarm_mat[ip]=3 # lithosphere
+    swarm_mat[:] = 2  # mantle
+
+    for ip in range(0, nparticle):
+        if swarm_z[ip] > Lz - 50e3:
+            swarm_mat[ip] = 1  # sticky air
+        if swarm_x[ip] > 1000e3 and swarm_z[ip] < Lz - 50e3 and swarm_z[ip] > Lz - 150e3:
+            swarm_mat[ip] = 3  # lithosphere
+        if swarm_x[ip] > 1000e3 and swarm_x[ip] < 1100e3 and swarm_z[ip] > Lz - 250e3 and swarm_z[ip] < Lz - 50e3:
+            swarm_mat[ip] = 3  # lithosphere
 
     return swarm_mat
+
 
 ###################################################################################################
 # free slip on all sides
 
-def assign_boundary_conditions_V(x_V,z_V,rad_V,theta_V,ndof_V,Nfem_V,nn_V,\
-                                 hull_nodes,top_nodes,bot_nodes,left_nodes,right_nodes):
 
-    bc_fix_V=np.zeros(Nfem_V,dtype=bool) # boundary condition, yes/no
-    bc_val_V=np.zeros(Nfem_V,dtype=np.float64) # boundary condition, value
+def assign_boundary_conditions_V(
+    x_V,
+    z_V,
+    rad_V,
+    theta_V,
+    ndof_V,
+    Nfem_V,
+    nn_V,
+    hull_nodes,
+    top_nodes,
+    bot_nodes,
+    left_nodes,
+    right_nodes,
+):
 
-    for i in range(0,nn_V):
-        if x_V[i]/Lx<eps:
-           bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if x_V[i]/Lx>(1-eps):
-           bc_fix_V[i*ndof_V  ]=True ; bc_val_V[i*ndof_V  ]=0.
-        if z_V[i]/Lz<eps:
-           bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
-        if z_V[i]/Lz>(1-eps):
-           bc_fix_V[i*ndof_V+1]=True ; bc_val_V[i*ndof_V+1]=0.
+    bc_fix_V = np.zeros(Nfem_V, dtype=bool)  # boundary condition, yes/no
+    bc_val_V = np.zeros(Nfem_V, dtype=np.float64)  # boundary condition, value
 
-    return bc_fix_V,bc_val_V
+    for i in range(0, nn_V):
+        if x_V[i] / Lx < eps:
+            bc_fix_V[i * ndof_V] = True
+            bc_val_V[i * ndof_V] = 0.0
+        if x_V[i] / Lx > (1 - eps):
+            bc_fix_V[i * ndof_V] = True
+            bc_val_V[i * ndof_V] = 0.0
+        if z_V[i] / Lz < eps:
+            bc_fix_V[i * ndof_V + 1] = True
+            bc_val_V[i * ndof_V + 1] = 0.0
+        if z_V[i] / Lz > (1 - eps):
+            bc_fix_V[i * ndof_V + 1] = True
+            bc_val_V[i * ndof_V + 1] = 0.0
+
+    return bc_fix_V, bc_val_V
+
 
 ###################################################################################################
 
-def material_model(nparticle,swarm_mat,swarm_x,swarm_z,swarm_rad,swarm_theta,\
-                   swarm_exx,swarm_ezz,swarm_exz,swarm_T,swarm_p):
 
-    swarm_rho=np.zeros(nparticle,dtype=np.float64)
-    swarm_eta=np.zeros(nparticle,dtype=np.float64)
-    swarm_hcond=0
-    swarm_hcapa=0
-    swarm_hprod=0
+def material_model(
+    nparticle,
+    swarm_mat,
+    swarm_x,
+    swarm_z,
+    swarm_rad,
+    swarm_theta,
+    swarm_exx,
+    swarm_ezz,
+    swarm_exz,
+    swarm_T,
+    swarm_p,
+):
 
-    mask=(swarm_mat==1) ; swarm_eta[mask]=1e19 ; swarm_rho[mask]=0
-    mask=(swarm_mat==2) ; swarm_eta[mask]=1e21 ; swarm_rho[mask]=3200
-    mask=(swarm_mat==3) ; swarm_eta[mask]=1e23 ; swarm_rho[mask]=3300
+    swarm_rho = np.zeros(nparticle, dtype=np.float64)
+    swarm_eta = np.zeros(nparticle, dtype=np.float64)
+    swarm_hcond = 0
+    swarm_hcapa = 0
+    swarm_hprod = 0
 
-    return swarm_rho,swarm_eta,swarm_hcond,swarm_hcapa,swarm_hprod
+    mask = swarm_mat == 1
+    swarm_eta[mask] = 1e19
+    swarm_rho[mask] = 0
+    mask = swarm_mat == 2
+    swarm_eta[mask] = 1e21
+    swarm_rho[mask] = 3200
+    mask = swarm_mat == 3
+    swarm_eta[mask] = 1e23
+    swarm_rho[mask] = 3300
+
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+
 
 ###################################################################################################
 
-def gravity_model(x,z):
-    return 0.,-9.81 
+
+def gravity_model(x, z):
+    return 0.0, -9.81
+
 
 ###################################################################################################

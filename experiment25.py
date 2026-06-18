@@ -1,8 +1,10 @@
 import numpy as np
 from constants import *
 
-nelx = 32
+nelx = 16
 nelz = nelx
+
+formulation = "EBA"
 
 Lx = 3000e3
 Lz = 3000e3
@@ -14,16 +16,15 @@ hcond = 3  # thermal conductivity
 hcapa = 1200  # heat capacity
 rho0 = 2500
 g0 = 10
-eta0 = 2.025e24
+# eta0 = 2.025e24 # Ra=1e4
+# eta0 = 2.025e23 # Ra=1e5
+eta0 = 2.025e22  # Ra=1e6
 
-every_Nu = 1
 end_time = 1e12 * year
-every_solution = 100
-every_swarm=100
+every_solution_vtu = 100
+every_swarm_vtu = 100
 RKorder = -1
-nstep = 2000
-
-formulation = "EBA"
+nstep = 25000
 
 Di = alphaT * g0 * Lz / hcapa
 kappa = hcond / rho0 / hcapa
@@ -33,14 +34,14 @@ print("     -> Di=", Di)
 print("     -> kappa=", kappa)
 print("     -> Ra=", Ra)
 
-reftime=rho0*hcapa*Lz**2/hcond
-refvel=Lz/reftime
-refTemp=Tbottom - Ttop
-refPress=eta0*hcond/rho0/hcapa/Lz**2
+reftime = rho0 * hcapa * Lz**2 / hcond
+refvel = Lz / reftime
+refTemp = Tbottom - Ttop
+refPress = eta0 * hcond / rho0 / hcapa / Lz**2
 
-print ("     -> reftime %e s | %e yr" %  (reftime, reftime/year))
-print ("     -> refvel %e m/s | %e cm/yr" %  (refvel,refvel/cm*year))
-print ("     -> refPress %e " %  refPress)
+print("     -> reftime %e s | %e yr" % (reftime, reftime / year))
+print("     -> refvel %e m/s | %e cm/yr" % (refvel, refvel / cm * year))
+print("     -> refPress %e " % refPress)
 
 eta_ref = eta0
 time_scale = year
@@ -58,11 +59,7 @@ def initial_temperature(x, z, rad, theta, nn_V):
     T = np.zeros(nn_V, dtype=np.float64)
 
     for i in range(0, nn_V):
-        T[i] = (
-            (Tbottom - Ttop) * (Lz - z[i]) / Lz
-            + Ttop
-            + 10 * np.cos(np.pi * x[i] / Lx) * np.sin(np.pi * z[i] / Lz)
-        )
+        T[i] = (Tbottom - Ttop) * (Lz - z[i]) / Lz + Ttop + 10 * np.cos(np.pi * x[i] / Lx) * np.sin(np.pi * z[i] / Lz)
 
     return T
 
@@ -146,7 +143,7 @@ def assign_boundary_conditions_T(
 
 def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-    swarm_wf = np.zeros((nmat, nparticle), dtype=np.int32)
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
     swarm_wf[:, :] = 1
 
     material_names = ["mantle"]
@@ -178,6 +175,7 @@ def material_model(
     swarm_hcapa = np.zeros(nparticle, dtype=np.float64)
     swarm_hprod = np.zeros(nparticle, dtype=np.float64)
     swarm_alpha = np.zeros(nparticle, dtype=np.float64)
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
     swarm_rho[:] = rho0 * (1 - alphaT * swarm_T[:])
     swarm_eta[:] = eta0
@@ -186,7 +184,7 @@ def material_model(
     swarm_hprod[:] = 0
     swarm_alpha[:] = alphaT
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################

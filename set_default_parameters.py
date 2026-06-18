@@ -2,84 +2,86 @@
 # MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
 ###################################################################################################
 
-CFLnb=0.25
-tol_ss=-1e-8
-pressure_normalisation='surface'
-every_Nu=1000000
-every_solution=1
-every_solution_png=1000000
-every_swarm=1000000
-every_swarm_png=1000000
-every_swarm_ascii=1000000
-every_quadpoints_vtu=1000000
-end_time=0.
-formulation='BA'
-vel_scale=1 ; vel_unit=' '
-time_scale=1 ; time_unit=' '
-p_scale=1 ; p_unit=' '
-solve_T=False
-solve_Stokes=True
-remove_rho_profile=False
+CFLnb = 0.25
+tol_ss = -1e-8
+pressure_normalisation = "surface"
+every_solution_vtu = 1
+every_solution_png = 1000000
+every_swarm_vtu = 1000000
+every_swarm_png = 1000000
+every_swarm_ascii = 1000000
+every_quadpoints_vtu = 1000000
+end_time = 0.0
+formulation = "BA"
+vel_scale = 1
+vel_unit = " "
+time_scale = 1
+time_unit = " "
+p_scale = 1
+p_unit = " "
+solve_T = False
+solve_Stokes = True
+remove_rho_profile = False
 ##nstep=1
-nq_per_dim=3
-use_melting=False
-nsamplepoints=0
-xsamplepoints=[0]
-zsamplepoints=[0]
-dt_max=1e30
-compute_dynamic_topography=False
-nmat=1
+nq_per_dim = 3
+use_melting = False
+nsamplepoints = 0
+xsamplepoints = [0]
+zsamplepoints = [0]
+dt_max = 1e30
+compute_dynamic_topography = False
+nmat = 1
 
 #######################################
 # finite elements
 #######################################
 
-mapping='Q2'
-top_free_slip=False
-bot_free_slip=False
-method_nodal_strain_rate=1
-compute_plith=False
-compute_L2_errors=False
+mapping = "Q2"
+top_free_slip = False
+bot_free_slip = False
+method_nodal_strain_rate = 1
+compute_plith = False
+compute_L2_errors = False
 
 #######################################
-# debug pparameters 
+# debug pparameters
 #######################################
 
-debug_ascii=False
-debug_nan=False
-debug_solver=False
+debug_ascii = False
+debug_nan = False
+debug_solver = False
 
 #######################################
 # geometry parameters
 #######################################
 
-axisymmetric=False
-TKelvin=0
-geometry='box'
-Lx=1
-Lz=1
-Rinner=0.55
-Router=1
-straighten_edges=False
+axisymmetric = False
+TKelvin = 0
+geometry = "box"
+Lx = 1
+Lz = 1
+Rinner = 0.55
+Router = 1
+straighten_edges = False
 
 #######################################
 # particle in cell parameters
 #######################################
-particle_distribution=0  # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
-RKorder=2                # 1,2,4
-nparticle_per_dim=7
-averaging='harmonic'     # viscosity averaging
-nodal_projection_type=2  # 
-particle_rho_projection='elemental'
-particle_eta_projection='elemental'
+particle_distribution = 0  # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
+RKorder = 2  # 1,2,4
+nparticle_per_dim = 7
+nparticle_min=int(nparticle_per_dim**2*0.85)
+averaging = "harmonic"  # viscosity averaging
+nodal_projection_type = 2  #
+particle_rho_projection = "elemental"
+particle_eta_projection = "elemental"
 
 #######################################
 # gravity & dyn topo parameters
 #######################################
 
-gravity_npts=0 
-gravity_rho_ref=0
-gravity_height=0
-rho_DT_top=1e-10
-rho_DT_bot=1e-10
-
+gravity_npts = 0
+gravity_rho_ref = 0
+gravity_height = 0
+rho_DT_top = 1e-10
+rho_DT_bot = 1e-10

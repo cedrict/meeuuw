@@ -2,9 +2,10 @@
 # MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
 ###################################################################################################
 
-import numpy as np
 import numba
-from basis_functions import *
+import numpy as np
+
+from basis_functions import basis_functions_V
 
 ###################################################################################################
 
@@ -53,17 +54,8 @@ def compute_global_quantities(
         for iq in range(0, nq_per_element):
             eII = exxq[iel, iq] ** 2 + ezzq[iel, iq] ** 2 + 2 * exzq[iel, iq] ** 2
             TM += rhoq[iel, iq] * JxWq[iel, iq]
-            EK += (
-                0.5
-                * rhoq[iel, iq]
-                * (uq[iel, iq] ** 2 + wq[iel, iq] ** 2)
-                * JxWq[iel, iq]
-            )
-            WAG -= (
-                rhoq[iel, iq]
-                * (uq[iel, iq] * gxq[iel, iq] + wq[iel, iq] * gzq[iel, iq])
-                * JxWq[iel, iq]
-            )
+            EK += 0.5 * rhoq[iel, iq] * (uq[iel, iq] ** 2 + wq[iel, iq] ** 2) * JxWq[iel, iq]
+            WAG -= rhoq[iel, iq] * (uq[iel, iq] * gxq[iel, iq] + wq[iel, iq] * gzq[iel, iq]) * JxWq[iel, iq]
             TVD += (
                 2
                 * etaq[iel, iq]
@@ -216,9 +208,7 @@ def ms_pressure(x, y, exp):
 
 
 # @numba.njit
-def compute_discretisation_errors(
-    nel, nq_per_element, xq, zq, uq, wq, pq, volume, JxWq, exp
-):
+def compute_discretisation_errors(nel, nq_per_element, xq, zq, uq, wq, pq, volume, JxWq, exp):
     """
     Args:
     Returns:
@@ -232,9 +222,7 @@ def compute_discretisation_errors(
                 (uq[iel, iq] - ms_velocity_x(xq[iel, iq], zq[iel, iq], exp)) ** 2
                 + (wq[iel, iq] - ms_velocity_z(xq[iel, iq], zq[iel, iq], exp)) ** 2
             ) * JxWq[iel, iq]
-            errp += (
-                pq[iel, iq] - ms_pressure(xq[iel, iq], zq[iel, iq], exp)
-            ) ** 2 * JxWq[iel, iq]
+            errp += (pq[iel, iq] - ms_pressure(xq[iel, iq], zq[iel, iq], exp)) ** 2 * JxWq[iel, iq]
 
     errv = np.sqrt(errv)
     errp = np.sqrt(errp)

@@ -2,29 +2,32 @@
 # MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
 ###################################################################################################
 
-import numpy as np
 import numba
+import numpy as np
 from scipy import special
 
 ###################################################################################################
 
+
 @numba.njit
-def effective(Txx,Tzz,Txz):
+def effective(Txx, Tzz, Txz):
     """
     Computes the square root of the second invariant of a 2d tensor passed as argument.
 
     Args:
         Txx,Tzz,Txy (float): components of the tensor in Cartesian coordinates
     Returns:
-        (float) 
+        (float)
 
     """
-    return np.sqrt(0.5*(Txx**2+Tzz**2)+Txz**2)
+    return np.sqrt(0.5 * (Txx**2 + Tzz**2) + Txz**2)
+
 
 ###################################################################################################
 
+
 @numba.njit
-def convert_tensor_to_polar_coords(theta,Txx,Tzz,Txz):
+def convert_tensor_to_polar_coords(theta, Txx, Tzz, Txz):
     """
     Takes a tensor in Cartesian tensor and an angle theta and returns it in polar coordinates.
 
@@ -34,20 +37,22 @@ def convert_tensor_to_polar_coords(theta,Txx,Tzz,Txz):
 
     """
 
-    Trr=Txx*(np.cos(theta))**2 +2*Txz*np.sin(theta)*np.cos(theta) +Tzz*(np.sin(theta))**2
+    Trr = Txx * (np.cos(theta)) ** 2 + 2 * Txz * np.sin(theta) * np.cos(theta) + Tzz * (np.sin(theta)) ** 2
 
-    Ttt=Txx*(np.sin(theta))**2 -2*Txz*np.sin(theta)*np.cos(theta) +Tzz*(np.cos(theta))**2
+    Ttt = Txx * (np.sin(theta)) ** 2 - 2 * Txz * np.sin(theta) * np.cos(theta) + Tzz * (np.cos(theta)) ** 2
 
-    Trt=(Tzz-Txx)*np.sin(theta)*np.cos(theta) +Txz*((np.cos(theta))**2-(np.sin(theta))**2)
+    Trt = (Tzz - Txx) * np.sin(theta) * np.cos(theta) + Txz * ((np.cos(theta)) ** 2 - (np.sin(theta)) ** 2)
 
-    return Trr,Ttt,Trt
+    return Trr, Ttt, Trt
+
 
 ###################################################################################################
 
+
 @numba.njit
-def convert_tensor_to_spherical_coords(theta_polar,Txx,Tzz,Txz):
+def convert_tensor_to_spherical_coords(theta_polar, Txx, Tzz, Txz):
     """
-    Takes a tensor in Cartesian tensor and an angle theta 
+    Takes a tensor in Cartesian tensor and an angle theta
     (the co-latitude) and returns it in spherical coordinates.
 
     Args:
@@ -56,29 +61,31 @@ def convert_tensor_to_spherical_coords(theta_polar,Txx,Tzz,Txz):
 
     """
 
-    theta_sph=np.pi/2-theta_polar
+    theta_sph = np.pi / 2 - theta_polar
 
-    sin_theta=np.sin(theta_sph)
-    cos_theta=np.cos(theta_sph)
+    sin_theta = np.sin(theta_sph)
+    cos_theta = np.cos(theta_sph)
 
-    #Trr=Txx*sin_theta**2 +2*Txz*sin_theta*cos_theta +Tzz*cos_theta**2
-    #Ttt=Txx*cos_theta**2 -2*Txz*sin_theta*cos_theta +Tzz*sin_theta**2
-    #Trt=(Txx-Tzz)*sin_theta*cos_theta +Txz*(cos_theta**2-sin_theta**2)
+    # Trr=Txx*sin_theta**2 +2*Txz*sin_theta*cos_theta +Tzz*cos_theta**2
+    # Ttt=Txx*cos_theta**2 -2*Txz*sin_theta*cos_theta +Tzz*sin_theta**2
+    # Trt=(Txx-Tzz)*sin_theta*cos_theta +Txz*(cos_theta**2-sin_theta**2)
 
-    sin_twotheta=np.sin(2.*theta_sph)
-    cos_twotheta=np.cos(2.*theta_sph)
-    Trr=Txx*sin_theta**2 +Txz*sin_twotheta +Tzz*cos_theta**2
-    Ttt=Txx*cos_theta**2 -Txz*sin_twotheta +Tzz*sin_theta**2
-    Trt=0.5*(Txx-Tzz)*sin_twotheta +Txz*cos_twotheta
+    sin_twotheta = np.sin(2.0 * theta_sph)
+    cos_twotheta = np.cos(2.0 * theta_sph)
+    Trr = Txx * sin_theta**2 + Txz * sin_twotheta + Tzz * cos_theta**2
+    Ttt = Txx * cos_theta**2 - Txz * sin_twotheta + Tzz * sin_theta**2
+    Trt = 0.5 * (Txx - Tzz) * sin_twotheta + Txz * cos_twotheta
 
-    return Trr,Ttt,Trt
+    return Trr, Ttt, Trt
+
 
 ###################################################################################################
 
-def inspect_element(iel,m_V,icon_V,x_V,z_V,rho_n,eta_n,nq_per_element,xq,zq,rhoq,etaq):
+
+def inspect_element(iel, m_V, icon_V, x_V, z_V, rho_n, eta_n, nq_per_element, xq, zq, rhoq, etaq):
     """
-    Prints for a the desired element iel the coordinates of its velocity nodes and 
-    their density and viscosity, as well as the coordinates of the quadrature points 
+    Prints for a the desired element iel the coordinates of its velocity nodes and
+    their density and viscosity, as well as the coordinates of the quadrature points
     and their density and viscosity.
 
     Args:
@@ -86,19 +93,21 @@ def inspect_element(iel,m_V,icon_V,x_V,z_V,rho_n,eta_n,nq_per_element,xq,zq,rhoq
     Returns:
 
     """
-    for k in range(0,m_V):
-        knode=icon_V[k,iel]
-        print(x_V[knode],z_V[knode],eta_n[knode],rho_n[knode])
+    for k in range(0, m_V):
+        knode = icon_V[k, iel]
+        print(x_V[knode], z_V[knode], eta_n[knode], rho_n[knode])
 
-    for iq in range(0,nq_per_element):
-        print(xq[iel,iq],zq[iel,iq],etaq[iel,iq],rhoq[iel,iq])
+    for iq in range(0, nq_per_element):
+        print(xq[iel, iq], zq[iel, iq], etaq[iel, iq], rhoq[iel, iq])
+
 
 ###################################################################################################
 
+
 ####@numba.njit
-def sample_solution_box(nn_V,x_V,z_V,u,w,q,T,nsamplepoints,xsamplepoints,zsamplepoints,Lx,Lz,nelx,nelz):
+def sample_solution_box(nn_V, x_V, z_V, u, w, q, T, nsamplepoints, xsamplepoints, zsamplepoints, Lx, Lz, nelx, nelz):
     """
-    Exports the values of the solution fields at a given set of user-chosen 
+    Exports the values of the solution fields at a given set of user-chosen
     locations, provided these locations correspond to a V node location.
     A more versatile approach should be implemented in the future.
 
@@ -115,12 +124,11 @@ def sample_solution_box(nn_V,x_V,z_V,u,w,q,T,nsamplepoints,xsamplepoints,zsample
         -
     """
 
-    for isp in range(0,nsamplepoints):
+    for isp in range(0, nsamplepoints):
         for i in range(nn_V):
-            #print(isp,nsamplepoints,xsamplepoints,zsamplepoints)
-            if abs(x_V[i]-xsamplepoints[isp])/Lx<1e-6 and\
-               abs(z_V[i]-zsamplepoints[isp])/Lz<1e-6:
-               print('sample ->',x_V[i],z_V[i],u[i],w[i],q[i],T[i],nelx,nelz)
+            # print(isp,nsamplepoints,xsamplepoints,zsamplepoints)
+            if abs(x_V[i] - xsamplepoints[isp]) / Lx < 1e-6 and abs(z_V[i] - zsamplepoints[isp]) / Lz < 1e-6:
+                print("sample ->", x_V[i], z_V[i], u[i], w[i], q[i], T[i], nelx, nelz)
 
 
 ###################################################################################################
@@ -136,10 +144,13 @@ def sample_solution_box(nn_V,x_V,z_V,u,w,q,T,nsamplepoints,xsamplepoints,zsample
 #         Rcmb            Rsurf
 
 
-def initial_temperature_hsc(r,Rcmb,Rsurf,Tcmb,Tsurf,age_cmb,age_surf,Tm,kappa):
-    val=Tsurf+(Tm-Tsurf)*special.erf((Rsurf-r)/2/np.sqrt(age_surf*kappa))\
-             -(Tcmb-Tm)*(-1+special.erf((r-Rcmb)/2/np.sqrt(age_cmb*kappa)))
+def initial_temperature_hsc(r, Rcmb, Rsurf, Tcmb, Tsurf, age_cmb, age_surf, Tm, kappa):
+    val = (
+        Tsurf
+        + (Tm - Tsurf) * special.erf((Rsurf - r) / 2 / np.sqrt(age_surf * kappa))
+        - (Tcmb - Tm) * (-1 + special.erf((r - Rcmb) / 2 / np.sqrt(age_cmb * kappa)))
+    )
     return val
 
-###################################################################################################
 
+###################################################################################################

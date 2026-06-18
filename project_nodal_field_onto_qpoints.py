@@ -2,41 +2,45 @@
 # MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
 ###################################################################################################
 
-import numpy as np
 import numba
+import numpy as np
 
 ###################################################################################################
 
+
 @numba.njit
-def Q1_project_nodal_field_onto_qpoints(phi_nodal,nq_per_element,nel,N_P,icon_P):
+def Q1_project_nodal_field_onto_qpoints(phi_nodal, nq_per_element, nel, N_P, icon_P):
     """
     Args:
     Returns:
     """
 
-    phiq=np.zeros((nel,nq_per_element),dtype=np.float64)
+    phiq = np.zeros((nel, nq_per_element), dtype=np.float64)
 
-    for iel in range(0,nel):
-        for iq in range(0,nq_per_element):
-            phiq[iel,iq]=np.dot(N_P[iq,0:4],phi_nodal[icon_P[0:4,iel]])
+    for iel in range(0, nel):
+        for iq in range(0, nq_per_element):
+            phiq[iel, iq] = np.dot(N_P[iq, 0:4], phi_nodal[icon_P[0:4, iel]])
 
     return phiq
 
+
 ###################################################################################################
 
+
 @numba.njit
-def Q2_project_nodal_field_onto_qpoints(phi_nodal,nq_per_element,nel,N_V,icon_V):
+def Q2_project_nodal_field_onto_qpoints(phi_nodal, nq_per_element, nel, N_V, icon_V):
     """
     Args:
     Returns:
     """
 
-    phiq=np.zeros((nel,nq_per_element),dtype=np.float64)
+    phiq = np.zeros((nel, nq_per_element), dtype=np.float64)
 
-    for iel in range(0,nel):
-        for iq in range(0,nq_per_element):
-            phiq[iel,iq]=np.dot(N_V[iq,0:9],phi_nodal[icon_V[0:9,iel]])
+    for iel in range(0, nel):
+        for iq in range(0, nq_per_element):
+            phiq[iel, iq] = np.dot(N_V[iq, 0:9], phi_nodal[icon_V[0:9, iel]])
 
     return phiq
+
 
 ###################################################################################################

@@ -2,15 +2,17 @@
 # MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
 ###################################################################################################
 
-import numpy as np
 import numba
-from constants import *
+import numpy as np
+
+from constants import Ggrav
 
 ###################################################################################################
 # TODO: vectorise?
 
+
 @numba.njit
-def compute_gravity_at_point(xs,ys,nel,xc,yc,rho,vol,rho_ref):
+def compute_gravity_at_point(xs, ys, nel, xc, yc, rho, vol, rho_ref):
     """
     Args:
      xs,ys: coordinates of the 'satellite' point where gravity is computed
@@ -24,29 +26,32 @@ def compute_gravity_at_point(xs,ys,nel,xc,yc,rho,vol,rho_ref):
      gnorm: gravity norm at satellite point
     """
 
-    ggx=0.
-    ggy=0.
-    for iel in range(0,nel):
-        xx=xs-xc[iel]
-        yy=ys-yc[iel]
-        rr=np.sqrt(xx**2+yy**2)
-        ggx+=Ggrav*(rho[iel]-rho_ref)*vol[iel]*xx/rr**3
-        ggy+=Ggrav*(rho[iel]-rho_ref)*vol[iel]*yy/rr**3
+    ggx = 0.0
+    ggy = 0.0
+    for iel in range(0, nel):
+        xx = xs - xc[iel]
+        yy = ys - yc[iel]
+        rr = np.sqrt(xx**2 + yy**2)
+        ggx += Ggrav * (rho[iel] - rho_ref) * vol[iel] * xx / rr**3
+        ggy += Ggrav * (rho[iel] - rho_ref) * vol[iel] * yy / rr**3
 
-    gnorm=np.sqrt(ggx**2+ggy**2)
+    gnorm = np.sqrt(ggx**2 + ggy**2)
 
-    return ggx,ggy,gnorm
+    return ggx, ggy, gnorm
+
 
 ###################################################################################################
 # this is a placeholder !!
 
-def compute_gravity_at_point_axisymmetric(xs,ys,nel,xc,yc,rho,vol,rho_ref):
 
-    ggx=0.
-    ggy=0.
+def compute_gravity_at_point_axisymmetric(xs, ys, nel, xc, yc, rho, vol, rho_ref):
 
-    gnorm=np.sqrt(ggx**2+ggy**2)
+    ggx = 0.0
+    ggy = 0.0
 
-    return ggx,ggy,gnorm
+    gnorm = np.sqrt(ggx**2 + ggy**2)
+
+    return ggx, ggy, gnorm
+
 
 ###################################################################################################
