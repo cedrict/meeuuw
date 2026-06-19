@@ -1647,6 +1647,8 @@ def population_control(
     ptcl_active_file,
 ):
 
+    debug_population_control=False
+
     print("     -> nparticle_min=", nparticle_min)
 
     #################################################################
@@ -1733,8 +1735,6 @@ def population_control(
 
        raise ValueError("population_control: not available yet")
 
-
-
     ##############################################################
     # finally carry out population control!
 
@@ -1800,28 +1800,13 @@ def population_control(
 
     #print(counter,nparticle_needed)
 
-
-
-            #    if np.sum(swarm_wf[:, particle_id])<1e-6:
-            #       print('-----')
-            #       for imat in range(0, nmat):
-            #           print(swarm_wf[imat, :][mask])
-            #       print(particle_id, iel, swarm_wf[:, particle_id])
-
-
-
-
-              #  counter += 1
-            # end for
-        # end for
-
     print("     -> swarm_r (m,M) %.3e %.3e " % (np.min(swarm_r), np.max(swarm_r)))
     print("     -> swarm_t (m,M) %.3e %.3e " % (np.min(swarm_t), np.max(swarm_t)))
     print("     -> swarm_x (m,M) %.3e %.3e " % (np.min(swarm_x), np.max(swarm_x)))
     print("     -> swarm_z (m,M) %.3e %.3e " % (np.min(swarm_z), np.max(swarm_z)))
     print("     -> swarm_iel (m,M) %d %d " % (np.min(swarm_iel), np.max(swarm_iel)))
 
-    if True:
+    if debug_population_control:
         np.savetxt(
             "OUTPUT/swarm_pp_" + str(istep) + ".ascii",
             np.array(

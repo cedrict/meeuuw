@@ -3050,7 +3050,7 @@ for istep in range(0, nstep):
     ###############################################################################################
     start = clock.time()
 
-    if istep % every_swarm_png == 0:
+    if istep>0 and istep % every_swarm_png == 0:
         output_swarm_to_png(
             Lx,
             Lz,

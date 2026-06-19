@@ -8,18 +8,17 @@ eta_ref = 100
 pressure_normalisation = "none"
 end_time = 1000
 every_solution = 1
-every_swarm_vtu = 1
+every_swarm_vtu = 5
 
 nmat = 3
 nelx=16
 nelz=30
-
-#nelx=64
-#nelz=120
-#nelx = 48 
-#nelz = 90 
 #nelx = 32 
 #nelz = 60 
+#nelx = 48 
+#nelz = 90 
+#nelx=64
+#nelz=120
 nstep = 150 
 
 h0 = 0.2  

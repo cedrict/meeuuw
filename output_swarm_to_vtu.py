@@ -52,7 +52,7 @@ def output_swarm_to_vtu(
 
     nparticle_active=np.sum(swarm_active)
 
-    debug_swarm = True
+    debug_swarm = False
 
     filename = "OUTPUT/SWARM/swarm_{:04d}.vtu".format(istep)
     vtufile = open(filename, "w")
@@ -104,7 +104,7 @@ def output_swarm_to_vtu(
         vtufile.write("</DataArray>\n")
         # --
         vtufile.write("<DataArray type='Int32' Name='iel' Format='binary'> \n")
-        swarm_iel[swarm_active].tofile(vtufile, sep=" ")
+        swarm_iel[swarm_active].tofile(vtufile, sep=" ", format="%d")
         vtufile.write("</DataArray>\n")
     # --
     for imat in range(0, nmat):
@@ -113,7 +113,11 @@ def output_swarm_to_vtu(
         vtufile.write("</DataArray>\n")
     # --
     vtufile.write("<DataArray type='Float32' Name='Density' Format='binary'> \n")
-    swarm_rho[swarm_active].tofile(vtufile, sep=" ")
+    swarm_rho[swarm_active].tofile(vtufile, sep=" ", format="%.3e")
+    vtufile.write("</DataArray>\n")
+    # --
+    vtufile.write("<DataArray type='Float32' Name='id' Format='binary'> \n")
+    swarm_id[swarm_active].tofile(vtufile, sep=" ", format="%d")
     vtufile.write("</DataArray>\n")
     # --
     if use_melting:
@@ -175,17 +179,17 @@ def output_swarm_to_vtu(
     # --
     array = np.arange(0, nparticle_active + 1, dtype=np.int32)
     vtufile.write("<DataArray type='Int32' Name='connectivity' Format='ascii'> \n")
-    array.tofile(vtufile, sep=" ")
+    array.tofile(vtufile, sep=" ", format="%d")
     vtufile.write("</DataArray>\n")
     # --
     array = np.arange(1, nparticle_active + 2, dtype=np.int32)
     vtufile.write("<DataArray type='Int32' Name='offsets' Format='ascii'> \n")
-    array.tofile(vtufile, sep=" ")
+    array.tofile(vtufile, sep=" ", format="%d")
     vtufile.write("</DataArray>\n")
     # --
     array = np.full(nparticle_active, 1, dtype=np.int32)
     vtufile.write("<DataArray type='Int32' Name='types' Format='ascii'>\n")
-    array.tofile(vtufile, sep=" ")
+    array.tofile(vtufile, sep=" ", format="%d")
     vtufile.write("</DataArray>\n")
     # --
     vtufile.write("</Cells>\n")
