@@ -13,6 +13,7 @@ import argparse
 from assess_steady_state import *
 from basis_functions_setup_q import *
 from basis_functions_setup_Vnodes import *
+from basis_functions_setup_Tnodes import *
 from basis_functions import *
 from build_matrix_plith import *
 from build_matrix_stokes import *
@@ -102,7 +103,7 @@ from set_default_parameters import *
 # experiment 27: folding 
 ###############################################################################
 
-experiment = 27
+experiment = 19
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx", type=int, default=0)
@@ -266,7 +267,10 @@ print("RKorder=", args.RKorder)
 match geometry:
     case "box":
         L_ref = (Lx + Lz) / 2
-        nn_V = (2 * nelx + 1) * (2 * nelz + 1)  # number of V nodes
+        if m_V==5:
+           nn_V = (nelx + 1) * (nelz + 1) +nel # number of V nodes
+        else:
+           nn_V = (2 * nelx + 1) * (2 * nelz + 1)  # number of V nodes
         nn_P = (nelx + 1) * (nelz + 1)  # number of P nodes
         opening_angle = 0
         hrad = 0
@@ -317,26 +321,23 @@ match geometry:
 ndof_V = 2  # number of velocity dofs per node
 nel = nelx * nelz  # total number of elements
 
-m_V = 9  # number of velocity nodes per element
-m_P = 4  # number of pressure nodes per element
-m_T = 9  # number of temperature nodes per element
-
-r_V = [-1, 1, 1, -1, 0, 1, 0, -1, 0]
-t_V = [-1, -1, 1, 1, -1, 0, 1, 0, 0]
+if m_V==5:
+   nn_T=nn_P # i.e. =4
+else:
+   nn_T=nn_V # i.e. =9
 
 ndof_V_el = m_V * ndof_V
 
 Nfem_V = nn_V * ndof_V  # number of velocity dofs
 Nfem_P = nn_P  # number of pressure dofs
-Nfem_T = nn_V  # number of temperature dofs
+Nfem_T = nn_T  # number of temperature dofs
 Nfem = Nfem_V + Nfem_P  # total nb of dofs
-
 
 nparticle_per_element = nparticle_per_dim**2
 nparticle = nel * nparticle_per_element
 
-timings = np.zeros(38 + 1)
-timings_mem = np.zeros(38 + 1)
+timings = np.zeros(39 + 1)
+timings_mem = np.zeros(39 + 1)
 
 blocks = False  # TODO change name & fix !
 
@@ -456,7 +457,7 @@ start = clock.time()
     cornerBR,
     cornerTL,
     cornerTR,
-) = build_velocity_mesh(geometry, nn_V, nelx, nelz, Lx, Lz, Rinner, Router, opening_angle, debug_ascii)
+) = build_velocity_mesh(geometry, m_V, nn_V, nelx, nelz, Lx, Lz, Rinner, Router, opening_angle, debug_ascii)
 
 print("build V mesh: ................................ %.3f s" % (clock.time() - start))
 
@@ -466,7 +467,7 @@ print("build V mesh: ................................ %.3f s" % (clock.time() - 
 start = clock.time()
 
 icon_V, top_element, bot_element, left_element, right_element, middleH_element, middleV_element = (
-    build_velocity_connectivity(geometry, nelx, nelz, nnx, nnz, m_V, middleH_nodes, middleV_nodes)
+    build_velocity_connectivity(geometry, m_V, nelx, nelz, nnx, nnz, middleH_nodes, middleV_nodes)
 )
 
 print("build icon_V: ................................ %.3f s" % (clock.time() - start))
@@ -499,6 +500,49 @@ icon_P = build_pressure_connectivity(geometry, nelx, nelz, nel, m_P)
 print("build icon_P: ................................ %.3f s" % (clock.time() - start))
 
 ###############################################################################
+# @@ build temperature grid
+# if quad-mini elements are used (m_V=5) then the temperature FE space is Q1
+# so that the T nodes and connectivity is the same as pressure. 
+# if Q2Q1 elements are used (m_V=9) then the temperature FE space is Q2 also.
+###############################################################################
+start = clock.time()
+
+if m_V==5:
+   x_T=np.copy(x_P)
+   z_T=np.copy(z_P)
+   rad_T=np.copy(rad_P)
+   theta_T=np.copy(theta_P)
+   top_Tnodes=np.copy(top_Pnodes)
+   bot_Tnodes=np.copy(bot_Pnodes)
+   left_Tnodes=np.copy(left_Pnodes)
+   right_Tnodes=np.copy(right_Pnodes)
+   hull_Tnodes=np.copy(hull_Pnodes)   # does not exist!
+else:
+   x_T=np.copy(x_V)
+   z_T=np.copy(z_V)
+   rad_T=np.copy(rad_V)
+   theta_T=np.copy(theta_V)
+   top_Tnodes=np.copy(top_Vnodes)
+   bot_Tnodes=np.copy(bot_Vnodes)
+   left_Tnodes=np.copy(left_Vnodes)
+   right_Tnodes=np.copy(right_Vnodes)
+   hull_Tnodes=np.copy(hull_Vnodes)
+
+print("build T grid: ................................ %.3f s" % (clock.time() - start))
+
+###############################################################################
+# @@ build temperature connectivity array
+###############################################################################
+start = clock.time()
+
+if m_V==5:
+   icon_T=np.copy(icon_P)
+else:
+   icon_T=np.copy(icon_V)
+
+print("build icon_T: ................................ %.3f s" % (clock.time() - start))
+
+###############################################################################
 # @@ define velocity boundary conditions
 ###############################################################################
 start = clock.time()
@@ -527,17 +571,17 @@ start = clock.time()
 
 if solve_T:
     bc_fix_T, bc_val_T = assign_boundary_conditions_T(
-        x_V,
-        z_V,
-        rad_V,
-        theta_V,
+        x_T,
+        z_T,
+        rad_T,
+        theta_T,
         Nfem_T,
-        nn_V,
-        hull_Vnodes,
-        top_Vnodes,
-        bot_Vnodes,
-        left_Vnodes,
-        right_Vnodes,
+        nn_T,
+        hull_Tnodes,
+        top_Tnodes,
+        bot_Tnodes,
+        left_Tnodes,
+        right_Tnodes,
     )
 else:
     bc_fix_T = False
@@ -550,23 +594,23 @@ print("temperature b.c.: ............................ %.3f s" % (clock.time() - 
 start = clock.time()
 
 if solve_T:
-    T = initial_temperature(x_V, z_V, rad_V, theta_V, nn_V)
+    T = initial_temperature(x_T, z_T, rad_T, theta_T, nn_T)
 
-    for i in range(nn_V):
+    for i in range(nn_T):
         if bc_fix_T[i]:
             T[i] = bc_val_T[i]
 
     T_mem = T.copy()
 
     if debug_ascii:
-        np.savetxt("DEBUG/T_init.ascii", np.array([x_V, z_V, T]).T, header="# x,z,T")
+        np.savetxt("DEBUG/T_init.ascii", np.array([x_T, z_T, T]).T, header="# x,z,T")
 
     print("     -> T init (m,M) %.3e %.3e " % (np.min(T) - TKelvin, np.max(T) - TKelvin))
 
     print("initial temperature: ......................... %.3f s" % (clock.time() - start))
 
 else:
-    T = np.zeros(nn_V, dtype=np.float64)
+    T = np.zeros(nn_T, dtype=np.float64)
     T_mem = T.copy()
 
 ###############################################################################
@@ -590,17 +634,20 @@ start = clock.time()
     weightq,
     N_V,
     N_P,
+    N_T,
     dNdr_V,
     dNdt_V,
     dNdr_P,
     dNdt_P,
+    dNdr_T,
+    dNdt_T,
     JxWq,
     jcbi00q,
     jcbi01q,
     jcbi10q,
     jcbi11q,
     area,
-) = basis_functions_setup_q(nq_per_dim, m_V, m_P, nel, x_V, z_V, icon_V, qcoords, qweights, volume)
+) = basis_functions_setup_q(nq_per_dim, m_V, m_P, m_T, nel, x_V, z_V, icon_V, qcoords, qweights, volume)
 
 print("comp elts areas, N, grad(N) at q pts: ........ %.3f s" % (clock.time() - start))
 
@@ -622,7 +669,18 @@ N_P_n, dNdr_V_n, dNdt_V_n, jcbi00n, jcbi01n, jcbi10n, jcbi11n = basis_functions_
     m_V, m_P, nel, r_V, t_V, x_V, z_V, icon_V
 )
 
-print("compute N & grad(N) at V nodes: .............. %.3f s" % (clock.time() - start))
+print("compute N_P & grad(N_V) at V nodes: .......... %.3f s" % (clock.time() - start))
+
+###############################################################################
+# @@ precompute basis functions and jacobian values at T nodes
+###############################################################################
+start = clock.time()
+
+dNdr_T_n, dNdt_T_n, jcbi00_T, jcbi01_T, jcbi10_T, jcbi11_T = basis_functions_setup_Tnodes(
+    m_T, nel, r_T, t_T, x_T, z_T, icon_T
+)
+
+print("compute grad(N_T) at V nodes: ................ %.3f s" % (clock.time() - start))
 
 ###############################################################################
 # @@ compute coordinates of quadrature points
@@ -630,8 +688,8 @@ print("compute N & grad(N) at V nodes: .............. %.3f s" % (clock.time() - 
 ###############################################################################
 start = clock.time()
 
-xq = Q2_project_nodal_field_onto_qpoints(x_V, nq_per_element, nel, N_V, icon_V)
-zq = Q2_project_nodal_field_onto_qpoints(z_V, nq_per_element, nel, N_V, icon_V)
+xq = project_nodal_Vfield_onto_qpoints(x_V, nq_per_element, nel, m_V, N_V, icon_V)
+zq = project_nodal_Vfield_onto_qpoints(z_V, nq_per_element, nel, m_V, N_V, icon_V)
 
 print("     -> xq (m,M) %.3e %.3e " % (np.min(xq), np.max(xq)))
 print("     -> zq (m,M) %.3e %.3e " % (np.min(zq), np.max(zq)))
@@ -844,9 +902,9 @@ JJ_T = np.zeros(bignb_T, dtype=np.int32)
 counter = 0
 for iel in range(0, nel):
     for ikk in range(m_T):
-        m1 = icon_V[ikk, iel]
+        m1 = icon_T[ikk, iel]
         for jkk in range(m_T):
-            m2 = icon_V[jkk, iel]
+            m2 = icon_T[jkk, iel]
             II_T[counter] = m1
             JJ_T[counter] = m2
             counter += 1
@@ -1103,7 +1161,7 @@ for istep in range(0, nstep):
     swarm_p = interpolate_field_on_particles(nparticle, swarm_active, swarm_r, swarm_t, swarm_iel, q, icon_V)
 
     if solve_T:
-        swarm_T = interpolate_field_on_particles(nparticle, swarm_active, swarm_r, swarm_t, swarm_iel, T, icon_V)
+        swarm_T = interpolate_field_on_particles(nparticle, swarm_active, swarm_r, swarm_t, swarm_iel, T, icon_T)
         print("     -> swarm_T (m,M) %.3e %.3e " % (np.min(swarm_T) - TKelvin, np.max(swarm_T) - TKelvin))
     else:
         swarm_T = 0
@@ -1370,16 +1428,16 @@ for istep in range(0, nstep):
 
     if solve_T:
         hcond_n = project_particle_field_on_nodes_2(
-            nel, nn_V, nparticle, swarm_hcond, icon_V, swarm_iel, swarm_r, swarm_t, "arithmetic"
+            nel, nn_V, nparticle, swarm_active, swarm_hcond, icon_V, swarm_iel, swarm_r, swarm_t, "arithmetic"
         )
         hcapa_n = project_particle_field_on_nodes_2(
-            nel, nn_V, nparticle, swarm_hcapa, icon_V, swarm_iel, swarm_r, swarm_t, "arithmetic"
+            nel, nn_V, nparticle, swarm_active, swarm_hcapa, icon_V, swarm_iel, swarm_r, swarm_t, "arithmetic"
         )
         hprod_n = project_particle_field_on_nodes_2(
-            nel, nn_V, nparticle, swarm_hprod, icon_V, swarm_iel, swarm_r, swarm_t, "arithmetic"
+            nel, nn_V, nparticle, swarm_active, swarm_hprod, icon_V, swarm_iel, swarm_r, swarm_t, "arithmetic"
         )
         alpha_n = project_particle_field_on_nodes_2(
-            nel, nn_V, nparticle, swarm_alpha, icon_V, swarm_iel, swarm_r, swarm_t, "arithmetic"
+            nel, nn_V, nparticle, swarm_active, swarm_alpha, icon_V, swarm_iel, swarm_r, swarm_t, "arithmetic"
         )
 
         print("     -> hcond_n (m,M) %.3e %.3e " % (np.min(hcond_n), np.max(hcond_n)))
@@ -1491,7 +1549,7 @@ for istep in range(0, nstep):
             for iel in range(0, nel):
                 rhoq[iel, :] = rho_e[iel]
         case "nodal":
-            rhoq = Q1_project_nodal_field_onto_qpoints(rho_n, nq_per_element, nel, N_P, icon_V)
+            rhoq = project_nodal_Pfield_onto_qpoints(rho_n, nq_per_element, nel, m_P, N_P, icon_V)
         case "least_squares_P1":
             for iel in range(0, nel):
                 for iq in range(nq_per_element):
@@ -1524,7 +1582,7 @@ for istep in range(0, nstep):
             for iel in range(0, nel):
                 etaq[iel, :] = eta_e[iel]
         case "nodal":
-            etaq = Q1_project_nodal_field_onto_qpoints(eta_n, nq_per_element, nel, N_P, icon_V)
+            etaq = project_nodal_Pfield_onto_qpoints(eta_n, nq_per_element, nel, m_P, N_P, icon_V)
         case "least_squares_P1":
             for iel in range(0, nel):
                 for iq in range(nq_per_element):
@@ -1548,19 +1606,18 @@ for istep in range(0, nstep):
     etaq_file.write("%d %.3e %.3e\n" % (istep, np.min(etaq), np.max(etaq)))
     etaq_file.flush()
 
-    # if solve_T:
-    exxq = Q2_project_nodal_field_onto_qpoints(exx_n, nq_per_element, nel, N_V, icon_V)
-    ezzq = Q2_project_nodal_field_onto_qpoints(ezz_n, nq_per_element, nel, N_V, icon_V)
-    exzq = Q2_project_nodal_field_onto_qpoints(exz_n, nq_per_element, nel, N_V, icon_V)
-    dpdxq = Q2_project_nodal_field_onto_qpoints(dpdx_n, nq_per_element, nel, N_V, icon_V)
-    dpdzq = Q2_project_nodal_field_onto_qpoints(dpdz_n, nq_per_element, nel, N_V, icon_V)
+    exxq = project_nodal_Vfield_onto_qpoints(exx_n, nq_per_element, nel, m_V, N_V, icon_V)
+    ezzq = project_nodal_Vfield_onto_qpoints(ezz_n, nq_per_element, nel, m_V, N_V, icon_V)
+    exzq = project_nodal_Vfield_onto_qpoints(exz_n, nq_per_element, nel, m_V, N_V, icon_V)
+    dpdxq = project_nodal_Vfield_onto_qpoints(dpdx_n, nq_per_element, nel, m_V, N_V, icon_V)
+    dpdzq = project_nodal_Vfield_onto_qpoints(dpdz_n, nq_per_element, nel, m_V, N_V, icon_V)
 
     if solve_T:
-        Tq = Q2_project_nodal_field_onto_qpoints(T, nq_per_element, nel, N_V, icon_V)
-        hcapaq = Q1_project_nodal_field_onto_qpoints(hcapa_n, nq_per_element, nel, N_P, icon_V)
-        hcondq = Q1_project_nodal_field_onto_qpoints(hcond_n, nq_per_element, nel, N_P, icon_V)
-        hprodq = Q1_project_nodal_field_onto_qpoints(hprod_n, nq_per_element, nel, N_P, icon_V)
-        alphaq = Q1_project_nodal_field_onto_qpoints(alpha_n, nq_per_element, nel, N_P, icon_V)
+        Tq = project_nodal_Tfield_onto_qpoints(T, nq_per_element, nel, m_T, N_T, icon_T)
+        hcapaq = project_nodal_Pfield_onto_qpoints(hcapa_n, nq_per_element, nel, m_P, N_P, icon_V)
+        hcondq = project_nodal_Pfield_onto_qpoints(hcond_n, nq_per_element, nel, m_P, N_P, icon_V)
+        hprodq = project_nodal_Pfield_onto_qpoints(hprod_n, nq_per_element, nel, m_P, N_P, icon_V)
+        alphaq = project_nodal_Pfield_onto_qpoints(alpha_n, nq_per_element, nel, m_P, N_P, icon_V)
     else:
         Tq = np.zeros((nel, nq_per_element), dtype=np.float64)
         hcapaq = np.zeros((nel, nq_per_element), dtype=np.float64)
@@ -1635,6 +1692,9 @@ for istep in range(0, nstep):
     # @@ compute lithostatic pressure a la Jourdon & May, Solid Earth, 2022
     # spsolve(A, b, permc_spec=None, use_umfpack=True)
     # Solve the sparse linear system Ax=b, where b may be a vector or a matrix.
+    # using T structures here (bignb_T,II_T,JJ_T,VV_T) which makes sense when both V and T 
+    # FE spaces are equal, but there will be a pb when they are not!
+    # TODO: revisit when quad_mini is implemented!!
     ###############################################################################################
     start = clock.time()
 
@@ -2112,9 +2172,9 @@ for istep in range(0, nstep):
     ###############################################################################################
     start = clock.time()
 
-    uq = Q2_project_nodal_field_onto_qpoints(u, nq_per_element, nel, N_V, icon_V)
-    wq = Q2_project_nodal_field_onto_qpoints(w, nq_per_element, nel, N_V, icon_V)
-    pq = Q1_project_nodal_field_onto_qpoints(p, nq_per_element, nel, N_P, icon_P)
+    uq = project_nodal_Vfield_onto_qpoints(u, nq_per_element, nel, m_V, N_V, icon_V)
+    wq = project_nodal_Vfield_onto_qpoints(w, nq_per_element, nel, m_V, N_V, icon_V)
+    pq = project_nodal_Pfield_onto_qpoints(p, nq_per_element, nel, m_P, N_P, icon_P)
 
     print("project u,v,p on quad points: ................ %.3f s" % (clock.time() - start))
     timings[21] += clock.time() - start
@@ -2144,7 +2204,7 @@ for istep in range(0, nstep):
             m_T,
             Nfem_T,
             T,
-            icon_V,
+            icon_T,
             rhoq,
             etaq,
             Tq,
@@ -2160,9 +2220,9 @@ for istep in range(0, nstep):
             dpdxq,
             dpdzq,
             JxWq,
-            N_V,
-            dNdr_V,
-            dNdt_V,
+            N_T,
+            dNdr_T,
+            dNdt_T,
             jcbi00q,
             jcbi01q,
             jcbi10q,
@@ -2193,7 +2253,7 @@ for istep in range(0, nstep):
         print("     -> T (m,M) %.3e %.3e " % (np.min(T), np.max(T)))
 
         if debug_ascii:
-            np.savetxt("DEBUG/T.ascii", np.array([x_V, z_V, T]).T, header="# x,z,T")
+            np.savetxt("DEBUG/T.ascii", np.array([x_T, z_T, T]).T, header="# x,z,T")
 
         Tstats_file.write("%.3e %.3e %.3e\n" % (geo_time / time_scale, np.min(T) - TKelvin, np.max(T) - TKelvin))
         Tstats_file.flush()
@@ -2211,18 +2271,18 @@ for istep in range(0, nstep):
 
     if solve_T:
         dTdx_n, dTdz_n, qx_n, qz_n = compute_nodal_heat_flux(
-            icon_V,
+            icon_T,
             T,
             hcond_n,
-            nn_V,
-            m_V,
+            nn_T,
+            m_T,
             nel,
-            dNdr_V_n,
-            dNdt_V_n,
-            jcbi00n,
-            jcbi01n,
-            jcbi10n,
-            jcbi11n,
+            dNdr_T_n,
+            dNdt_T_n,
+            jcbi00_T,
+            jcbi01_T,
+            jcbi10_T,
+            jcbi11_T,
         )
 
         print("     -> dTdx_n (m,M) %.3e %.3e " % (np.min(dTdx_n), np.max(dTdx_n)))
@@ -2463,17 +2523,16 @@ for istep in range(0, nstep):
     ###############################################################################################
     start = clock.time()
 
-    exxq = Q2_project_nodal_field_onto_qpoints(exx_n, nq_per_element, nel, N_V, icon_V)
-    ezzq = Q2_project_nodal_field_onto_qpoints(ezz_n, nq_per_element, nel, N_V, icon_V)
-    exzq = Q2_project_nodal_field_onto_qpoints(exz_n, nq_per_element, nel, N_V, icon_V)
+    exxq = project_nodal_Vfield_onto_qpoints(exx_n, nq_per_element, nel, m_V, N_V, icon_V)
+    ezzq = project_nodal_Vfield_onto_qpoints(ezz_n, nq_per_element, nel, m_V, N_V, icon_V)
+    exzq = project_nodal_Vfield_onto_qpoints(exz_n, nq_per_element, nel, m_V, N_V, icon_V)
 
-    dxxq = Q2_project_nodal_field_onto_qpoints(dxx_n, nq_per_element, nel, N_V, icon_V)
-    dzzq = Q2_project_nodal_field_onto_qpoints(dzz_n, nq_per_element, nel, N_V, icon_V)
-    dxzq = Q2_project_nodal_field_onto_qpoints(dxz_n, nq_per_element, nel, N_V, icon_V)
+    dxxq = project_nodal_Vfield_onto_qpoints(dxx_n, nq_per_element, nel, m_V, N_V, icon_V)
+    dzzq = project_nodal_Vfield_onto_qpoints(dzz_n, nq_per_element, nel, m_V, N_V, icon_V)
+    dxzq = project_nodal_Vfield_onto_qpoints(dxz_n, nq_per_element, nel, m_V, N_V, icon_V)
 
-    print(
-        "compute strainrate on qpts: .................. %.3f s" % (clock.time() - start)
-    )  # ; timings[11]+=clock.time()-start
+    print("compute strainrate on qpts: .................. %.3f s" % (clock.time() - start))  
+    #timings[11]+=clock.time()-start
 
     ###############################################################################################
     # @@ compute global quantities
@@ -2850,7 +2909,7 @@ for istep in range(0, nstep):
                           swarm_paint, use_melting, nmat, ptcl_active_file)
 
     print("population control: .......................... %.3f s" % (clock.time() - start))
-    #timings[13] += clock.time() - start
+    timings[39] += clock.time() - start
 
     ###############################################################################################
     # @@ locate particles and compute reduced coordinates
@@ -3501,7 +3560,7 @@ for istep in range(0, nstep):
             % (timings[30], timings[30] / (istep + 1), timings[30] / duration * 100)
         )
         print(
-            "remove rho_profile: %8.3f s     (%.3f s per call) | %5.2f percent"
+            "remove rho_profile:  %8.3f s    (%.3f s per call) | %5.2f percent"
             % (timings[31], timings[31] / (istep + 1), timings[31] / duration * 100)
         )
         print(
@@ -3516,6 +3575,11 @@ for istep in range(0, nstep):
             "assess_steady_state: %8.3f s    (%.3f s per call) | %5.2f percent"
             % (timings[38], timings[38] / (istep + 1), timings[38] / duration * 100)
         )
+        print(
+            "population_control:  %8.3f s    (%.3f s per call) | %5.2f percent"
+            % (timings[39], timings[39] / (istep + 1), timings[39] / duration * 100)
+        )
+
         print("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ")
         print(
             "output solution to vtu: %8.3f s (%.3f s per call) | %5.2f percent"

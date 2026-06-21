@@ -11,24 +11,39 @@ from constants import eps
 # if geometry is 'eighth', 'quarter' or 'half' we still need to set Lx=Lz=1
 # Note that in the case of the annulus there are no left or right boundaries.
 ###################################################################################################
+# TODO: annulus geometry
 
 
-def build_velocity_mesh(geometry, nn_V, nelx, nelz, Lx, Lz, Rinner, Router, opening_angle, debug_ascii):
+def build_velocity_mesh(geometry, m_V, nn_V, nelx, nelz, Lx, Lz, Rinner, Router, opening_angle, debug_ascii):
 
     hx = Lx / nelx
     hz = Lz / nelz
 
     #######################################################
 
-    match geometry:
-        case "box" | "eighth" | "quarter" | "half":
-            nnx = 2 * nelx + 1
-            nnz = 2 * nelz + 1
-        case "annulus":
-            nnx = 2 * nelx
-            nnz = 2 * nelz + 1
+    match m_V:
+        case 5:  # velocity FE space is Q1+
+            match geometry:
+                case "box" | "eighth" | "quarter" | "half":
+                    nnx = nelx + 1
+                    nnz = nelz + 1
+                case "annulus":
+                    nnx = nelx
+                    nnz = nelz + 1
+                case _:
+                    raise ValueError("build_velocity_mesh: unknown geometry for m_V=5")
+        case 9:  # velocity FE space is Q2
+            match geometry:
+                case "box" | "eighth" | "quarter" | "half":
+                    nnx = 2 * nelx + 1
+                    nnz = 2 * nelz + 1
+                case "annulus":
+                    nnx = 2 * nelx
+                    nnz = 2 * nelz + 1
+                case _:
+                    raise ValueError("build_velocity_mesh: unknown geometry for m_V=9")
         case _:
-            raise ValueError("build_velocity_mesh: unknown geometry")
+            raise ValueError("build_velocity_mesh: unknown m_V value")
 
     #######################################################
     x_V = np.zeros(nn_V, dtype=np.float64)
@@ -41,65 +56,127 @@ def build_velocity_mesh(geometry, nn_V, nelx, nelz, Lx, Lz, Rinner, Router, open
     middleV_nodes = np.zeros(nn_V, dtype=bool)
     hull_Vnodes = np.zeros(nn_V, dtype=bool)
 
-    match geometry:
-        case "box" | "eighth" | "quarter" | "half":
-            counter = 0
-            for j in range(0, 2 * nelz + 1):
-                for i in range(0, 2 * nelx + 1):
-                    x_V[counter] = i * hx / 2
-                    z_V[counter] = j * hz / 2
-                    if i == 0:
-                        left_Vnodes[counter] = True
-                    if i == 2 * nelx:
-                        right_Vnodes[counter] = True
-                    if j == 0:
-                        bot_Vnodes[counter] = True
-                    if j == 2 * nelz:
-                        top_Vnodes[counter] = True
-                    if top_Vnodes[counter] or bot_Vnodes[counter] or right_Vnodes[counter] or left_Vnodes[counter]:
-                        hull_Vnodes[counter] = True
-                    if abs(x_V[counter] / Lx - 0.5) < eps:
-                        middleV_nodes[counter] = True
-                    if abs(z_V[counter] / Lz - 0.5) < eps:
-                        middleH_nodes[counter] = True
-                    # identify which nodes are on the corners of the domain
-                    if i == 0 and j == 0:
-                        cornerBL = counter
-                    if i == nnx - 1 and j == 0:
-                        cornerBR = counter
-                    if i == 0 and j == nnz - 1:
-                        cornerTL = counter
-                    if i == nnx - 1 and j == nnz - 1:
-                        cornerTR = counter
-                    counter += 1
-                # end for
-            # end for
-        case "annulus":
-            counter = 0
-            for j in range(0, 2 * nelz + 1):
-                for i in range(0, 2 * nelx):
-                    x_V[counter] = i * hx / 2
-                    z_V[counter] = j * hz / 2
-                    if j == 0:
-                        bot_Vnodes[counter] = True
-                    if j == 2 * nelz:
-                        top_Vnodes[counter] = True
-                    if top_Vnodes[counter] or bot_Vnodes[counter]:
-                        hull_Vnodes[counter] = True
-                    counter += 1
-                # end for
-            # end for
-            cornerBL = 0
-            cornerBR = 0
-            cornerTL = 0
-            cornerTR = 0
+    match m_V:
+        case 5:  # velocity FE space is Q1+
+            match geometry:
+                case "box" | "eighth" | "quarter" | "half":
+                    counter = 0
+                    for j in range(0, nelz + 1):
+                        for i in range(0, nelx + 1):
+                            x_V[counter] = i * hx
+                            z_V[counter] = j * hz
+                            if i == 0:
+                                left_Vnodes[counter] = True
+                            if i == 2 * nelx:
+                                right_Vnodes[counter] = True
+                            if j == 0:
+                                bot_Vnodes[counter] = True
+                            if j == 2 * nelz:
+                                top_Vnodes[counter] = True
+                            if (
+                                top_Vnodes[counter]
+                                or bot_Vnodes[counter]
+                                or right_Vnodes[counter]
+                                or left_Vnodes[counter]
+                            ):
+                                hull_Vnodes[counter] = True
+                            if abs(x_V[counter] / Lx - 0.5) < eps:
+                                middleV_nodes[counter] = True
+                            if abs(z_V[counter] / Lz - 0.5) < eps:
+                                middleH_nodes[counter] = True
+                            if i == 0 and j == 0:
+                                cornerBL = counter
+                            if i == nnx - 1 and j == 0:
+                                cornerBR = counter
+                            if i == 0 and j == nnz - 1:
+                                cornerTL = counter
+                            if i == nnx - 1 and j == nnz - 1:
+                                cornerTR = counter
+                            counter += 1
+                        # end for
+                    # end for
+
+                    for j in range(0, nely):
+                        for i in range(0, nelx):
+                            x_V[counter] = i * hx + 1 / 2.0 * hx
+                            z_V[counter] = j * hy + 1 / 2.0 * hy
+                            counter += 1
+
+                # case "annulus":
+
+                case _:
+                    exit("build_velocity_mesh: unknown geometry")
+
+        case 9:  # velocity FE space is Q2
+            match geometry:
+                case "box" | "eighth" | "quarter" | "half":
+                    counter = 0
+                    for j in range(0, 2 * nelz + 1):
+                        for i in range(0, 2 * nelx + 1):
+                            x_V[counter] = i * hx / 2
+                            z_V[counter] = j * hz / 2
+                            if i == 0:
+                                left_Vnodes[counter] = True
+                            if i == 2 * nelx:
+                                right_Vnodes[counter] = True
+                            if j == 0:
+                                bot_Vnodes[counter] = True
+                            if j == 2 * nelz:
+                                top_Vnodes[counter] = True
+                            if (
+                                top_Vnodes[counter]
+                                or bot_Vnodes[counter]
+                                or right_Vnodes[counter]
+                                or left_Vnodes[counter]
+                            ):
+                                hull_Vnodes[counter] = True
+                            if abs(x_V[counter] / Lx - 0.5) < eps:
+                                middleV_nodes[counter] = True
+                            if abs(z_V[counter] / Lz - 0.5) < eps:
+                                middleH_nodes[counter] = True
+                            if i == 0 and j == 0:
+                                cornerBL = counter
+                            if i == nnx - 1 and j == 0:
+                                cornerBR = counter
+                            if i == 0 and j == nnz - 1:
+                                cornerTL = counter
+                            if i == nnx - 1 and j == nnz - 1:
+                                cornerTR = counter
+                            counter += 1
+                        # end for
+                    # end for
+                case "annulus":
+                    counter = 0
+                    for j in range(0, 2 * nelz + 1):
+                        for i in range(0, 2 * nelx):
+                            x_V[counter] = i * hx / 2
+                            z_V[counter] = j * hz / 2
+                            if j == 0:
+                                bot_Vnodes[counter] = True
+                            if j == 2 * nelz:
+                                top_Vnodes[counter] = True
+                            if top_Vnodes[counter] or bot_Vnodes[counter]:
+                                hull_Vnodes[counter] = True
+                            counter += 1
+                        # end for
+                    # end for
+                    cornerBL = 0
+                    cornerBR = 0
+                    cornerTL = 0
+                    cornerTR = 0
+                case _:
+                    exit("build_velocity_mesh: unknown geometry")
+
         case _:
-            exit("unknown geometry")
+            raise ValueError("build_velocity_mesh: unknown m_V value")
 
     #######################################################
+    # now that I have computed the cartesian coordinates of
+    # the nodes, I can compute their polar coordinates.
 
     rad_V = np.zeros(nn_V, dtype=np.float64)
     theta_V = np.zeros(nn_V, dtype=np.float64)
+
     match geometry:
         case "eighth" | "quarter" | "half":
             for i in range(0, nn_V):
@@ -120,7 +197,6 @@ def build_velocity_mesh(geometry, nn_V, nelx, nelz, Lx, Lz, Rinner, Router, open
                     theta_V[i] += 2.0 * np.pi
 
     #######################################################
-    #print("hx,hz=", hx, hz)
 
     if debug_ascii:
         np.savetxt("DEBUG/mesh_V.ascii", np.array([x_V, z_V]).T, header="# x,z")

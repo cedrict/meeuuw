@@ -11,12 +11,16 @@ from basis_functions import (
     basis_functions_V,
     basis_functions_V_dr,
     basis_functions_V_dt,
+    basis_functions_T,
+    basis_functions_T_dr,
+    basis_functions_T_dt,
 )
 
 ###################################################################################################
+# An underlying assumption here is that all elements are straight edged so that 
+# all basis functions (Q1, Q2, Q1+) are suitable to compute the jacobians.
 
-
-def basis_functions_setup_q(nq_per_dim, m_V, m_P, nel, x_V, z_V, icon_V, qcoords, qweights, volume):
+def basis_functions_setup_q(nq_per_dim, m_V, m_P, m_T, nel, x_V, z_V, icon_V, qcoords, qweights, volume):
 
     nq_per_element = nq_per_dim**2
 
@@ -26,10 +30,13 @@ def basis_functions_setup_q(nq_per_dim, m_V, m_P, nel, x_V, z_V, icon_V, qcoords
     weightq = np.zeros(nq_per_element, dtype=np.float64)
     N_V = np.zeros((nq_per_element, m_V), dtype=np.float64)
     N_P = np.zeros((nq_per_element, m_P), dtype=np.float64)
+    N_T = np.zeros((nq_per_element, m_T), dtype=np.float64)
     dNdr_V = np.zeros((nq_per_element, m_V), dtype=np.float64)
     dNdt_V = np.zeros((nq_per_element, m_V), dtype=np.float64)
     dNdr_P = np.zeros((nq_per_element, m_P), dtype=np.float64)
     dNdt_P = np.zeros((nq_per_element, m_P), dtype=np.float64)
+    dNdr_T = np.zeros((nq_per_element, m_T), dtype=np.float64)
+    dNdt_T = np.zeros((nq_per_element, m_T), dtype=np.float64)
     area = np.zeros(nel, dtype=np.float64)
     JxWq = np.zeros((nel, nq_per_element), dtype=np.float64)
     jcbi00q = np.zeros((nel, nq_per_element), dtype=np.float64)
@@ -47,10 +54,13 @@ def basis_functions_setup_q(nq_per_dim, m_V, m_P, nel, x_V, z_V, icon_V, qcoords
                     weightq[cq] = qweights[iq] * qweights[jq]
                     N_V[cq, 0:m_V] = basis_functions_V(rq[cq], tq[cq])
                     N_P[cq, 0:m_P] = basis_functions_P(rq[cq], tq[cq])
+                    N_T[cq, 0:m_T] = basis_functions_T(rq[cq], tq[cq])
                     dNdr_V[cq, 0:m_V] = basis_functions_V_dr(rq[cq], tq[cq])
                     dNdt_V[cq, 0:m_V] = basis_functions_V_dt(rq[cq], tq[cq])
-                    dNdr_P[cq, 0:m_V] = basis_functions_P_dr(rq[cq], tq[cq])
-                    dNdt_P[cq, 0:m_V] = basis_functions_P_dt(rq[cq], tq[cq])
+                    dNdr_P[cq, 0:m_P] = basis_functions_P_dr(rq[cq], tq[cq])
+                    dNdt_P[cq, 0:m_P] = basis_functions_P_dt(rq[cq], tq[cq])
+                    dNdr_T[cq, 0:m_T] = basis_functions_T_dr(rq[cq], tq[cq])
+                    dNdt_T[cq, 0:m_T] = basis_functions_T_dt(rq[cq], tq[cq])
                 # end if
                 jcb[0, 0] = np.dot(dNdr_V[cq, :], x_V[icon_V[:, iel]])
                 jcb[0, 1] = np.dot(dNdr_V[cq, :], z_V[icon_V[:, iel]])
@@ -77,10 +87,13 @@ def basis_functions_setup_q(nq_per_dim, m_V, m_P, nel, x_V, z_V, icon_V, qcoords
         weightq,
         N_V,
         N_P,
+        N_T,
         dNdr_V,
         dNdt_V,
         dNdr_P,
         dNdt_P,
+        dNdr_T,
+        dNdt_T,
         JxWq,
         jcbi00q,
         jcbi01q,

@@ -10,24 +10,24 @@ import numpy as np
 
 @numba.njit
 def compute_nodal_heat_flux(
-    icon_V, T, hcond_nodal, nn_V, m_V, nel, dNdr_V_n, dNds_V_n, jcbi00n, jcbi01n, jcbi10n, jcbi11n
+    icon_T, T, hcond_nodal, nn_T, m_T, nel, dNdr_T_n, dNds_T_n, jcbi00_T, jcbi01_T, jcbi10_T, jcbi11_T
 ):
 
-    qx_n = np.zeros(nn_V, dtype=np.float64)
-    qy_n = np.zeros(nn_V, dtype=np.float64)
-    dTdx_n = np.zeros(nn_V, dtype=np.float64)
-    dTdy_n = np.zeros(nn_V, dtype=np.float64)
-    count = np.zeros(nn_V, dtype=np.float64)
+    qx_n = np.zeros(nn_T, dtype=np.float64)
+    qy_n = np.zeros(nn_T, dtype=np.float64)
+    dTdx_n = np.zeros(nn_T, dtype=np.float64)
+    dTdy_n = np.zeros(nn_T, dtype=np.float64)
+    count = np.zeros(nn_T, dtype=np.float64)
 
     for iel in range(0, nel):
-        for i in range(0, m_V):
-            inode = icon_V[i, iel]
-            dNdx = jcbi00n[iel, i] * dNdr_V_n[i, :] + jcbi01n[iel, i] * dNds_V_n[i, :]
-            dNdy = jcbi10n[iel, i] * dNdr_V_n[i, :] + jcbi11n[iel, i] * dNds_V_n[i, :]
-            dTdx_n[inode] -= np.dot(dNdx, T[icon_V[:, iel]])
-            dTdy_n[inode] -= np.dot(dNdy, T[icon_V[:, iel]])
-            qx_n[inode] -= hcond_nodal[i] * np.dot(dNdx, T[icon_V[:, iel]])
-            qy_n[inode] -= hcond_nodal[i] * np.dot(dNdy, T[icon_V[:, iel]])
+        for i in range(0, m_T):
+            inode = icon_T[i, iel]
+            dNdx = jcbi00_T[iel, i] * dNdr_T_n[i, :] + jcbi01_T[iel, i] * dNds_T_n[i, :]
+            dNdy = jcbi10_T[iel, i] * dNdr_T_n[i, :] + jcbi11_T[iel, i] * dNds_T_n[i, :]
+            dTdx_n[inode] -= np.dot(dNdx, T[icon_T[:, iel]])
+            dTdy_n[inode] -= np.dot(dNdy, T[icon_T[:, iel]])
+            qx_n[inode] -= hcond_nodal[inode] * np.dot(dNdx, T[icon_T[:, iel]])
+            qy_n[inode] -= hcond_nodal[inode] * np.dot(dNdy, T[icon_T[:, iel]])
             count[inode] += 1
         # end for
     # end for

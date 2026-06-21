@@ -39,6 +39,8 @@ adiabatic_surface_temperature = 1700.0  # K
 top_tbl_thickness = 100e3
 bot_tbl_thickness = 100e3
 
+nparticle_per_dim = 10
+
 rho0 = 3300
 alpha = 2e-5
 T0 = TKelvin
@@ -201,27 +203,38 @@ def assign_boundary_conditions_V(
 
 ###################################################################################################
 
-
-def assign_boundary_conditions_T(x_V, z_V, rad_V, theta_V, Nfem_T, nn_V):
+def assign_boundary_conditions_T(
+    x_T,
+    z_T,
+    rad_T,
+    theta_T,
+    Nfem_T,
+    nn_T,
+    hull_nodes,
+    top_nodes,
+    bot_nodes,
+    left_nodes,
+    right_nodes,
+):
 
     bc_fix_T = np.zeros(Nfem_T, dtype=bool)
     bc_val_T = np.zeros(Nfem_T, dtype=np.float64)
 
     if geometry == "box":  # free slip on all sides
-        for i in range(0, nn_V):
-            if z_V[i] < eps:
+        for i in range(0, nn_T):
+            if z_T[i] < eps:
                 bc_fix_T[i] = True
                 bc_val_T[i] = Tbottom
-            if z_V[i] > (Lz - eps):
+            if z_T[i] > (Lz - eps):
                 bc_fix_T[i] = True
                 bc_val_T[i] = Ttop
 
     if geometry == "quarter":  # free slip not available on top/bottom
-        for i in range(0, nn_V):
-            if abs(rad_V[i] - Rinner) / Rinner < eps:
+        for i in range(0, nn_T):
+            if abs(rad_T[i] - Rinner) / Rinner < eps:
                 bc_fix_T[i] = True
                 bc_val_T[i] = Tbottom
-            if abs(rad_V[i] - Router) / Router < eps:
+            if abs(rad_T[i] - Router) / Router < eps:
                 bc_fix_T[i] = True
                 bc_val_T[i] = Ttop
 
@@ -231,13 +244,16 @@ def assign_boundary_conditions_T(x_V, z_V, rad_V, theta_V, Nfem_T, nn_V):
 ###################################################################################################
 
 
-def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
+def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-    swarm_mat = np.zeros(nparticle, dtype=np.int32)
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
 
-    swarm_mat[:] = 1
+    for ip in range(0, nparticle):
+        swarm_wf[0, ip] = 1
 
-    return swarm_mat
+    material_names = ["mantle"]
+
+    return swarm_wf, material_names
 
 
 ###################################################################################################
@@ -250,10 +266,11 @@ def eta_diffusion_creep(p, T):
     eta_df = 0.5 / A * np.exp((Q + p * V) / (Rgas * T))
     return eta_df
 
-
 def material_model(
     nparticle,
-    swarm_mat,
+    swarm_active,
+    nmat,
+    swarm_wf,
     swarm_x,
     swarm_z,
     swarm_rad,
@@ -270,10 +287,13 @@ def material_model(
     swarm_hcond = np.zeros(nparticle, dtype=np.float64)
     swarm_hcapa = np.zeros(nparticle, dtype=np.float64)
     swarm_hprod = np.zeros(nparticle, dtype=np.float64)
+    swarm_alpha = np.zeros(nparticle, dtype=np.float64)
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
     swarm_rho[:] = rho0 * (1 - alpha * (swarm_T[:] - T0))
     swarm_hcond[:] = hcond0
     swarm_hcapa[:] = hcapa0
+    swarm_alpha[:] = alpha
 
     # for ip in range(0,nparticle):
     # eta_df=eta_diffusion_creep(swarm_p[ip],swarm_T[ip])
@@ -287,7 +307,7 @@ def material_model(
     # swarm_eta[ip]=eta_eff
     swarm_eta[:] = 1e22
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################
@@ -304,26 +324,6 @@ def gravity_model(x, z):
 
 
 ###################################################################################################
-
-
-def T_solidus(P):
-    T_sol = 1388 + 100e-9 * P
-    return T_sol
-
-
-###################################################################################################
-
-
-def T_liquidus(P):
-    T_liq = 1988 + 100e-9 * P
-    return T_liq
-
-
-###################################################################################################
-
-
-def fff(x):
-    return x
 
 
 ###################################################################################################

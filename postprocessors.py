@@ -93,7 +93,7 @@ def compute_Nu(
     bottom_element,
     icon_V,
     T,
-    dTdy_nodal,
+    dTdz_nodal,
     nq_per_dim,
     qcoords,
     qweights,
@@ -105,9 +105,9 @@ def compute_Nu(
     """
 
     avrg_T_top = 0
-    avrg_dTdy_top = 0
+    avrg_dTdz_top = 0
     avrg_T_bottom = 0
-    avrg_dTdy_bottom = 0
+    avrg_dTdz_bottom = 0
 
     jcob = hx / 2
 
@@ -119,9 +119,9 @@ def compute_Nu(
                 rq = qcoords[iq]
                 N = basis_functions_V(rq, sq)
                 Tq = np.dot(N, T[icon_V[:, iel]])
-                dTdyq = np.dot(N, dTdy_nodal[icon_V[:, iel]])
+                dTdzq = np.dot(N, dTdz_nodal[icon_V[:, iel]])
                 avrg_T_top += Tq * jcob * qweights[iq]
-                avrg_dTdy_top += dTdyq * jcob * qweights[iq] * ny
+                avrg_dTdz_top += dTdzq * jcob * qweights[iq] * ny
             # end for
         # end if
 
@@ -132,21 +132,21 @@ def compute_Nu(
                 rq = qcoords[iq]
                 N = basis_functions_V(rq, sq)
                 Tq = np.dot(N, T[icon_V[:, iel]])
-                dTdyq = np.dot(N, dTdy_nodal[icon_V[:, iel]])
+                dTdzq = np.dot(N, dTdz_nodal[icon_V[:, iel]])
                 avrg_T_bottom += Tq * jcob * qweights[iq]
-                avrg_dTdy_bottom += dTdyq * jcob * qweights[iq] * ny
+                avrg_dTdz_bottom += dTdzq * jcob * qweights[iq] * ny
             # end for
         # end if
     # end for
 
     avrg_T_top /= Lx
     avrg_T_bottom /= Lx
-    avrg_dTdy_top /= Lx
-    avrg_dTdy_bottom /= Lx
+    avrg_dTdz_top /= Lx
+    avrg_dTdz_bottom /= Lx
 
-    Nu = np.abs(avrg_dTdy_top) / avrg_T_bottom * Lz
+    Nu = np.abs(avrg_dTdz_top) / avrg_T_bottom * Lz
 
-    return avrg_T_bottom, avrg_T_top, avrg_dTdy_bottom, avrg_dTdy_top, Nu
+    return avrg_T_bottom, avrg_T_top, avrg_dTdz_bottom, avrg_dTdz_top, Nu
 
 
 ###################################################################################################
@@ -218,11 +218,11 @@ def compute_discretisation_errors(nel, nq_per_element, xq, zq, uq, wq, pq, volum
     errp = 0.0
     for iel in range(0, nel):
         for iq in range(0, nq_per_element):
-            errv += (
-                (uq[iel, iq] - ms_velocity_x(xq[iel, iq], zq[iel, iq], exp)) ** 2
-                + (wq[iel, iq] - ms_velocity_z(xq[iel, iq], zq[iel, iq], exp)) ** 2
-            ) * JxWq[iel, iq]
-            errp += (pq[iel, iq] - ms_pressure(xq[iel, iq], zq[iel, iq], exp)) ** 2 * JxWq[iel, iq]
+            erruq2 = (uq[iel, iq] - ms_velocity_x(xq[iel, iq], zq[iel, iq], exp)) ** 2
+            errwq2 = (wq[iel, iq] - ms_velocity_z(xq[iel, iq], zq[iel, iq], exp)) ** 2
+            errv += (erruq2 + errwq2) * JxWq[iel, iq]
+            errpq2 = (pq[iel, iq] - ms_pressure(xq[iel, iq], zq[iel, iq], exp)) ** 2
+            errp += errpq2 * JxWq[iel, iq]
 
     errv = np.sqrt(errv)
     errp = np.sqrt(errp)

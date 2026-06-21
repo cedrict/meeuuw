@@ -60,20 +60,24 @@ def assign_boundary_conditions_V(
 
 ###################################################################################################
 
+def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
 
-    swarm_mat = np.ones(nparticle, dtype=np.int32)
+    for ip in range(0, nparticle):
+        swarm_wf[0, ip] = 1
 
-    return swarm_mat
+    material_names = ["stuff"]
 
+    return swarm_wf, material_names
 
 ###################################################################################################
 
-
 def material_model(
     nparticle,
-    swarm_mat,
+    swarm_active,
+    nmat,
+    swarm_wf,
     swarm_x,
     swarm_z,
     swarm_rad,
@@ -90,12 +94,14 @@ def material_model(
     swarm_hcond = 0
     swarm_hcapa = 0
     swarm_hprod = 0
+    swarm_alpha = 0
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
     for i in range(0, nparticle):
         swarm_rho[i] = np.sin(2.0 * swarm_z[i]) * np.cos(3.0 * np.pi * swarm_x[i])
         swarm_eta[i] = np.exp(13.8155 * swarm_z[i])
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################

@@ -74,7 +74,8 @@ def process_velocity_solution_vectors(
     if geometry == "annulus" and top_free_slip and bot_free_slip:
         print("     -> u (m,M) %.3e %.3e %s" % (np.min(u) / vel_scale, np.max(u) / vel_scale, vel_unit))
         print("     -> w (m,M) %.3e %.3e %s" % (np.min(w) / vel_scale, np.max(w) / vel_scale, vel_unit))
-        u, w = remove_net_rotation(nq_per_element, nel, icon_V, xq, zq, u, w, nn_V, N_V, x_V, z_V, JxWq)
+        u, w, omega_z = remove_net_rotation(nq_per_element, nel, icon_V, xq, zq, u, w, nn_V, N_V, x_V, z_V, JxWq)
+        print("     -> ang. momentum omega_z %e " % omega_z)
 
     vel = np.sqrt(u**2 + w**2)
 

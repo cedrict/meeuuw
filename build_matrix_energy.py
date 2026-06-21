@@ -18,7 +18,7 @@ def build_matrix_energy(
     m_T,
     Nfem_T,
     T,
-    icon_V,
+    icon_T,
     rhoq,
     etaq,
     Tq,
@@ -34,9 +34,9 @@ def build_matrix_energy(
     dpdxq,
     dpdzq,
     JxWq,
-    N_V,
-    dNdr_V,
-    dNds_V,
+    N_T,
+    dNdr_T,
+    dNds_T,
     jcbi00q,
     jcbi01q,
     jcbi10q,
@@ -62,16 +62,16 @@ def build_matrix_energy(
         MM = np.zeros((m_T, m_T), dtype=np.float64)  # elemental mass matrix
         velq = np.zeros((1, 2), dtype=np.float64)  # velocity at quad point
 
-        Tvect[0:m_T] = T[icon_V[0:m_T, iel]]
+        Tvect[0:m_T] = T[icon_T[0:m_T, iel]]
 
         for iq in range(0, nq_per_element):
-            N = N_V[iq, :]
+            N = N_T[iq, :]
 
             velq[0, 0] = uq[iel, iq]
             velq[0, 1] = wq[iel, iq]
 
-            dNdx = jcbi00q[iel, iq] * dNdr_V[iq, :] + jcbi01q[iel, iq] * dNds_V[iq, :]
-            dNdy = jcbi10q[iel, iq] * dNdr_V[iq, :] + jcbi11q[iel, iq] * dNds_V[iq, :]
+            dNdx = jcbi00q[iel, iq] * dNdr_T[iq, :] + jcbi01q[iel, iq] * dNds_T[iq, :]
+            dNdy = jcbi10q[iel, iq] * dNdr_T[iq, :] + jcbi11q[iel, iq] * dNds_T[iq, :]
 
             B[0, :] = dNdx
             B[1, :] = dNdy
@@ -114,7 +114,7 @@ def build_matrix_energy(
 
         # apply boundary conditions
         for k1 in range(0, m_T):
-            m1 = icon_V[k1, iel]
+            m1 = icon_T[k1, iel]
             if bc_fix_T[m1]:
                 Aref = A_el[k1, k1]
                 for k2 in range(0, m_T):
@@ -129,7 +129,7 @@ def build_matrix_energy(
 
         # assemble matrix K_mat and right hand side rhs
         for ikk in range(m_T):
-            m1 = icon_V[ikk, iel]
+            m1 = icon_T[ikk, iel]
             for jkk in range(m_T):
                 VV_T[counter] = A_el[ikk, jkk]
                 counter += 1

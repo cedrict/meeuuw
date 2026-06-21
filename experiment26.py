@@ -183,10 +183,10 @@ def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, L
 
 ###############################################################################
 
-
 @numba.njit
 def material_model(
     nparticle,
+    swarm_active,
     nmat,
     swarm_wf,
     swarm_x,

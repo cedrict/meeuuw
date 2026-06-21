@@ -1647,7 +1647,7 @@ def population_control(
     ptcl_active_file,
 ):
 
-    debug_population_control=False
+    debug_population_control = False
 
     print("     -> nparticle_min=", nparticle_min)
 
@@ -1675,12 +1675,13 @@ def population_control(
     ptcl_active_file.flush()
 
     if nparticle_needed > nparticle_available:
-       print("     -> nparticle_needed>nparticle_available")
+        print("     -> nparticle_needed>nparticle_available")
 
     ##############################################################
     # make list of available particles
 
     list_available_particles = np.zeros(nparticle_available, dtype=np.int32)
+
     counter = 0
     for ip in range(0, nparticle):
         if not swarm_active[ip]:
@@ -1711,55 +1712,54 @@ def population_control(
 
     nb_particles_to_be_added_to_elt = np.zeros(nel, dtype=np.int32)
 
-    if nparticle_available>=nparticle_needed:    
-       # all is fine: I have more particles available than I need. 
-       # I can loop over flagged elements, and add the right number of particles 
+    if nparticle_available >= nparticle_needed:
+        # all is fine: I have more particles available than I need.
+        # I can loop over flagged elements, and add the right number of particles
 
-       counter = 0
-       for iel in range(0, nel):
-           if nparticle_e[iel] < nparticle_min:
-               nb_particles_to_be_added_to_elt[iel] = nparticle_min - nparticle_e[iel]
-               counter += 1
+        counter = 0
+        for iel in range(0, nel):
+            if nparticle_e[iel] < nparticle_min:
+                nb_particles_to_be_added_to_elt[iel] = nparticle_min - nparticle_e[iel]
+                counter += 1
 
-       # print(list_flagged_elements)
-       # print(np.min(nb_particles_to_be_added_to_elt), np.max(nb_particles_to_be_added_to_elt))
+        # print(list_flagged_elements)
+        # print(np.min(nb_particles_to_be_added_to_elt), np.max(nb_particles_to_be_added_to_elt))
 
     else:
-       # There are not enough available particles.
-       # I need to be clever about nb_particles_to_be_added_to_elt array.
-       # basically I need to distribute the number of particles I have 
-       # so as to fill the most depleted elements first.
+        # There are not enough available particles.
+        # I need to be clever about nb_particles_to_be_added_to_elt array.
+        # basically I need to distribute the number of particles I have
+        # so as to fill the most depleted elements first.
 
-       #for ip in range(nparticle_available):
-           #find identity of flagged element with least nb of particles
+        # for ip in range(nparticle_available):
+        # find identity of flagged element with least nb of particles
 
-       raise ValueError("population_control: not available yet")
+        raise ValueError("population_control: not available yet")
 
     ##############################################################
     # finally carry out population control!
 
     counter = 0
     for k in range(nel_flagged):
-        iel=list_flagged_elements[k] # flagged element under consideration
+        iel = list_flagged_elements[k]  # flagged element under consideration
 
         # create a mask which is true for all the active particles in element
-        mask = np.logical_and(swarm_iel == iel, swarm_active) 
+        mask = np.logical_and(swarm_iel == iel, swarm_active)
 
-        if np.sum(mask)==0: 
-           raise ValueError("population_control: mask empty")
+        if np.sum(mask) == 0:
+            raise ValueError("population_control: mask empty")
 
         for ip in range(nb_particles_to_be_added_to_elt[iel]):
-
-            particle_id = list_available_particles[counter] # particle to be added
+            particle_id = list_available_particles[counter]  # particle to be added
 
             # re-activate particle
             swarm_active[particle_id] = True
             swarm_iel[particle_id] = iel
- 
+
             # generate random r,t coordinates
             swarm_r[particle_id] = random.uniform(-0.95, +0.95)
             swarm_t[particle_id] = random.uniform(-0.95, +0.95)
- 
+
             # compute new x,z coordinate of particle
             N = basis_functions_V(swarm_r[particle_id], swarm_t[particle_id])
             swarm_x[particle_id] = np.dot(N[:], x_V[icon_V[:, iel]])
@@ -1768,25 +1768,25 @@ def population_control(
             # now that a new particle has been positioned, its properties
             # must be assigned to it. One could think of many approaches.
             # I will use the closest particle as template.
-            # I first make a list of all the particle distances to the 
+            # I first make a list of all the particle distances to the
             # new particle (dist array) and a list of their ids
             # I then locate the closest particle and use it.
 
-            dist=(swarm_x[mask]-swarm_x[particle_id])**2+(swarm_z[mask]-swarm_z[particle_id])**2
+            dist = (swarm_x[mask] - swarm_x[particle_id]) ** 2 + (swarm_z[mask] - swarm_z[particle_id]) ** 2
 
-            list_of_particle_ids_in_element=swarm_id[mask]
+            list_of_particle_ids_in_element = swarm_id[mask]
 
-            closest_particle_id=list_of_particle_ids_in_element[np.argmin(dist)]
-         
-            print(closest_particle_id)
-            swarm_wf[:, particle_id] = swarm_wf[:,closest_particle_id]
+            closest_particle_id = list_of_particle_ids_in_element[np.argmin(dist)]
 
-            # compute new strain and paint values 
+            #print(closest_particle_id)
+            swarm_wf[:, particle_id] = swarm_wf[:, closest_particle_id]
+
+            # compute new strain and paint values
             swarm_strain[particle_id] = np.average(swarm_strain[mask])
             swarm_paint[particle_id] = -1
 
             if use_melting:
-               swarm_F[particle_id] = np.average(swarm_F[mask])
+                swarm_F[particle_id] = np.average(swarm_F[mask])
 
             # not needed, but avoids weird values
             # in the output files generated after this
@@ -1798,7 +1798,7 @@ def population_control(
         # end for
     # end for
 
-    #print(counter,nparticle_needed)
+    # print(counter,nparticle_needed)
 
     print("     -> swarm_r (m,M) %.3e %.3e " % (np.min(swarm_r), np.max(swarm_r)))
     print("     -> swarm_t (m,M) %.3e %.3e " % (np.min(swarm_t), np.max(swarm_t)))
