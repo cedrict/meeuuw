@@ -35,7 +35,6 @@ time_scale = year
 time_unit = "yr"
 every_solution = 1
 every_swarm_vtu = 1
-nparticle_per_dim = 5
 averaging = "geometric"
 debug_ascii = True
 end_time = 1000e6 * year
@@ -103,13 +102,14 @@ def assign_boundary_conditions_V(
 
 ###################################################################################################
 
+def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
+    swarm_wf[0,:] = 1
 
-    swarm_mat = np.zeros(nparticle, dtype=np.int32)
-    swarm_mat[:] = 1
+    material_names = ["mantle"]
 
-    return swarm_mat
+    return swarm_wf, material_names
 
 
 ###################################################################################################
@@ -117,7 +117,9 @@ def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz)
 
 def material_model(
     nparticle,
-    swarm_mat,
+    swarm_active,
+    nmat,
+    swarm_wf,
     swarm_x,
     swarm_z,
     swarm_rad,
@@ -134,15 +136,17 @@ def material_model(
     swarm_hcond = np.zeros(nparticle, dtype=np.float64)
     swarm_hcapa = np.zeros(nparticle, dtype=np.float64)
     swarm_hprod = np.zeros(nparticle, dtype=np.float64)
+    swarm_alpha = np.zeros(nparticle, dtype=np.float64)
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
     swarm_hcond[:] = hcond0
     swarm_hcapa[:] = hcapa0
     swarm_hprod[:] = 0
     swarm_eta[:] = eta_mantle
     swarm_rho[:] = rho0 * (1 - alpha * (swarm_T[:] - Tsurface))
+    swarm_alpha[:] = alpha 
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
-
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 ###################################################################################################
 
@@ -156,11 +160,11 @@ def gravity_model(x, z):
 ###################################################################################################
 
 
-def initial_temperature(x, z, rad, theta, nn_V):
+def initial_temperature(x, z, rad, theta, nn_T):
 
-    T = np.zeros(nn_V, dtype=np.float64)
+    T = np.zeros(nn_T, dtype=np.float64)
 
-    for i in range(0, nn_V):
+    for i in range(0, nn_T):
         # T[i]=Tadiab_surface*np.exp(alpha*g0/Cp*(Router-rad[i]))
         T[i] = (Tbottom - Tsurface) / (1.0 / Router - 1.0 / Rinner) * (
             -1 / rad[i] + 0.5 * (1.0 / Rinner + 1.0 / Router)
@@ -172,21 +176,22 @@ def initial_temperature(x, z, rad, theta, nn_V):
 ###################################################################################################
 
 
-def assign_boundary_conditions_T(x_V, z_V, rad_V, theta_V, Nfem_T, nn_V):
+def assign_boundary_conditions_T(x_T,z_T,rad_T,theta_T,Nfem_T,nn_T,hull_Tnodes,\
+                                 top_Tnodes,bot_Tnodes,left_Tnodes,right_Tnodes):
 
     eps = 1e-8
 
     bc_fix_T = np.zeros(Nfem_T, dtype=bool)
     bc_val_T = np.zeros(Nfem_T, dtype=np.float64)
 
-    for i in range(0, nn_V):
-        if abs(rad_V[i] - Rinner) / Rinner < eps:
+    for i in range(0, nn_T):
+        if abs(rad_T[i] - Rinner) / Rinner < eps:
             bc_fix_T[i] = True
             bc_val_T[i] = Tbottom
-            if theta_V[i] > np.pi * 0.45:
+            if theta_T[i] > np.pi * 0.45:
                 bc_val_T[i] = Tbottom + 300
 
-        if abs(rad_V[i] - Router) / Router < eps:
+        if abs(rad_T[i] - Router) / Router < eps:
             bc_fix_T[i] = True
             bc_val_T[i] = Tsurface
 

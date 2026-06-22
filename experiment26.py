@@ -140,12 +140,12 @@ def assign_boundary_conditions_V(
 
 
 def assign_boundary_conditions_T(
-    x_V,
-    z_V,
-    rad_V,
-    theta_V,
+    x_T,
+    z_T,
+    rad_T,
+    theta_T,
     Nfem_T,
-    nn_V,
+    nn_T,
     hull_nodes,
     top_nodes,
     bot_nodes,
@@ -156,9 +156,9 @@ def assign_boundary_conditions_T(
     bc_fix_T = np.zeros(Nfem_T, dtype=bool)
     bc_val_T = np.zeros(Nfem_T, dtype=np.float64)
 
-    for i in range(0, nn_V):
+    for i in range(0, nn_T):
         if bot_nodes[i]:
-            dist2 = (x_V[i] - Rinner / 1.414) ** 2 + (z_V[i] - Rinner / 1.414) ** 2
+            dist2 = (x_T[i] - Rinner / 1.414) ** 2 + (z_T[i] - Rinner / 1.414) ** 2
             bc_fix_T[i] = True
             bc_val_T[i] = Tcmb + DTp * np.exp(-dist2 / Rp**2)
         if top_nodes[i]:

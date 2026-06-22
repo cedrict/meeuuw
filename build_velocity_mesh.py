@@ -96,10 +96,10 @@ def build_velocity_mesh(geometry, m_V, nn_V, nelx, nelz, Lx, Lz, Rinner, Router,
                         # end for
                     # end for
 
-                    for j in range(0, nely):
+                    for j in range(0, nelz):
                         for i in range(0, nelx):
-                            x_V[counter] = i * hx + 1 / 2.0 * hx
-                            z_V[counter] = j * hy + 1 / 2.0 * hy
+                            x_V[counter] = i * hx + hx/2
+                            z_V[counter] = j * hz + hz/2
                             counter += 1
 
                 # case "annulus":

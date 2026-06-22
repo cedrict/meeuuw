@@ -24,13 +24,13 @@ def build_velocity_connectivity(geometry, m_V, nelx, nelz, nnx, nnz, middleH_nod
             match geometry:
                 case "box" | "eighth" | "quarter" | "half":
                     counter = 0
-                    for j in range(0, nely):
+                    for j in range(0, nelz):
                         for i in range(0, nelx):
-                            iconV[0, counter] = i + j * (nelx + 1)
-                            iconV[1, counter] = i + 1 + j * (nelx + 1)
-                            iconV[2, counter] = i + 1 + (j + 1) * (nelx + 1)
-                            iconV[3, counter] = i + (j + 1) * (nelx + 1)
-                            iconV[4, counter] = (nelx + 1) * (nely + 1) + counter
+                            icon_V[0, counter] = i + j * (nelx + 1)
+                            icon_V[1, counter] = i + 1 + j * (nelx + 1)
+                            icon_V[2, counter] = i + 1 + (j + 1) * (nelx + 1)
+                            icon_V[3, counter] = i + (j + 1) * (nelx + 1)
+                            icon_V[4, counter] = (nelx + 1) * (nelz + 1) + counter
                             if i == 0:
                                 left_element[counter] = True
                             if i == nelx - 1:
@@ -39,7 +39,6 @@ def build_velocity_connectivity(geometry, m_V, nelx, nelz, nnx, nnz, middleH_nod
                                 bot_element[counter] = True
                             if j == nelz - 1:
                                 top_element[counter] = True
-                            counter += 1
                             if middleH_nodes[icon_V[0, counter]]:
                                 middleH_element[counter] = True
                             if middleH_nodes[icon_V[2, counter]]:
@@ -48,6 +47,7 @@ def build_velocity_connectivity(geometry, m_V, nelx, nelz, nnx, nnz, middleH_nod
                                 middleV_element[counter] = True
                             if middleV_nodes[icon_V[1, counter]]:
                                 middleV_element[counter] = True
+                            counter += 1
 
                 # case "annulus":
 

@@ -12,6 +12,8 @@ every_solution_png = 10
 every_swarm_vtu = 5
 every_swarm_png = 1
 
+nparticle_per_dim=10
+
 nmat = 2
 nelx = 48
 nelz = 48
@@ -79,9 +81,9 @@ def assign_boundary_conditions_V(
 
 ###################################################################################################
 
-
 def material_model(
     nparticle,
+    swarm_active,
     nmat,
     swarm_wf,
     swarm_x,
@@ -100,11 +102,15 @@ def material_model(
     swarm_hcond = 0
     swarm_hcapa = 0
     swarm_hprod = 0
+    swarm_alpha = np.zeros(nparticle, dtype=np.float64)
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
-    swarm_rho[:] = swarm_wf[0, :] * 1000 + swarm_wf[1, :] * 1010
-    swarm_eta[:] = swarm_wf[0, :] * 100 + swarm_wf[1, :] * 100
+    for ip in range(0,nparticle):
+        if swarm_active[ip]:
+           swarm_rho[ip]=swarm_wf[0,ip] * 1000 + swarm_wf[1,ip] * 1010
+           swarm_eta[ip]=swarm_wf[0,ip] * 100  + swarm_wf[1,ip] * 100
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################

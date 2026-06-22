@@ -248,8 +248,7 @@ def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, L
 
     swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
 
-    for ip in range(0, nparticle):
-        swarm_wf[0, ip] = 1
+    swarm_wf[0,:] = 1
 
     material_names = ["mantle"]
 

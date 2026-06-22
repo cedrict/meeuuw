@@ -124,8 +124,8 @@ def material_model(
         if swarm_active[ip]:
            swarm_rho[ip]=swarm_wf[0,ip] * 1   + swarm_wf[1,ip]* 1 + swarm_wf[2,ip] * 1
            swarm_eta[ip]=swarm_wf[0,ip] * 200 + swarm_wf[1,ip]* 1 + swarm_wf[2,ip] * 1e4
-           if swarm_rho[ip]<1e-6:
-              print(ip,swarm_wf[:,ip])
+           #if swarm_rho[ip]<1e-6:
+           #   print(ip,swarm_wf[:,ip])
 
     return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 

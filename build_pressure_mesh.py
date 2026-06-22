@@ -15,6 +15,9 @@ def build_pressure_mesh(geometry, nn_P, nelx, nelz, hx, hz, Rinner, Router, open
     theta_P = np.zeros(nn_P, dtype=np.float64)
     top_Pnodes = np.zeros(nn_P, dtype=bool)
     bot_Pnodes = np.zeros(nn_P, dtype=bool)
+    left_Pnodes = np.zeros(nn_P, dtype=bool)
+    right_Pnodes = np.zeros(nn_P, dtype=bool)
+    hull_Pnodes = np.zeros(nn_P, dtype=bool)
 
     match geometry:
         case "box" | "eighth" | "quarter" | "half":
@@ -23,10 +26,21 @@ def build_pressure_mesh(geometry, nn_P, nelx, nelz, hx, hz, Rinner, Router, open
                 for i in range(0, nelx + 1):
                     x_P[counter] = i * hx
                     z_P[counter] = j * hz
+                    if i == 0:
+                        left_Pnodes[counter] = True
+                    if i == nelx:
+                        right_Pnodes[counter] = True
                     if j == 0:
                         bot_Pnodes[counter] = True
                     if j == nelz:
                         top_Pnodes[counter] = True
+                    if (
+                       top_Pnodes[counter]
+                       or bot_Pnodes[counter]
+                       or right_Pnodes[counter]
+                       or left_Pnodes[counter]
+                       ):
+                       hull_Pnodes[counter] = True
                     counter += 1
                 # end for
             # end for
@@ -68,7 +82,7 @@ def build_pressure_mesh(geometry, nn_P, nelx, nelz, hx, hz, Rinner, Router, open
     if debug:
         np.savetxt("DEBUG/mesh_P.ascii", np.array([x_P, z_P]).T, header="# x,z")
 
-    return x_P, z_P, rad_P, theta_P, top_Pnodes, bot_Pnodes
+    return x_P, z_P, rad_P, theta_P, left_Pnodes, right_Pnodes, top_Pnodes, bot_Pnodes, hull_Pnodes
 
 
 ###################################################################################################

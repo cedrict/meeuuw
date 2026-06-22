@@ -14,16 +14,6 @@ end_time = 0
 eta_ref = 1e21
 every_solution = 1
 every_swarm_vtu = 1
-averaging = "arithmetic"
-# nparticle_per_dim=4
-particle_distribution = 1  # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
-nodal_projection_type = 1
-
-# debug_ascii=True
-# remove_rho_profile=True
-
-particle_rho_projection = "least_squares_Q1"
-particle_eta_projection = "least_squares_Q1"
 
 p_scale = 1e6
 p_unit = "MPa"
@@ -31,6 +21,8 @@ vel_scale = cm / year
 vel_unit = "cm/yr"
 time_scale = year
 time_unit = "yr"
+
+nmat=3
 
 ###################################################################################################
 
@@ -72,28 +64,30 @@ def assign_boundary_conditions_V(
 
 ###################################################################################################
 
+def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
-
-    swarm_mat = np.zeros(nparticle, dtype=np.int32)
-    swarm_mat[:] = 1  # air
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
 
     for ip in range(0, nparticle):
-        if swarm_z[ip] < 384e3:
-            swarm_mat[ip] = 2  # asthenosphere
+        if swarm_z[ip]>= 384e3: # air
+           swarm_wf[0,ip]=1
+        elif (swarm_x[ip] - Lx/2) ** 2 + (swarm_z[ip] - Lz/2) ** 2 < 64e3**2: # sphere
+           swarm_wf[2,ip]=1
+        else: # mantle
+           swarm_wf[1,ip]=1
 
-        if (swarm_x[ip] - Lx / 2) ** 2 + (swarm_z[ip] - Lz / 2) ** 2 < 64e3**2:
-            swarm_mat[ip] = 3  # sphere
+    material_names = ["air","mantle","sphere"]
 
-    return swarm_mat
+    return swarm_wf, material_names
 
 
 ###################################################################################################
 
-
 def material_model(
     nparticle,
-    swarm_mat,
+    swarm_active,
+    nmat,
+    swarm_wf,
     swarm_x,
     swarm_z,
     swarm_rad,
@@ -110,18 +104,23 @@ def material_model(
     swarm_hcond = 0
     swarm_hcapa = 0
     swarm_hprod = 0
+    swarm_alpha = np.zeros(nparticle, dtype=np.float64)
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
-    mask = swarm_mat == 1
-    swarm_eta[mask] = 1e18
-    swarm_rho[mask] = 1  # air
-    mask = swarm_mat == 2
-    swarm_eta[mask] = 1e21
-    swarm_rho[mask] = 3200  # asthenosphere
-    mask = swarm_mat == 3
-    swarm_eta[mask] = 1e22
-    swarm_rho[mask] = 3300  # sphere
+    rho_air=1
+    rho_mantle=3200
+    rho_sphere=3300
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    eta_air=1e18
+    eta_mantle=1e21
+    eta_sphere=1e22
+
+    for ip in range(0,nparticle):
+        if swarm_active[ip]:
+           swarm_rho[ip]=swarm_wf[0,ip] * rho_air + swarm_wf[1,ip]* rho_mantle + swarm_wf[2,ip] * rho_sphere
+           swarm_eta[ip]=swarm_wf[0,ip] * eta_air + swarm_wf[1,ip]* eta_mantle + swarm_wf[2,ip] * eta_sphere
+
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################

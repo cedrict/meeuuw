@@ -103,7 +103,7 @@ from set_default_parameters import *
 # experiment 27: folding 
 ###############################################################################
 
-experiment = 19
+experiment = 5
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx", type=int, default=0)
@@ -268,7 +268,7 @@ match geometry:
     case "box":
         L_ref = (Lx + Lz) / 2
         if m_V==5:
-           nn_V = (nelx + 1) * (nelz + 1) +nel # number of V nodes
+           nn_V = (nelx + 1) * (nelz + 1) +nelx*nelz # number of V nodes
         else:
            nn_V = (2 * nelx + 1) * (2 * nelz + 1)  # number of V nodes
         nn_P = (nelx + 1) * (nelz + 1)  # number of P nodes
@@ -484,7 +484,7 @@ x_V, z_V = straighten_edges_axisymmetric(geometry, axisymmetric, straighten_edge
 ###############################################################################
 start = clock.time()
 
-x_P, z_P, rad_P, theta_P, top_Pnodes, bot_Pnodes = build_pressure_mesh(
+x_P, z_P, rad_P, theta_P, left_Pnodes, right_Pnodes, top_Pnodes, bot_Pnodes, hull_Pnodes = build_pressure_mesh(
     geometry, nn_P, nelx, nelz, hx, hz, Rinner, Router, opening_angle, debug_ascii
 )
 

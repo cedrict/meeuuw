@@ -54,11 +54,11 @@ p_unit = "MPa"
 ###################################################################################################
 
 
-def initial_temperature(x, z, rad, theta, nn_V):
+def initial_temperature(x, z, rad, theta, nn_T):
 
-    T = np.zeros(nn_V, dtype=np.float64)
+    T = np.zeros(nn_T, dtype=np.float64)
 
-    for i in range(0, nn_V):
+    for i in range(0, nn_T):
         T[i] = (Tbottom - Ttop) * (Lz - z[i]) / Lz + Ttop + 10 * np.cos(np.pi * x[i] / Lx) * np.sin(np.pi * z[i] / Lz)
 
     return T
@@ -109,12 +109,12 @@ def assign_boundary_conditions_V(
 
 
 def assign_boundary_conditions_T(
-    x_V,
-    z_V,
-    rad_V,
-    theta_V,
+    x_T,
+    z_T,
+    rad_T,
+    theta_T,
     Nfem_T,
-    nn_V,
+    nn_T,
     hull_nodes,
     top_nodes,
     bot_nodes,
@@ -127,11 +127,11 @@ def assign_boundary_conditions_T(
     bc_fix_T = np.zeros(Nfem_T, dtype=bool)
     bc_val_T = np.zeros(Nfem_T, dtype=np.float64)
 
-    for i in range(0, nn_V):
-        if z_V[i] / Lz < eps:
+    for i in range(0, nn_T):
+        if z_T[i] / Lz < eps:
             bc_fix_T[i] = True
             bc_val_T[i] = Tbottom
-        if z_V[i] / Lz > (1 - eps):
+        if z_T[i] / Lz > (1 - eps):
             bc_fix_T[i] = True
             bc_val_T[i] = Ttop
 

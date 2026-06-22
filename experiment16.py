@@ -14,12 +14,6 @@ end_time = 40e6 * year
 eta_ref = 1e21
 every_solution = 1
 every_swarm_vtu = 1
-averaging = "harmonic"
-# particle_distribution=1 # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
-# nodal_projection_type=4
-
-# debug_ascii=True
-# remove_rho_profile=True
 
 p_scale = 1e6
 p_unit = "MPa"
@@ -27,6 +21,11 @@ vel_scale = cm / year
 vel_unit = "cm/yr"
 time_scale = year
 time_unit = "yr"
+
+nmat=5
+nparticle_per_dim=10
+nparticle_min=int(nparticle_per_dim**2*0.85)
+
 
 ###################################################################################################
 
@@ -68,31 +67,35 @@ def assign_boundary_conditions_V(
 
 ###################################################################################################
 
+def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
-
-    swarm_mat = np.zeros(nparticle, dtype=np.int32)
-    swarm_mat[:] = 5
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
 
     for ip in range(0, nparticle):
+        if swarm_x[ip] <= 300e3 and swarm_z[ip] >= Lz-10e3:
+           swarm_wf[0,ip]=1
+        if swarm_x[ip] >= 300e3 and swarm_z[ip] >= Lz-8e3:
+           swarm_wf[0,ip]=1
         if swarm_x[ip] <= 300e3 and swarm_z[ip] < Lz - 60e3:
-            swarm_mat[ip] = 1  # asthenosphere left
+           swarm_wf[1,ip]=1
         if swarm_x[ip] >= 300e3 and swarm_z[ip] < Lz - 18e3:
-            swarm_mat[ip] = 2  # asthenosphere right
+           swarm_wf[2,ip]=1
         if swarm_x[ip] <= 300e3 and swarm_z[ip] > Lz - 60e3 and swarm_z[ip] <= Lz - 10e3:
-            swarm_mat[ip] = 3  # lithosphere left
+           swarm_wf[3,ip]=1
         if swarm_x[ip] >= 300e3 and swarm_z[ip] > Lz - 18e3 and swarm_z[ip] <= Lz - 8e3:
-            swarm_mat[ip] = 4  # lithosphere right
+           swarm_wf[4,ip]=1
 
-    return swarm_mat
+    material_names = ["water","asthenosphere_L","asthenosphere_R","lithosphere_L","lithosphere_R"]
 
+    return swarm_wf, material_names
 
 ###################################################################################################
 
-
 def material_model(
     nparticle,
-    swarm_mat,
+    swarm_active,
+    nmat,
+    swarm_wf,
     swarm_x,
     swarm_z,
     swarm_rad,
@@ -104,29 +107,45 @@ def material_model(
     swarm_p,
 ):
 
+
     swarm_rho = np.zeros(nparticle, dtype=np.float64)
     swarm_eta = np.zeros(nparticle, dtype=np.float64)
     swarm_hcond = 0
     swarm_hcapa = 0
     swarm_hprod = 0
+    swarm_alpha = np.zeros(nparticle, dtype=np.float64)
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
-    mask = swarm_mat == 1
-    swarm_eta[mask] = 1e21
-    swarm_rho[mask] = 3200  # asthenosphere left
-    mask = swarm_mat == 2
-    swarm_eta[mask] = 1e21
-    swarm_rho[mask] = 3200  # asthenosphere right
-    mask = swarm_mat == 3
-    swarm_eta[mask] = 1e22
-    swarm_rho[mask] = 3300  # lithosphere left
-    mask = swarm_mat == 4
-    swarm_eta[mask] = 1e22
-    swarm_rho[mask] = 3300  # lithosphere right
-    mask = swarm_mat == 5
-    swarm_eta[mask] = 1e18
-    swarm_rho[mask] = 1030  # water
+    eta_asthL = 1e21
+    rho_asthL = 3200  # asthenosphere left
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    eta_asthR = 1e21
+    rho_asthR = 3200  # asthenosphere right
+
+    eta_lithL = 1e22
+    rho_lithL = 3300  # lithosphere left
+
+    eta_lithR = 1e22
+    rho_lithR = 3300  # lithosphere right
+
+    eta_water = 1e18
+    rho_water = 1030  # water
+
+    for ip in range(0,nparticle):
+        if swarm_active[ip]:
+           swarm_rho[ip]=swarm_wf[0,ip] * rho_water +\
+                         swarm_wf[1,ip] * rho_asthL +\
+                         swarm_wf[2,ip] * rho_asthR +\
+                         swarm_wf[3,ip] * rho_lithL +\
+                         swarm_wf[4,ip] * rho_lithR
+           swarm_eta[ip]=swarm_wf[0,ip] * eta_water +\
+                         swarm_wf[1,ip] * eta_asthL +\
+                         swarm_wf[2,ip] * eta_asthR +\
+                         swarm_wf[3,ip] * eta_lithL +\
+                         swarm_wf[4,ip] * eta_lithR
+
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
+
 
 
 ###################################################################################################
