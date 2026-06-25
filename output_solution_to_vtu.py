@@ -74,6 +74,9 @@ def output_solution_to_vtu(
     particle_eta_projection,
     ls_rho_a,
     ls_eta_a,
+    export_strainrate_tensor_components,
+    export_devstress_tensor_components,
+    export_stress_tensor_components,
 ):
 
     debug_sol = False
@@ -215,15 +218,16 @@ def output_solution_to_vtu(
         vtufile.write("</DataArray>\n")
     # --
     if solve_Stokes:
-        vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
-        exx_nodal.tofile(vtufile, sep=" ", format="%.4e")
-        vtufile.write("</DataArray>\n")
-        vtufile.write("<DataArray type='Float32' Name='ezz' Format='ascii'> \n")
-        ezz_nodal.tofile(vtufile, sep=" ", format="%.4e")
-        vtufile.write("</DataArray>\n")
-        vtufile.write("<DataArray type='Float32' Name='exz' Format='ascii'> \n")
-        exz_nodal.tofile(vtufile, sep=" ", format="%.4e")
-        vtufile.write("</DataArray>\n")
+        if export_strainrate_tensor_components:
+           vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
+           exx_nodal.tofile(vtufile, sep=" ", format="%.4e")
+           vtufile.write("</DataArray>\n")
+           vtufile.write("<DataArray type='Float32' Name='ezz' Format='ascii'> \n")
+           ezz_nodal.tofile(vtufile, sep=" ", format="%.4e")
+           vtufile.write("</DataArray>\n")
+           vtufile.write("<DataArray type='Float32' Name='exz' Format='ascii'> \n")
+           exz_nodal.tofile(vtufile, sep=" ", format="%.4e")
+           vtufile.write("</DataArray>\n")
         #
         # ee_n=effective(exx,ezz,exz)
         # vtufile.write("<DataArray type='Float32' Name='e' Format='ascii'> \n")
@@ -234,25 +238,27 @@ def output_solution_to_vtu(
         divv_nodal.tofile(vtufile, sep=" ", format="%.4e")
         vtufile.write("</DataArray>\n")
         # --
-        vtufile.write("<DataArray type='Float32' Name='sigmaxx' Format='ascii'> \n")
-        sigmaxx_nodal.tofile(vtufile, sep=" ", format="%.4e")
-        vtufile.write("</DataArray>\n")
-        vtufile.write("<DataArray type='Float32' Name='sigmazz' Format='ascii'> \n")
-        sigmazz_nodal.tofile(vtufile, sep=" ", format="%.4e")
-        vtufile.write("</DataArray>\n")
-        vtufile.write("<DataArray type='Float32' Name='sigmaxz' Format='ascii'> \n")
-        sigmaxz_nodal.tofile(vtufile, sep=" ", format="%.4e")
-        vtufile.write("</DataArray>\n")
+        if export_stress_tensor_components:
+           vtufile.write("<DataArray type='Float32' Name='sigmaxx' Format='ascii'> \n")
+           sigmaxx_nodal.tofile(vtufile, sep=" ", format="%.4e")
+           vtufile.write("</DataArray>\n")
+           vtufile.write("<DataArray type='Float32' Name='sigmazz' Format='ascii'> \n")
+           sigmazz_nodal.tofile(vtufile, sep=" ", format="%.4e")
+           vtufile.write("</DataArray>\n")
+           vtufile.write("<DataArray type='Float32' Name='sigmaxz' Format='ascii'> \n")
+           sigmaxz_nodal.tofile(vtufile, sep=" ", format="%.4e")
+           vtufile.write("</DataArray>\n")
         # --
-        vtufile.write("<DataArray type='Float32' Name='tauxx' Format='ascii'> \n")
-        tauxx_nodal.tofile(vtufile, sep=" ", format="%.4e")
-        vtufile.write("</DataArray>\n")
-        vtufile.write("<DataArray type='Float32' Name='tauzz' Format='ascii'> \n")
-        tauzz_nodal.tofile(vtufile, sep=" ", format="%.4e")
-        vtufile.write("</DataArray>\n")
-        vtufile.write("<DataArray type='Float32' Name='tauxz' Format='ascii'> \n")
-        tauxz_nodal.tofile(vtufile, sep=" ", format="%.4e")
-        vtufile.write("</DataArray>\n")
+        if export_devstress_tensor_components:
+           vtufile.write("<DataArray type='Float32' Name='tauxx' Format='ascii'> \n")
+           tauxx_nodal.tofile(vtufile, sep=" ", format="%.4e")
+           vtufile.write("</DataArray>\n")
+           vtufile.write("<DataArray type='Float32' Name='tauzz' Format='ascii'> \n")
+           tauzz_nodal.tofile(vtufile, sep=" ", format="%.4e")
+           vtufile.write("</DataArray>\n")
+           vtufile.write("<DataArray type='Float32' Name='tauxz' Format='ascii'> \n")
+           tauxz_nodal.tofile(vtufile, sep=" ", format="%.4e")
+           vtufile.write("</DataArray>\n")
         tau_n = effective(tauxx_nodal, tauzz_nodal, tauxz_nodal)
         vtufile.write("<DataArray type='Float32' Name='tau' Format='ascii'> \n")
         tau_n.tofile(vtufile, sep=" ", format="%.4e")
@@ -334,19 +340,19 @@ def output_solution_to_vtu(
         divv_e.tofile(vtufile, sep=" ", format="%.5e")
         vtufile.write("</DataArray>\n")
         # --
-        vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
-        exx_e.tofile(vtufile, sep=" ", format="%.5e")
-        vtufile.write("</DataArray>\n")
+        if export_strainrate_tensor_components:
+           vtufile.write("<DataArray type='Float32' Name='exx' Format='ascii'> \n")
+           exx_e.tofile(vtufile, sep=" ", format="%.5e")
+           vtufile.write("</DataArray>\n")
+           # --
+           vtufile.write("<DataArray type='Float32' Name='ezz' Format='ascii'> \n")
+           ezz_e.tofile(vtufile, sep=" ", format="%.5e")
+           vtufile.write("</DataArray>\n")
+           # --
+           vtufile.write("<DataArray type='Float32' Name='exz' Format='ascii'> \n")
+           exz_e.tofile(vtufile, sep=" ", format="%.5e")
+           vtufile.write("</DataArray>\n")
         # --
-        vtufile.write("<DataArray type='Float32' Name='ezz' Format='ascii'> \n")
-        ezz_e.tofile(vtufile, sep=" ", format="%.5e")
-        vtufile.write("</DataArray>\n")
-        # --
-        vtufile.write("<DataArray type='Float32' Name='exz' Format='ascii'> \n")
-        exz_e.tofile(vtufile, sep=" ", format="%.5e")
-        vtufile.write("</DataArray>\n")
-        # --
-        #
         ee_el = effective(exx_e, ezz_e, exz_e)
         vtufile.write("<DataArray type='Float32' Name='e' Format='ascii'> \n")
         ee_el.tofile(vtufile, sep=" ", format="%.4e")

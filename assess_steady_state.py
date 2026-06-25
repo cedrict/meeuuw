@@ -7,7 +7,9 @@ import numpy as np
 ###################################################################################################
 
 
-def assess_steady_state(
+def assess_nlconvergence(
+    istep: int,
+    iter_nl: int,
     solve_Stokes: bool,
     solve_T: bool,
     u: np.ndarray,
@@ -18,41 +20,64 @@ def assess_steady_state(
     w_mem: np.ndarray,
     p_mem: np.ndarray,
     T_mem: np.ndarray,
-    tol_ss: float,
+    tol_nl: float,
+    inside_nonlinear_iterations,
+    conv_file,
 ):
 
     if solve_Stokes:
-        steady_state_u = np.linalg.norm(u_mem - u, 2) / np.linalg.norm(u, 2) < tol_ss
-        steady_state_w = np.linalg.norm(w_mem - w, 2) / np.linalg.norm(w, 2) < tol_ss
-        steady_state_p = np.linalg.norm(p_mem - p, 2) / np.linalg.norm(p, 2) < tol_ss
+        xi_u=np.linalg.norm(u_mem - u, 2) / np.linalg.norm(u, 2)
+        xi_w=np.linalg.norm(w_mem - w, 2) / np.linalg.norm(w, 2)
+        xi_p=np.linalg.norm(p_mem - p, 2) / np.linalg.norm(p, 2)
+        nlconvergence_u = xi_u < tol_nl
+        nlconvergence_w = xi_w < tol_nl
+        nlconvergence_p = xi_p < tol_nl
     else:
-        steady_state_u = False
-        steady_state_w = False
-        steady_state_p = False
+        xi_u=0
+        xi_w=0
+        xi_p=0
+        nlconvergence_u = False
+        nlconvergence_w = False
+        nlconvergence_p = False
 
     if solve_T:
-        steady_state_T = np.linalg.norm(T_mem - T, 2) / np.linalg.norm(T, 2) < tol_ss
-        print(
-            "     -> u,w,p,T",
-            steady_state_u,
-            steady_state_w,
-            steady_state_p,
-            steady_state_T,
-        )
+        xi_T=np.linalg.norm(T_mem - T, 2) / np.linalg.norm(T, 2)
+        nlconvergence_T = xi_T < tol_nl
     else:
-        steady_state_T = True
-        print("     -> u,w,p", steady_state_u, steady_state_w, steady_state_p)
+        xi_T=0
+        nlconvergence_T = True
 
-    steady_state = steady_state_u and steady_state_w and steady_state_p and steady_state_T
+    print("     -> NL: istep %d iter_nl %d |xi_u %.3e |xi_w %.3e |xi_p %.3e |xi_T %.3e |tol %.3e " %\
+         (istep,iter_nl,xi_u,xi_w,xi_p,xi_T,tol_nl))
+
+    conv_file.write("%.3e %.3e %.3e %.3e %.3e %.3e \n" % (istep+iter_nl/200,xi_u,xi_w,xi_p,xi_T,tol_nl))
+    conv_file.flush()
+
+    print(
+        "     -> NL: u,w,p,T",
+        nlconvergence_u,
+        nlconvergence_w,
+        nlconvergence_p,
+        nlconvergence_T,
+    )
+
+
+    nlconvergence = nlconvergence_u and nlconvergence_w and nlconvergence_p and nlconvergence_T
+
+    if nlconvergence:
+       print("     -> NL CONVERGED!")
+       inside_nonlinear_iterations=False
+    else:
+       print("     -> NL inside_nonlinear_iterations=",inside_nonlinear_iterations)
 
     u_mem = u.copy()
     w_mem = w.copy()
     p_mem = p.copy()
 
-    if solve_T:
+    if solve_T and not inside_nonlinear_iterations:
         T_mem = T.copy()
 
-    return steady_state, u_mem, w_mem, p_mem, T_mem
+    return u_mem, w_mem, p_mem, T_mem, inside_nonlinear_iterations
 
 
 ###################################################################################################

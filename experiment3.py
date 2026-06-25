@@ -167,11 +167,11 @@ def assign_boundary_conditions_T(x_V, z_V, rad_V, theta_V, Nfem_T, nn_V):
     bc_fix_T = np.zeros(Nfem_T, dtype=bool)
     bc_val_T = np.zeros(Nfem_T, dtype=np.float64)
 
-    for i in range(0, nn_V):
-        if z_V[i] < eps:
+    for i in range(0, nn_T):
+        if z_T[i] < eps:
             bc_fix_T[i] = True
             bc_val_T[i] = Tbottom
-        if z_V[i] > (Lz - eps):
+        if z_T[i] > (Lz - eps):
             bc_fix_T[i] = True
             bc_val_T[i] = Ttop
 

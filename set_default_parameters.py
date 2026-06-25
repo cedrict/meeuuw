@@ -3,14 +3,9 @@
 ###################################################################################################
 
 CFLnb = 0.25
-tol_ss = -1e-8
 pressure_normalisation = "surface"
-every_solution_vtu = 1
-every_solution_png = 1000000
-every_swarm_vtu = 1000000
-every_swarm_png = 1000000
-every_swarm_ascii = 1000000
-every_quadpoints_vtu = 1000000
+
+
 end_time = 0.0
 formulation = "BA"
 vel_scale = 1
@@ -33,6 +28,21 @@ compute_dynamic_topography = False
 nmat = 1
 
 #######################################
+# output  
+#######################################
+
+every_solution_vtu = 1
+every_solution_png = 1000000
+every_swarm_vtu = 1000000
+every_swarm_png = 1000000
+every_swarm_ascii = 1000000
+every_quadpoints_vtu = 1000000
+export_strainrate_tensor_components=False
+export_devstress_tensor_components=False
+export_stress_tensor_components=False
+
+
+#######################################
 # finite elements
 #######################################
 
@@ -42,6 +52,14 @@ bot_free_slip = False
 method_nodal_strain_rate = 1
 compute_plith = False
 compute_L2_errors = False
+
+#######################################
+# nonlinear iterations
+#######################################
+
+nonlinear=False
+tol_nl=1e-3
+niter_nl=25
 
 #######################################
 # debug pparameters
@@ -75,6 +93,8 @@ averaging = "harmonic"  # viscosity averaging
 nodal_projection_type = 2  #
 particle_rho_projection = "elemental"
 particle_eta_projection = "elemental"
+allow_population_control=False
+
 
 #######################################
 # gravity & dyn topo parameters

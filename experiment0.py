@@ -162,17 +162,17 @@ def assign_boundary_conditions_V(
 
 
 def assign_boundary_conditions_T(
-    x_V,
-    z_V,
-    rad_V,
-    theta_V,
-    Nfem_T,
-    nn_V,
-    hull_nodes,
-    top_nodes,
-    bot_nodes,
-    left_nodes,
-    right_nodes,
+        x_T,
+        z_T,
+        rad_T,
+        theta_T,
+        Nfem_T,
+        nn_T,
+        hull_Tnodes,
+        top_Tnodes,
+        bot_Tnodes,
+        left_Tnodes,
+        right_Tnodes,
 ):
 
     eps = 1e-8
@@ -181,20 +181,20 @@ def assign_boundary_conditions_T(
     bc_val_T = np.zeros(Nfem_T, dtype=np.float64)
 
     if geometry == "box":
-        for i in range(0, nn_V):
-            if z_V[i] < eps:
+        for i in range(0, nn_T):
+            if z_T[i] < eps:
                 bc_fix_T[i] = True
                 bc_val_T[i] = Tbottom
-            if z_V[i] > (Lz - eps):
+            if z_T[i] > (Lz - eps):
                 bc_fix_T[i] = True
                 bc_val_T[i] = Ttop
 
     if geometry == "quarter":
-        for i in range(0, nn_V):
-            if abs(rad_V[i] - Rinner) < eps:
+        for i in range(0, nn_T):
+            if abs(rad_T[i] - Rinner) < eps:
                 bc_fix_T[i] = True
                 bc_val_T[i] = Tbottom
-            if abs(rad_V[i] - Router) < eps:
+            if abs(rad_T[i] - Router) < eps:
                 bc_fix_T[i] = True
                 bc_val_T[i] = Ttop
 

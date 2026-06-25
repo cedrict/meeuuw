@@ -77,6 +77,9 @@ def open_files(vel_unit, time_unit):
     avrg_dTdz_bot_file = open("OUTPUT/bottom/avrg_dTdz_bot.ascii", "w")
     avrg_dTdz_top_file = open("OUTPUT/top/avrg_dTdz_top.ascii", "w")
 
+    conv_file = open("OUTPUT/conv.ascii", "w")
+
+
     return (
         vrms_file,
         pstats_file,
@@ -105,6 +108,7 @@ def open_files(vel_unit, time_unit):
         avrg_T_top_file,
         avrg_dTdz_bot_file,
         avrg_dTdz_top_file,
+        conv_file
     )
 
 

@@ -5,7 +5,6 @@
 import numpy as np
 import sys as sys
 import numba
-import random
 import time as clock
 import scipy.sparse as sps
 import argparse
@@ -56,6 +55,7 @@ from PoissonDisc import *
 from quadrature_setup import *
 from remove_net_rotation import *
 from scipy import sparse
+from swarm_coordinates_setup import *
 from straighten_edges_axisymmetric import *
 from toolbox import *
 from update_F import *
@@ -101,9 +101,10 @@ from set_default_parameters import *
 # experiment 25: BA vs EBA box
 # experiment 26: plume-lithosphere wali21
 # experiment 27: folding 
+# experiment 28: Lithospheric Drip based on bagu25
 ###############################################################################
 
-experiment = 5
+experiment = 28
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx", type=int, default=0)
@@ -187,6 +188,8 @@ match experiment:
         from experiment26 import *
     case 27:
         from experiment27 import *
+    case 28:
+        from experiment28 import *
     case _:
         exit("setup - unknown experiment")
 
@@ -379,6 +382,7 @@ qcoords, qweights, nq_per_element, nq = quadrature_setup(nq_per_dim, nel)
     avrg_T_top_file,
     avrg_dTdz_bot_file,
     avrg_dTdz_top_file,
+    conv_file,
 ) = open_files(vel_unit, time_unit)
 
 ###############################################################################
@@ -399,7 +403,6 @@ print("nq_per_dim=", nq_per_dim)
 print("CFLnb=", CFLnb)
 print("debug_ascii:", debug_ascii, "| debug_nan:", debug_nan)
 print("solve_T:", solve_T)
-print("tol_ss=", tol_ss)
 print("end_time=", end_time / time_scale, time_unit)
 print("averaging:", averaging)
 print("formulation:", formulation)
@@ -649,7 +652,7 @@ start = clock.time()
     area,
 ) = basis_functions_setup_q(nq_per_dim, m_V, m_P, m_T, nel, x_V, z_V, icon_V, qcoords, qweights, volume)
 
-print("comp elts areas, N, grad(N) at q pts: ........ %.3f s" % (clock.time() - start))
+print("comp N, grad(N), elts areas at q pts: ........ %.3f s" % (clock.time() - start))
 
 ###############################################################################
 # @@ compute center coordinates
@@ -916,112 +919,12 @@ print("fill II_T,JJ_T arrays: ....................... %.3f s" % (clock.time() - 
 ###############################################################################
 start = clock.time()
 
-swarm_x = np.zeros(nparticle, dtype=np.float64)
-swarm_z = np.zeros(nparticle, dtype=np.float64)
-swarm_r = np.zeros(nparticle, dtype=np.float64)
-swarm_t = np.zeros(nparticle, dtype=np.float64)
-swarm_id = np.zeros(nparticle, dtype=np.int32)
-swarm_iel = np.zeros(nparticle, dtype=np.int32)
-
-match particle_distribution:
-    case -1:  # collocated with qpoints
-        counter = 0
-        for iel in range(0, nel):
-            c = 0
-            for iq in range(0, nq_per_dim):
-                for jq in range(0, nq_per_dim):
-                    swarm_x[counter] = xq[iel, c]
-                    swarm_z[counter] = zq[iel, c]
-                    swarm_r[counter] = qcoords[iq]
-                    swarm_t[counter] = qcoords[jq]
-                    swarm_iel[counter] = iel
-                    swarm_id[counter] = counter
-                    counter += 1
-                    c += 1
-                # end for
-            # end for
-        # end for
-
-    case 0:  # random
-        counter = 0
-        for iel in range(0, nel):
-            for im in range(0, nparticle_per_element):
-                r = random.uniform(-1.0, +1)
-                t = random.uniform(-1.0, +1)
-                N = basis_functions_V(r, t)
-                swarm_x[counter] = np.dot(N[:], x_V[icon_V[:, iel]])
-                swarm_z[counter] = np.dot(N[:], z_V[icon_V[:, iel]])
-                swarm_r[counter] = r
-                swarm_t[counter] = t
-                swarm_iel[counter] = iel
-                swarm_id[counter] = counter
-                counter += 1
-            # end for
-        # end for
-
-    case 1:  # regular
-        counter = 0
-        for iel in range(0, nel):
-            for j in range(0, nparticle_per_dim):
-                for i in range(0, nparticle_per_dim):
-                    r = -1.0 + i * 2.0 / nparticle_per_dim + 1.0 / nparticle_per_dim
-                    t = -1.0 + j * 2.0 / nparticle_per_dim + 1.0 / nparticle_per_dim
-                    N = basis_functions_V(r, t)
-                    swarm_x[counter] = np.dot(N[:], x_V[icon_V[:, iel]])
-                    swarm_z[counter] = np.dot(N[:], z_V[icon_V[:, iel]])
-                    swarm_r[counter] = r
-                    swarm_t[counter] = t
-                    swarm_iel[counter] = iel
-                    swarm_id[counter] = counter
-                    counter += 1
-                # end for
-            # end for
-        # end for
-
-    case 2:  # Poisson Disc
-        if geometry != "box":
-            exit("Poisson disc not available with this geometry")
-
-        kpoisson = 30
-        nparticle_wish = nel * nparticle_per_element  # target
-        print("     -> nparticle_wish: %d " % (nparticle_wish))
-        avrgdist = np.sqrt(Lx * Lz / nparticle_wish) / 1.25
-        nparticle, swarm_x, swarm_z = PoissonDisc(kpoisson, avrgdist, Lx, Lz)
-        print("     -> nparticle: %d " % (nparticle))
-
-        swarm_r, swarm_t, swarm_iel = locate_particlesX(nparticle, swarm_x, swarm_z, hx, hz, x_V, z_V, icon_V, nelx)
-
-        #swarm_id[counter] = missing!
-
-    case 3:  # pseudo-random
-        counter = 0
-        for iel in range(0, nel):
-            for j in range(0, nparticle_per_dim):
-                for i in range(0, nparticle_per_dim):
-                    r = -1.0 + i * 2.0 / nparticle_per_dim + 1.0 / nparticle_per_dim
-                    t = -1.0 + j * 2.0 / nparticle_per_dim + 1.0 / nparticle_per_dim
-                    r += random.uniform(-0.2, +0.2) * (2 / nparticle_per_dim)
-                    t += random.uniform(-0.2, +0.2) * (2 / nparticle_per_dim)
-                    N = basis_functions_V(r, t)
-                    swarm_x[counter] = np.dot(N[:], x_V[icon_V[:, iel]])
-                    swarm_z[counter] = np.dot(N[:], z_V[icon_V[:, iel]])
-                    swarm_r[counter] = r
-                    swarm_t[counter] = t
-                    swarm_iel[counter] = iel
-                    swarm_id[counter] = counter
-                    counter += 1
-                # end for
-            # end for
-        # end for
-
-    case _:
-        exit("unknown particle_distribution")
+swarm_active,swarm_x,swarm_z,swarm_r,swarm_t,swarm_id,swarm_iel, swarm_rad, swarm_theta,swarm_paint=\
+swarm_coordinates_setup(geometry,particle_distribution,nparticle,nparticle_per_element,nparticle_per_dim,\
+nel,nq_per_dim,nelx,nelz,Lx,Lz,hx,hz,xq,zq,qcoords,x_V,z_V,icon_V)
 
 if debug_ascii:
     np.savetxt("DEBUG/swarm_distribution.ascii", np.array([swarm_x, swarm_z]).T, header="#x,z")
-
-swarm_active = np.zeros(nparticle, dtype=bool)
-swarm_active[:] = True
 
 print("     -> nparticle %d " % nparticle)
 print("     -> swarm_x (m,M) %.3e %.3e " % (np.min(swarm_x), np.max(swarm_x)))
@@ -1031,20 +934,6 @@ print("     -> swarm_t (m,M) %.3e %.3e " % (np.min(swarm_t), np.max(swarm_t)))
 print("     -> swarm_id (m,M) %.3e %.3e " % (np.min(swarm_id), np.max(swarm_id)))
 print("     -> swarm_iel (m,M) %.3e %.3e " % (np.min(swarm_iel), np.max(swarm_iel)))
 
-match geometry:
-    case "quarter" | "half" | "eighth":
-        swarm_rad = np.sqrt(swarm_x**2 + swarm_z**2)
-        swarm_theta = np.pi / 2 - np.arctan2(swarm_x, swarm_z)
-        print("     -> swarm_rad (m,M) %.3e %.3e " % (np.min(swarm_rad), np.max(swarm_rad)))
-        print("     -> swarm_theta (m,M) %.3e %.3e " % (np.min(swarm_theta), np.max(swarm_theta)))
-    case "annulus":
-        swarm_rad = np.sqrt(swarm_x**2 + swarm_z**2)
-        swarm_theta = np.arctan2(swarm_z, swarm_x)
-    case _:
-        swarm_rad = 0
-        swarm_theta = 0
-
-
 print("particles setup: ............................. %.3f s" % (clock.time() - start))
 
 ###############################################################################
@@ -1053,42 +942,6 @@ print("particles setup: ............................. %.3f s" % (clock.time() - 
 ###############################################################################
 
 swarm_strain = np.zeros(nparticle, dtype=np.float64)
-
-###############################################################################
-# @@ particle paint
-###############################################################################
-start = clock.time()
-
-swarm_paint = np.zeros(nparticle, dtype=np.int32)
-
-match geometry:
-    case "box":
-        for i in [0, 2, 4, 6, 8, 10, 12, 14]:
-            dx = Lx / 16
-            for ip in range(0, nparticle):
-                if swarm_x[ip] > i * dx and swarm_x[ip] < (i + 1) * dx:
-                    swarm_paint[ip] += 1
-        for i in [0, 2, 4, 6, 8, 10, 12, 14]:
-            dz = Lz / 16
-            for ip in range(0, nparticle):
-                if swarm_z[ip] > i * dz and swarm_z[ip] < (i + 1) * dz:
-                    swarm_paint[ip] += 1
-
-    case "quarter" | "half" | "eighth" | "annulus":
-        for i in [0, 2, 4, 6, 8, 10, 12, 14]:
-            drad = (Router - Rinner) / 16
-            for ip in range(0, nparticle):
-                if swarm_rad[ip] > Rinner + i * drad and swarm_rad[ip] < Rinner + (i + 1) * drad:
-                    swarm_paint[ip] += 1
-        for i in [0, 2, 4, 6, 8, 10, 12, 14]:
-            dtheta = opening_angle / 16
-            for ip in range(0, nparticle):
-                if swarm_theta[ip] > theta_min + i * dtheta and swarm_theta[ip] < theta_min + (i + 1) * dtheta:
-                    swarm_paint[ip] += 1
-    case _:
-        exit("unknown geometry")
-
-print("particles paint: ............................. %.3f s" % (clock.time() - start))
 
 ###############################################################################
 # @@ particle layout
@@ -1144,10 +997,16 @@ q = np.zeros(nn_V, dtype=np.float64)
 
 topstart = clock.time()
 
-for istep in range(0, nstep):
+iter_nl=0
+istep=0
+
+for iloop in range(0, nstep*niter_nl):
+
     print("======================================================")
-    print("istep= %d | time= %.4e " % (istep, geo_time / time_scale))
+    print("istep= %d | iter_nl= %d | time= %.4e | iloop= %d" % (istep, iter_nl, geo_time / time_scale,iloop))
     print("======================================================")
+       
+    inside_nonlinear_iterations=False
 
     ###############################################################################################
     # @@ interpolate strain rate, pressure and temperature on particles
@@ -1976,54 +1835,6 @@ for istep in range(0, nstep):
             vr = 0
             vt = 0
 
-    ###############################################################################################
-    # @@ compute timestep
-    # note that the timestep is not allowed to increase by more than 25% in one go
-    ###############################################################################################
-    start = clock.time()
-
-    if solve_Stokes:
-        match geometry:
-            case "box":
-                dt1 = CFLnb * min(hx, hz) / np.max(vel)
-            case "quarter" | "half" | "eighth" | "annulus":
-                dt1 = CFLnb * hrad / np.max(vel)
-    else:
-        dt1 = 0.0
-
-    print("     -> dt1= %.3e %s" % (dt1 / time_scale, time_unit))
-
-    if solve_T:
-        avrg_hcond = np.average(swarm_hcond)
-        avrg_hcapa = np.average(swarm_hcapa)
-        avrg_rho = np.average(swarm_rho)
-        match geometry:
-            case "box":
-                dt2 = CFLnb * min(hx, hz) ** 2 / (avrg_hcond / avrg_hcapa / avrg_rho)
-            case "quarter" | "half" | "eighth" | "annulus":
-                dt2 = CFLnb * hrad**2 / (avrg_hcond / avrg_hcapa / avrg_rho)
-        print("     -> dt2= %.3e %s" % (dt2 / time_scale, time_unit))
-    else:
-        dt2 = 1e50
-
-    dt1 = min(dt1, 1.25 * dt1_mem)  # limiter
-    dt2 = min(dt2, 1.25 * dt2_mem)  # limiter
-
-    dt = np.min([dt1, dt2, dt_max])
-
-    geo_time += dt
-
-    print("     -> dt = %.3e %s" % (dt / time_scale, time_unit))
-    print("     -> geological time = %e %s" % (geo_time / time_scale, time_unit))
-
-    dt_file.write("%e %e %e %e\n" % (geo_time / time_scale, dt1 / time_scale, dt2 / time_scale, dt / time_scale))
-    dt_file.flush()
-
-    dt1_mem = dt1
-    dt2_mem = dt2
-
-    print("compute time step: ........................... %.3f s" % (clock.time() - start))
-    timings[19] += clock.time() - start
 
     ###############################################################################################
     # @@ normalise pressure: simple approach to have avrg p = 0 (volume or surface)
@@ -2167,6 +1978,79 @@ for istep in range(0, nstep):
     print("compute nodal press: ......................... %.3f s" % (clock.time() - start))
     timings[3] += clock.time() - start
 
+    ###########################################################################
+
+    if nonlinear and iter_nl<niter_nl-1:
+          inside_nonlinear_iterations=True
+    else:
+       inside_nonlinear_iterations=False
+       if iter_nl==niter_nl-1:
+          print(" maximum number of nonlinear iterations reached")
+
+    ###############################################################################################
+    # @@ assess convergence of nonlinear iterations
+    ###############################################################################################
+    start = clock.time()
+
+    if nonlinear:
+       u_mem, w_mem, p_mem, T_mem, inside_nonlinear_iterations = \
+       assess_nlconvergence(istep, iter_nl, solve_Stokes, solve_T, \
+       u, w, p, T, u_mem, w_mem, p_mem, T_mem, tol_nl, inside_nonlinear_iterations, conv_file)
+
+    print("assess steady state: ........................ %.4f s" % (clock.time() - start))
+    timings[38] += clock.time() - start
+
+    ###############################################################################################
+    # @@ compute timestep
+    # note that the timestep is not allowed to increase by more than 25% in one go
+    ###############################################################################################
+    start = clock.time()
+
+    if solve_Stokes:
+        match geometry:
+            case "box":
+                dt1 = CFLnb * min(hx, hz) / np.max(vel)
+            case "quarter" | "half" | "eighth" | "annulus":
+                dt1 = CFLnb * hrad / np.max(vel)
+    else:
+        dt1 = 0.0
+
+    print("     -> dt1= %.3e %s" % (dt1 / time_scale, time_unit))
+
+    if solve_T:
+        avrg_hcond = np.average(swarm_hcond)
+        avrg_hcapa = np.average(swarm_hcapa)
+        avrg_rho = np.average(swarm_rho)
+        match geometry:
+            case "box":
+                dt2 = CFLnb * min(hx, hz) ** 2 / (avrg_hcond / avrg_hcapa / avrg_rho)
+            case "quarter" | "half" | "eighth" | "annulus":
+                dt2 = CFLnb * hrad**2 / (avrg_hcond / avrg_hcapa / avrg_rho)
+        print("     -> dt2= %.3e %s" % (dt2 / time_scale, time_unit))
+    else:
+        dt2 = 1e50
+
+    dt1 = min(dt1, 1.25 * dt1_mem)  # limiter
+    dt2 = min(dt2, 1.25 * dt2_mem)  # limiter
+
+    dt = np.min([dt1, dt2, dt_max])
+
+    if not inside_nonlinear_iterations:
+
+       geo_time += dt
+
+       print("     -> dt = %.3e %s" % (dt / time_scale, time_unit))
+       print("     -> geological time = %e %s" % (geo_time / time_scale, time_unit))
+
+       dt_file.write("%e %e %e %e\n" % (geo_time / time_scale, dt1 / time_scale, dt2 / time_scale, dt / time_scale))
+       dt_file.flush()
+
+       dt1_mem = dt1
+       dt2_mem = dt2
+
+    print("compute time step: ........................... %.3f s" % (clock.time() - start))
+    timings[19] += clock.time() - start
+
     ###############################################################################################
     # @@ project velocity on quadrature points
     ###############################################################################################
@@ -2203,7 +2087,7 @@ for istep in range(0, nstep):
             nq_per_element,
             m_T,
             Nfem_T,
-            T,
+            T_mem,   # NEW 23june
             icon_T,
             rhoq,
             etaq,
@@ -2775,7 +2659,7 @@ for istep in range(0, nstep):
     ###############################################################################################
     start = clock.time()
 
-    if solve_Stokes:
+    if solve_Stokes and not inside_nonlinear_iterations:
         match geometry:
             case "box":
                 swarm_x, swarm_z, swarm_u, swarm_w, swarm_active = advect_particles___box(
@@ -2891,8 +2775,8 @@ for istep in range(0, nstep):
         print("     -> swarm_w (m,M) %.3e %.3e " % (np.min(swarm_w), np.max(swarm_w)))
 
     else:
-        swarm_u[:] = 0
-        swarm_w[:] = 0
+        swarm_u = np.zeros(nparticle, dtype=np.float64)
+        swarm_w = np.zeros(nparticle, dtype=np.float64)
 
     print("advect particles: ............................ %.3f s" % (clock.time() - start))
     timings[13] += clock.time() - start
@@ -2902,7 +2786,7 @@ for istep in range(0, nstep):
     ###############################################################################################
     start = clock.time()
 
-    if RKorder>0:
+    if RKorder>0 and not inside_nonlinear_iterations and allow_population_control:
        population_control(istep, x_V, z_V, icon_V, nel, nparticle_min, nparticle, nparticle_e, swarm_active,\
                           swarm_id, swarm_iel, swarm_r, swarm_t, swarm_x, swarm_z, swarm_u, swarm_w, \
                           swarm_strain, swarm_eta, swarm_wf, swarm_F, \
@@ -2945,7 +2829,8 @@ for istep in range(0, nstep):
     ###############################################################################################
     start = clock.time()
 
-    swarm_strain += np.sqrt(0.5 * (swarm_exx**2 + swarm_ezz**2) + swarm_exz**2) * dt
+    if not inside_nonlinear_iterations:
+       swarm_strain += np.sqrt(0.5 * (swarm_exx**2 + swarm_ezz**2) + swarm_exz**2) * dt
 
     print("     -> swarm_strain (m,M) %.3e %.3e " % (np.min(swarm_strain), np.max(swarm_strain)))
 
@@ -2975,9 +2860,8 @@ for istep in range(0, nstep):
     # @@ generate/write in pvd files
     ###############################################################################################
 
-    write_in_pvd_files(
-        pvd_solution_file, pvd_swarm_file, istep, nstep, every_solution_vtu, every_swarm_vtu, geo_time
-    )
+    if not inside_nonlinear_iterations:
+       write_in_pvd_files(pvd_solution_file, pvd_swarm_file, istep, nstep, every_solution_vtu, every_swarm_vtu, geo_time)
 
     ###############################################################################################
     # @@ output solution to vtu file
@@ -3050,6 +2934,9 @@ for istep in range(0, nstep):
             particle_eta_projection,
             ls_rho_a,
             ls_eta_a,
+            export_strainrate_tensor_components,
+            export_devstress_tensor_components,
+            export_stress_tensor_components,
         )
 
         print("output solution to vtu file: ................. %.3f s" % (clock.time() - start))
@@ -3227,7 +3114,7 @@ for istep in range(0, nstep):
     ###############################################################################################
     start = clock.time()
 
-    if istep % every_solution_png == 0 or istep == nstep - 1:
+    if (istep % every_solution_png == 0 or istep == nstep - 1) and not inside_nonlinear_iterations:
         output_solution_to_png(
             geometry,
             solve_Stokes,
@@ -3309,7 +3196,7 @@ for istep in range(0, nstep):
     ###############################################################################################
     start = clock.time()
 
-    if gravity_npts > 0:
+    if gravity_npts > 0 and not inside_nonlinear_iterations:
         if istep == 0:
             xs = np.zeros(gravity_npts, dtype=np.float64)
             zs = np.zeros(gravity_npts, dtype=np.float64)
@@ -3427,17 +3314,6 @@ for istep in range(0, nstep):
     print("compute gravity: ............................. %.3f s" % (clock.time() - start))
     timings[23] += clock.time() - start
 
-    ###############################################################################################
-    # @@ assess steady state
-    ###############################################################################################
-    start = clock.time()
-
-    steady_state, u_mem, w_mem, p_mem, T_mem = assess_steady_state(
-        solve_Stokes, solve_T, u, w, p, T, u_mem, w_mem, p_mem, T_mem, tol_ss
-    )
-
-    print("assess steady state: ........................ %.4f s" % (clock.time() - start))
-    timings[38] += clock.time() - start
 
     ###############################################################################################
 
@@ -3610,7 +3486,7 @@ for istep in range(0, nstep):
         print("----------------------------------------------------------------------")
 
     dtimings = timings - timings_mem
-    dtimings[0] = istep
+    dtimings[0] = istep+iter_nl/100
     dtimings.tofile(timings_file, sep=" ", format="%e")
     timings_file.write(" \n")
     timings_mem[:] = timings[:]
@@ -3635,17 +3511,27 @@ for istep in range(0, nstep):
             nelz,
         )
 
+
     ###########################################################################
 
     if geo_time > end_time:
         print("***** end time reached *****")
         break
 
-    if steady_state:
-        print("***** steady state reached *****")
+    if istep==nstep-1:
+        print("***** nb of steps reached *****")
         break
 
-# end for istep
+    if inside_nonlinear_iterations:
+       iter_nl+=1
+    else:
+       iter_nl=0
+       istep+=1
+       print("NL: resetting iter_nl=0")
+       print("NL: increasing istep: istep=",istep)
+
+
+# end for iloop
 # @@ --------------------- end time stepping loop ------------------------------
 
 pvd_solution_file.write("  </Collection>\n")
@@ -3696,6 +3582,7 @@ delta_file.close()
 etaq_file.close()
 etae_file.close()
 etan_file.close()
+conv_file.close()
 if solve_T:
     Nu_file.close()
     corner_q_file.close()

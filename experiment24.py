@@ -210,27 +210,26 @@ def assign_boundary_conditions_V(
 
 
 def assign_boundary_conditions_T(
-    x_V,
-    z_V,
-    rad_V,
-    theta_V,
-    Nfem_T,
-    nn_V,
-    hull_nodes,
-    top_nodes,
-    bot_nodes,
-    left_nodes,
-    right_nodes,
-):
+        x_T,
+        z_T,
+        rad_T,
+        theta_T,
+        Nfem_T,
+        nn_T,
+        hull_Tnodes,
+        top_Tnodes,
+        bot_Tnodes,
+        left_Tnodes,
+        right_Tnodes):
 
     bc_fix_T = np.zeros(Nfem_T, dtype=bool)
     bc_val_T = np.zeros(Nfem_T, dtype=np.float64)
 
-    for i in range(0, nn_V):
-        if bot_nodes[i]:
+    for i in range(0, nn_T):
+        if bot_Tnodes[i]:
             bc_fix_T[i] = True
             bc_val_T[i] = Tcmb
-        if top_nodes[i]:
+        if top_Tnodes[i]:
             bc_fix_T[i] = True
             bc_val_T[i] = Tsurf
 
