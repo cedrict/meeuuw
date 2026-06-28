@@ -10,22 +10,22 @@ from constants import *
 # The model has a free top surface, allowing topography to develop as the model
 # evolves. The mechanical boundary conditions at the other three sides are deﬁned
 # by zero tangential stress and normal velocity (e.g., free slip)."
+# -> this means 3x3 particles by element at startup...
 
 # min/max viscosity?
 
-nelx = 100
-nelz = 50
+nelx = 120
+nelz = 60
 
 Lx = 2000 * km
 Lz = 1000 * km
 
-nstep = 100
-dt_max = 25000 * year
+nstep = 500
+dt_max = 50000 * year
 end_time = 100e6 * year
 eta_ref = 1e21
 every_solution = 1
-every_swarm_vtu = 1
-#every_quadpoints_vtu = 5
+every_swarm_vtu = 10
 
 p_scale = 1e6
 p_unit = "MPa"
@@ -35,7 +35,7 @@ time_scale = year
 time_unit = "yr"
 
 nmat = 3
-nparticle_per_dim = 5
+nparticle_per_dim = 7
 particle_distribution = 1  # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 
 solve_T = True
@@ -44,9 +44,9 @@ Ttop = 25 + 273
 
 rho0 = 3300
 
-nonlinear=True
-niter_nl=10
-tol_nl=5e-3
+nonlinear = True
+niter_nl = 10
+tol_nl = 1e-2
 
 ###################################################################################################
 

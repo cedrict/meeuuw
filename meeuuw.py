@@ -48,6 +48,7 @@ from output_solution_to_vtu import *
 from output_solution_to_png import *
 from output_quadpoints_to_vtu import *
 from pic_functions import *
+from print_timings import *
 from process_velocity_solution_vectors import *
 from project_nodal_field_onto_qpoints import *
 from postprocessors import *
@@ -1065,10 +1066,11 @@ for iloop in range(0, nstep*niter_nl):
         swarm_p,
     )
 
-    print("     -> swarm_rho (m,M) %.5e %.5e " % (np.min(swarm_rho[swarm_active]), np.max(swarm_rho[swarm_active])))
-    print("     -> swarm_eta (m,M) %.5e %.5e " % (np.min(swarm_eta[swarm_active]), np.max(swarm_eta[swarm_active])))
+    if verbose_output:
+       print("     -> swarm_rho (m,M) %.5e %.5e " % (np.min(swarm_rho[swarm_active]), np.max(swarm_rho[swarm_active])))
+       print("     -> swarm_eta (m,M) %.5e %.5e " % (np.min(swarm_eta[swarm_active]), np.max(swarm_eta[swarm_active])))
 
-    if solve_T:
+    if solve_T and verbose_output:
         print("     -> swarm_hcapa (m,M) %.4e %.4e " % (np.min(swarm_hcapa[swarm_active]), np.max(swarm_hcapa[swarm_active])))
         print("     -> swarm_hcond (m,M) %.4e %.4e " % (np.min(swarm_hcond[swarm_active]), np.max(swarm_hcond[swarm_active])))
         print("     -> swarm_hprod (m,M) %.4e %.4e " % (np.min(swarm_hprod[swarm_active]), np.max(swarm_hprod[swarm_active])))
@@ -1484,15 +1486,16 @@ for iloop in range(0, nstep*niter_nl):
         hprodq = np.zeros((nel, nq_per_element), dtype=np.float64)
         alphaq = np.zeros((nel, nq_per_element), dtype=np.float64)
 
-    print("     -> rhoq (m,M) %.5e %.5e " % (np.min(rhoq), np.max(rhoq)))
-    print("     -> etaq (m,M) %.5e %.5e " % (np.min(etaq), np.max(etaq)))
+    if verbose_output:
+       print("     -> rhoq (m,M) %.5e %.5e " % (np.min(rhoq), np.max(rhoq)))
+       print("     -> etaq (m,M) %.5e %.5e " % (np.min(etaq), np.max(etaq)))
 
     if debug_nan and np.isnan(np.sum(etaq)):
         exit("nan found in eta_q")
     if debug_nan and np.isnan(np.sum(rhoq)):
         exit("nan found in rho_q")
 
-    if solve_T:
+    if solve_T and verbose_output:
         print("     -> Tq (m,M) %.5e %.5e " % (np.min(Tq), np.max(Tq)))
         print("     -> hcapaq (m,M) %.5e %.5e " % (np.min(hcapaq), np.max(hcapaq)))
         print("     -> hcondq (m,M) %.5e %.5e " % (np.min(hcondq), np.max(hcondq)))
@@ -2246,12 +2249,13 @@ for iloop in range(0, nstep*niter_nl):
     dzz_e = ezz_e - divv_e / 3
     dxz_e = exz_e
 
-    print("     -> exx_e (m,M) %.3e %.3e " % (np.min(exx_e), np.max(exx_e)))
-    print("     -> ezz_e (m,M) %.3e %.3e " % (np.min(ezz_e), np.max(ezz_e)))
-    print("     -> exz_e (m,M) %.3e %.3e " % (np.min(exz_e), np.max(exz_e)))
-    print("     -> dxx_e (m,M) %.3e %.3e " % (np.min(dxx_e), np.max(dxx_e)))
-    print("     -> dzz_e (m,M) %.3e %.3e " % (np.min(dzz_e), np.max(dzz_e)))
-    print("     -> dxz_e (m,M) %.3e %.3e " % (np.min(dxz_e), np.max(dxz_e)))
+    if verbose_output:
+       print("     -> exx_e (m,M) %.3e %.3e " % (np.min(exx_e), np.max(exx_e)))
+       print("     -> ezz_e (m,M) %.3e %.3e " % (np.min(ezz_e), np.max(ezz_e)))
+       print("     -> exz_e (m,M) %.3e %.3e " % (np.min(exz_e), np.max(exz_e)))
+       print("     -> dxx_e (m,M) %.3e %.3e " % (np.min(dxx_e), np.max(dxx_e)))
+       print("     -> dzz_e (m,M) %.3e %.3e " % (np.min(dzz_e), np.max(dzz_e)))
+       print("     -> dxz_e (m,M) %.3e %.3e " % (np.min(dxz_e), np.max(dxz_e)))
 
     if debug_ascii:
         np.savetxt(
@@ -2328,9 +2332,10 @@ for iloop in range(0, nstep*niter_nl):
 
     e_n = effective(exx_n, ezz_n, exz_n)
 
-    print("     -> exx_n (m,M) %.3e %.3e " % (np.min(exx_n), np.max(exx_n)))
-    print("     -> ezz_n (m,M) %.3e %.3e " % (np.min(ezz_n), np.max(ezz_n)))
-    print("     -> exz_n (m,M) %.3e %.3e " % (np.min(exz_n), np.max(exz_n)))
+    if verbose_output:
+       print("     -> exx_n (m,M) %.3e %.3e " % (np.min(exx_n), np.max(exx_n)))
+       print("     -> ezz_n (m,M) %.3e %.3e " % (np.min(ezz_n), np.max(ezz_n)))
+       print("     -> exz_n (m,M) %.3e %.3e " % (np.min(exz_n), np.max(exz_n)))
 
     srstats_file.write("%e %e %e\n" % (geo_time / time_scale, np.min(e_n), np.max(e_n)))
     srstats_file.flush()
@@ -2347,10 +2352,11 @@ for iloop in range(0, nstep*niter_nl):
     dzz_n = ezz_n - divv_n / 3
     dxz_n = exz_n
 
-    print("     -> divv_n (m,M) %.3e %.3e " % (np.min(divv_n), np.max(divv_n)))
-    print("     -> dxx_n (m,M) %.3e %.3e " % (np.min(dxx_n), np.max(dxx_n)))
-    print("     -> dzz_n (m,M) %.3e %.3e " % (np.min(dzz_n), np.max(dzz_n)))
-    print("     -> dxz_n (m,M) %.3e %.3e " % (np.min(dxz_n), np.max(dxz_n)))
+    if verbose_output:
+       print("     -> divv_n (m,M) %.3e %.3e " % (np.min(divv_n), np.max(divv_n)))
+       print("     -> dxx_n (m,M) %.3e %.3e " % (np.min(dxx_n), np.max(dxx_n)))
+       print("     -> dzz_n (m,M) %.3e %.3e " % (np.min(dzz_n), np.max(dzz_n)))
+       print("     -> dxz_n (m,M) %.3e %.3e " % (np.min(dxz_n), np.max(dxz_n)))
 
     match geometry:
         case "box":
@@ -2385,9 +2391,10 @@ for iloop in range(0, nstep*niter_nl):
                         header="#x,z,err,ett,ert,rad,theta",
                     )
 
-            print("     -> err_n (m,M) %.3e %.3e " % (np.min(err_n), np.max(err_n)))
-            print("     -> ett_n (m,M) %.3e %.3e " % (np.min(ett_n), np.max(ett_n)))
-            print("     -> ert_n (m,M) %.3e %.3e " % (np.min(ert_n), np.max(ert_n)))
+            if verbose_output:
+               print("     -> err_n (m,M) %.3e %.3e " % (np.min(err_n), np.max(err_n)))
+               print("     -> ett_n (m,M) %.3e %.3e " % (np.min(ett_n), np.max(ett_n)))
+               print("     -> ert_n (m,M) %.3e %.3e " % (np.min(ert_n), np.max(ert_n)))
 
             if istep % every_solution_vtu == 0 or istep == nstep - 1:
                 np.savetxt(
@@ -2768,11 +2775,12 @@ for iloop in range(0, nstep*niter_nl):
         if debug_ascii:
             np.savetxt("DEBUG/swarm.ascii", np.array([swarm_x, swarm_z]).T, header="#x,z")
 
-        print("     -> nb inactive particles:", nparticle - np.sum(swarm_active))
-        print("     -> swarm_x (m,M) %.3e %.3e " % (np.min(swarm_x), np.max(swarm_x)))
-        print("     -> swarm_z (m,M) %.3e %.3e " % (np.min(swarm_z), np.max(swarm_z)))
-        print("     -> swarm_u (m,M) %.3e %.3e " % (np.min(swarm_u), np.max(swarm_u)))
-        print("     -> swarm_w (m,M) %.3e %.3e " % (np.min(swarm_w), np.max(swarm_w)))
+        if verbose_output:
+           print("     -> nb inactive particles:", nparticle - np.sum(swarm_active))
+           print("     -> swarm_x (m,M) %.3e %.3e " % (np.min(swarm_x), np.max(swarm_x)))
+           print("     -> swarm_z (m,M) %.3e %.3e " % (np.min(swarm_z), np.max(swarm_z)))
+           print("     -> swarm_u (m,M) %.3e %.3e " % (np.min(swarm_u), np.max(swarm_u)))
+           print("     -> swarm_w (m,M) %.3e %.3e " % (np.min(swarm_w), np.max(swarm_w)))
 
     else:
         swarm_u = np.zeros(nparticle, dtype=np.float64)
@@ -2780,6 +2788,12 @@ for iloop in range(0, nstep*niter_nl):
 
     print("advect particles: ............................ %.3f s" % (clock.time() - start))
     timings[13] += clock.time() - start
+
+    ###############################################################################################
+    ###############################################################################################
+
+    #if not inside_nonlinear_iterations:
+    #       evolve_mesh()
 
     ###############################################################################################
     # @@ population control
@@ -3319,171 +3333,7 @@ for iloop in range(0, nstep*niter_nl):
 
     if istep % 10 == 0 or istep == nstep - 1 or geo_time > end_time:
         duration = clock.time() - topstart
-
-        print("----------------------------------------------------------------------")
-        print("----------------------------------------------------------------------")
-        print(
-            "build FE matrix V: %8.3f s      (%.3f s per call) | %5.2f percent"
-            % (timings[1], timings[1] / (istep + 1), timings[1] / duration * 100)
-        )
-        print(
-            "solve system V: %8.3f s         (%.3f s per call) | %5.2f percent"
-            % (timings[2], timings[2] / (istep + 1), timings[2] / duration * 100)
-        )
-        print(
-            "build FE matrix T: %8.3f s      (%.3f s per call) | %5.2f percent"
-            % (timings[4], timings[4] / (istep + 1), timings[4] / duration * 100)
-        )
-        print(
-            "solve system T: %8.3f s         (%.3f s per call) | %5.2f percent"
-            % (timings[5], timings[5] / (istep + 1), timings[5] / duration * 100)
-        )
-        print("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ")
-        print(
-            "compute plith: %8.3f s          (%.3f s per call) | %5.2f percent"
-            % (timings[28], timings[28] / (istep + 1), timings[28] / duration * 100)
-        )
-        print(
-            "comp. glob quantities: %8.3f s  (%.3f s per call) | %5.2f percent"
-            % (timings[6], timings[6] / (istep + 1), timings[6] / duration * 100)
-        )
-        print(
-            "comp. nodal p: %8.3f s          (%.3f s per call) | %5.2f percent"
-            % (timings[3], timings[3] / (istep + 1), timings[3] / duration * 100)
-        )
-        print(
-            "comp. nodal sr: %8.3f s         (%.3f s per call) | %5.2f percent"
-            % (timings[11], timings[11] / (istep + 1), timings[11] / duration * 100)
-        )
-        print(
-            "comp. nodal stress: %8.3f s     (%.3f s per call) | %5.2f percent"
-            % (timings[27], timings[27] / (istep + 1), timings[27] / duration * 100)
-        )
-        print(
-            "comp. nodal heat flux: %8.3f s  (%.3f s per call) | %5.2f percent"
-            % (timings[7], timings[7] / (istep + 1), timings[7] / duration * 100)
-        )
-        print(
-            "comp. eltal sr: %8.3f s         (%.3f s per call) | %5.2f percent"
-            % (timings[29], timings[29] / (istep + 1), timings[29] / duration * 100)
-        )
-        print(
-            "comp. T profile: %8.3f s        (%.3f s per call) | %5.2f percent"
-            % (timings[9], timings[9] / (istep + 1), timings[9] / duration * 100)
-        )
-        print(
-            "comp. nodal press grad: %8.3f s (%.3f s per call) | %5.2f percent"
-            % (timings[8], timings[8] / (istep + 1), timings[8] / duration * 100)
-        )
-        print(
-            "normalise pressure: %8.3f s     (%.3f s per call) | %5.2f percent"
-            % (timings[12], timings[12] / (istep + 1), timings[12] / duration * 100)
-        )
-        print(
-            "compute el pressure: %8.3f s    (%.3f s per call) | %5.2f percent"
-            % (timings[33], timings[33] / (istep + 1), timings[33] / duration * 100)
-        )
-        print(
-            "advect particles: %8.3f s       (%.3f s per call) | %5.2f percent"
-            % (timings[13], timings[13] / (istep + 1), timings[13] / duration * 100)
-        )
-        print(
-            "split solution: %8.3f s         (%.3f s per call) | %5.2f percent"
-            % (timings[14], timings[14] / (istep + 1), timings[14] / duration * 100)
-        )
-        print(
-            "material model on ptcls: %8.3fs (%.3f s per call) | %5.2f percent"
-            % (timings[15], timings[15] / (istep + 1), timings[15] / duration * 100)
-        )
-        print(
-            "locate particles: %8.3f s       (%.3f s per call) | %5.2f percent"
-            % (timings[16], timings[16] / (istep + 1), timings[16] / duration * 100)
-        )
-        print(
-            "comp eltal rho,eta: %8.3f s     (%.3f s per call) | %5.2f percent"
-            % (timings[17], timings[17] / (istep + 1), timings[17] / duration * 100)
-        )
-        print(
-            "comp nodal rho,eta: %8.3f s     (%.3f s per call) | %5.2f percent"
-            % (timings[18], timings[18] / (istep + 1), timings[18] / duration * 100)
-        )
-        print(
-            "compute dyn topo: %8.3f s       (%.3f s per call) | %5.2f percent"
-            % (timings[26], timings[26] / (istep + 1), timings[26] / duration * 100)
-        )
-        print(
-            "comp timestep: %8.3f s          (%.3f s per call) | %5.2f percent"
-            % (timings[19], timings[19] / (istep + 1), timings[19] / duration * 100)
-        )
-        print(
-            "project fields on qpts: %8.3f s (%.3f s per call) | %5.2f percent"
-            % (timings[21], timings[21] / (istep + 1), timings[21] / duration * 100)
-        )
-        print(
-            "compute gravity: %8.3f s        (%.3f s per call) | %5.2f percent"
-            % (timings[23], timings[23] / (istep + 1), timings[23] / duration * 100)
-        )
-        print(
-            "interp sr,p,T on ptcls: %8.3f s (%.3f s per call) | %5.2f percent"
-            % (timings[24], timings[24] / (istep + 1), timings[24] / duration * 100)
-        )
-        print(
-            "least squares fit: %8.3f s      (%.3f s per call) | %5.2f percent"
-            % (timings[25], timings[25] / (istep + 1), timings[25] / duration * 100)
-        )
-        print(
-            "compute rho_profile: %8.3f s    (%.3f s per call) | %5.2f percent"
-            % (timings[30], timings[30] / (istep + 1), timings[30] / duration * 100)
-        )
-        print(
-            "remove rho_profile:  %8.3f s    (%.3f s per call) | %5.2f percent"
-            % (timings[31], timings[31] / (istep + 1), timings[31] / duration * 100)
-        )
-        print(
-            "vel to polar coords: %8.3f s    (%.3f s per call) | %5.2f percent"
-            % (timings[32], timings[32] / (istep + 1), timings[32] / duration * 100)
-        )
-        print(
-            "process u,v vectors: %8.3f s    (%.3f s per call) | %5.2f percent"
-            % (timings[37], timings[37] / (istep + 1), timings[37] / duration * 100)
-        )
-        print(
-            "assess_steady_state: %8.3f s    (%.3f s per call) | %5.2f percent"
-            % (timings[38], timings[38] / (istep + 1), timings[38] / duration * 100)
-        )
-        print(
-            "population_control:  %8.3f s    (%.3f s per call) | %5.2f percent"
-            % (timings[39], timings[39] / (istep + 1), timings[39] / duration * 100)
-        )
-
-        print("- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - ")
-        print(
-            "output solution to vtu: %8.3f s (%.3f s per call) | %5.2f percent"
-            % (timings[10], timings[10] / (istep + 1), timings[10] / duration * 100)
-        )
-        print(
-            "output swarm to vtu: %8.3f s    (%.3f s per call) | %5.2f percent"
-            % (timings[20], timings[20] / (istep + 1), timings[20] / duration * 100)
-        )
-        print(
-            "output qpts to vtu: %8.3f s     (%.3f s per call) | %5.2f percent"
-            % (timings[22], timings[22] / (istep + 1), timings[22] / duration * 100)
-        )
-        print(
-            "output solution to png: %8.3f s (%.3f s per call) | %5.2f percent"
-            % (timings[34], timings[34] / (istep + 1), timings[34] / duration * 100)
-        )
-        print(
-            "output swarm to png: %8.3f s    (%.3f s per call) | %5.2f percent"
-            % (timings[35], timings[35] / (istep + 1), timings[35] / duration * 100)
-        )
-        print(
-            "output swarm to ascii: %8.3f s  (%.3f s per call) | %5.2f percent"
-            % (timings[36], timings[36] / (istep + 1), timings[36] / duration * 100)
-        )
-        print("----------------------------------------------------------------------")
-        print("compute time per timestep: %.2f" % (duration / (istep + 1)))
-        print("----------------------------------------------------------------------")
+        print_timings(iloop,timings,duration)
 
     dtimings = timings - timings_mem
     dtimings[0] = istep+iter_nl/100
@@ -3529,7 +3379,6 @@ for iloop in range(0, nstep*niter_nl):
        istep+=1
        print("NL: resetting iter_nl=0")
        print("NL: increasing istep: istep=",istep)
-
 
 # end for iloop
 # @@ --------------------- end time stepping loop ------------------------------

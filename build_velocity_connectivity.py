@@ -5,7 +5,11 @@
 import numpy as np
 
 ###################################################################################################
-# TODO: annulus geometry
+# TODO: annulus geometry for q1+
+# local numbering of nodes
+# 3--6--2
+# 7  8  5
+# 0--4--1
 
 def build_velocity_connectivity(geometry, m_V, nelx, nelz, nnx, nnz, middleH_nodes, middleV_nodes):
 

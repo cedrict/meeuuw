@@ -27,6 +27,8 @@ dt_max = 1e30
 compute_dynamic_topography = False
 nmat = 1
 
+verbose_output=False
+
 #######################################
 # output  
 #######################################
