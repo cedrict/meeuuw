@@ -1,0 +1,11 @@
+cp ../../../../OUTPUT/vrms.ascii .
+cp ../../../../OUTPUT/stats_velocity.ascii .
+cp ../../../../OUTPUT/Nu.ascii .
+cp ../../../../OUTPUT/Tavrg.ascii .
+cp ../../../../OUTPUT/work_against_gravity.ascii .
+cp ../../../../OUTPUT/delta_WAG_TVD.ascii .
+cp ../../../../OUTPUT/viscous_dissipation.ascii .
+cp ../../../../OUTPUT/stats_eta_q.ascii .
+cp ../../../../OUTPUT/avrg_profile_T.ascii .
+cp ../../../../OUTPUT/avrg_profile_eta.ascii . 
+cp ../../../../OUTPUT/avrg_profile_vel.ascii .

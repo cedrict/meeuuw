@@ -1,0 +1,31 @@
+#
+set term pdf enhanced font 'Times,12pt'
+set grid
+set pointsize .1
+set key outside
+
+###################################
+
+set xlabel 'time'
+set ylabel 'v_{rms}'
+
+set output 'vrms.pdf'
+plot[:0.25][]\
+'vrms.ascii' w l t '32x32',\
+100
+
+############################################
+
+set ylabel 'Nu'
+set output 'Nu.pdf'
+plot[:0.25][]\
+'Nu.ascii' w l t '32x32',\
+3.03
+
+############################################
+
+set output 'profile_T.pdf'
+set ylabel 'z'
+set xlabel 'T' 
+plot[][]\
+'T_profile_8800.ascii' u 2:1 w lp t '32x32' 
