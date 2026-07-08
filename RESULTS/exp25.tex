@@ -1,29 +1,27 @@
 \section{Experiment=25: convection in a box, BA vs EBA}
 
-By choosing the following parameters
+This experiment is very similar to the convection experiment of \textcite{blbc89}.
+Free slip boundary conditions are applied on all sides.
+The main difference resides in the fact that all physical parameters are Earth-like:
+
 \begin{lstlisting}
-Lx = 3000e3
-Lz = 3000e3
-Ttop = 0
-Tbottom = 3000
-alphaT = 1e-5  
+Lx = 3000e3 # m
+Lz = 3000e3 # m
+Ttop = 0 +273 # K
+Tbottom = 3000 + 273 # K
+alphaT = 1e-5  # /T
 hcond = 3  
-hcapa = 1200 
-rho0 = 2500
-g0 = 10
-eta0 = 2.025e24
+hcapa = 1200 #
+rho0 = 2500 # kg/m3
+g0 = 10 # m/s2
+eta0 = 2.025e24 # Pa.s
 \end{lstlisting}
-we can make sure that the Rayleigh number, the 
-thermal diffusivity and the dissipation number are
-assigned the correct value
+By choosing these parameters we can make sure that the Rayleigh number, the 
+thermal diffusivity and the dissipation number are assigned the desired value:
 \begin{lstlisting}
 Di = alphaT * g0 * Lz / hcapa
 kappa = hcond / rho0 / hcapa
 Ra = alphaT * rho0 * g0 * (Lz**3) * (Tbottom - Ttop) / kappa / eta0
-
-print("     -> Di=", Di)
-print("     -> kappa=", kappa)
-print("     -> Ra=", Ra)
 \end{lstlisting}
 which yields
 \begin{verbatim}
@@ -32,18 +30,26 @@ which yields
 -> Ra= 10000.000000000002
 \end{verbatim}
 
-In all the following figures time is rendered dimensionless
-by diving it by the ref time 
+In all the following figures time is rendered dimensionless by diving it by the ref time. 
+Reference velocity and pressure values are also taken from \textcite{kilv10}:
 \begin{lstlisting}
-reftime=rho0*hcapa*Lz**2/hcond
+reftime=rho0*hcapa*Lz**2/hcond 
+refvel=Lz/reftime 
+refPress = eta0 * hcond / rho0 / hcapa / Lz**2
 \end{lstlisting}
-Same for velocities with 
-\begin{lstlisting}
-refvel=Lz/reftime
-\end{lstlisting}
+which gives (for $Ra=10^4$):
+\begin{verbatim}
+-> reftime 9.000000e+18 s | 2.851928e+11 yr
+-> refvel 3.333333e-13 m/s | 1.051920e-03 cm/yr
+-> refPress 2.250000e+05 
+\end{verbatim}
+
+I have also built this experiment with ASPECT and the results obtained with 
+MEEUUW are compared with those of ASPECT in what follows.
 
 %---------------------------
 \subsection{BA formulation}
+
 
 \begin{center}
 \includegraphics[width=5.7cm]{exp25/BA/Nu.pdf}
@@ -55,6 +61,10 @@ refvel=Lz/reftime
 \end{center}
 
 
+\begin{center}
+\includegraphics[width=13cm]{exp25/BA/kilv10_ba}\\
+Taken from \textcite{kilv10}.
+\end{center}
 
 
 
@@ -62,21 +72,87 @@ refvel=Lz/reftime
 %---------------------------
 \subsection{EBA formulation}
 
+ok so i have a pb: 
+the adiabatic term contains T, so that the value of the temperature
+matters a lot. I then observe differences wrt measurements whether i set Ttop
+at 0, 273 or 293K.  
+Basically by changing Ttop, but making sure there is a 3000K difference I can 'choose' or 'tune'
+the value of Nu and vrms.
+Assuming there is no mistake in the implementation, how can I choose Ttop?!
+
+After a while I found lee\_\_13 paper which does exactly what I was aiming to do:
+a non-dimensionless King et al setup. AND they also show/indicate T=273K top
+and 3273K bottom. HOWEVER, I still do not get close to the expected values.
+Could there be a bug? or is it the 1/3 in the viscous dissipation ?
+
+
+\subsection{Ra=1e4, Di=0.25}
+
 \begin{center}
-\includegraphics[width=15cm]{exp25/EBA/kilv10}\\
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e4/Nu.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e4/vrms.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e4/wag.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e4/tvd.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e4/kinetic_energy.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e4/Tavrg.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e4/avrg_dTdz_top.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e4/avrg_dTdz_bottom.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e4/delta.pdf}
+\end{center}
+
+\begin{center}
+\includegraphics[width=13cm]{exp25/EBA/header}\\
+\includegraphics[width=13cm]{exp25/EBA/1e4}\\
+Taken from \textcite{kilv10}.
+\end{center}
+
+\begin{center}
+\includegraphics[width=13cm]{exp25/EBA/lee13_eba}\\
+Taken from \textcite{lee__13}.
+\end{center}
+
+
+There are not many EBA results in the literature, with one noticeable 
+exception, the benchmark paper by \textcite{kilv10}.
+
+
+\subsection{Ra=1e5}
+
+\begin{center}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e5/Nu.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e5/vrms.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e5/wag.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e5/tvd.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e5/kinetic_energy.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e5/Tavrg.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e5/avrg_dTdz_top.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e5/avrg_dTdz_bottom.pdf}
+\end{center}
+
+\subsection{Ra=1e6}
+
+\begin{center}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e6/Nu.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e6/vrms.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e6/wag.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e6/tvd.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e6/kinetic_energy.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e6/Tavrg.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e6/avrg_dTdz_top.pdf}
+\includegraphics[width=5.7cm]{exp25/EBA/Ra1e6/avrg_dTdz_bottom.pdf}
+\end{center}
+
+
+
+
+
+\subsection{Literature}
+
+
+kilv report on (dimensionless) visc dissipation - include that value in my plots?
+
+\begin{center}
+\includegraphics[width=13cm]{exp25/EBA/kilv10_eba}\\
 Taken from \textcite{kilv10} (2010).
 \end{center}
-
-\begin{center}
-\includegraphics[width=5.7cm]{exp25/EBA/Nu.pdf}
-\includegraphics[width=5.7cm]{exp25/EBA/vrms.pdf}
-\includegraphics[width=5.7cm]{exp25/EBA/wag.pdf}
-\includegraphics[width=5.7cm]{exp25/EBA/tvd.pdf}
-\includegraphics[width=5.7cm]{exp25/EBA/kinetic_energy.pdf}
-\includegraphics[width=5.7cm]{exp25/EBA/Tavrg.pdf}
-\includegraphics[width=5.7cm]{exp25/EBA/avrg_dTdz_top.pdf}
-\includegraphics[width=5.7cm]{exp25/EBA/avrg_dTdz_bottom.pdf}
-\end{center}
-
 Conclusion: MEEUUW and ASPECT agree nicely, but not with King et al.
-

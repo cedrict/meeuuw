@@ -7,10 +7,15 @@ set xlabel 'h'
 set ylabel 'L_2 errors'
 set key outside
 set output 'errors.pdf'
+set format y "10^{%L}"
 
 plot[3e-3:0.15][]\
-'errors.ascii' u (1./sqrt($5)):3 w lp pt 5 t 'velocity',\
-'errors.ascii' u (1./sqrt($5)):4 w lp pt 5 t 'pressure',\
+'errors.ascii' u (1./sqrt($5)):3 w lp lt 1 pt 5 t 'velocity - direct solver',\
+'errors_splu2_1e-5.ascii' u (1./sqrt($5)):3 w lp lt 5 pt 5 ps 0.15 t 'velocity - splu(K,M_p)',\
+'errors_cdU_splu.ascii' u (1./sqrt($5)):3 w lp lt 6 pt 5 ps 0.15 t 'velocity - cdU',\
+'errors.ascii' u (1./sqrt($5)):4 w lp lt 1 pt 5 t 'pressure - direct solver',\
+'errors_splu2_1e-5.ascii' u (1./sqrt($5)):4 w lp lt 5 pt 5 ps 0.15 t 'pressure - splu(K,M_p)',\
+'errors_cdU_splu.ascii' u (1./sqrt($5)):4 w lp lt 6 pt 5 ps 0.15 t 'pressure - cdU',\
 x**3/80 lt -1 dt 2 t 'h^3',\
 x**2/10 lt -1 dt 3 t 'h^2'
 
@@ -20,19 +25,136 @@ set pointsize .3
 set xlabel 'Nfem'
 set ylabel 'time (s)'
 
+set title 'Stokes solve' 
 set output 'solve_times1.pdf'
 plot[][0.005:250]\
 'solve_times_powersaver.ascii'  u 7:5 w lp pt 5 t 'laptop (power saver)',\
 'solve_times_performance.ascii' u 7:5 w lp pt 5 ps .2 t 'laptop (performance)',\
-x**1.8/3e7 lt -1 dt 2 t 'x^{1.8}'
+'solve_times_splu.ascii' u 7:5 w lp pt 5 ps .2 t 'splu(K)',\
+'solve_times_splu2.ascii' u 7:5 w lp pt 5 ps .2 t 'splu(K,M_p)',\
+'solve_times_splu2_1e-5.ascii' u 7:5 w lp lt 5 pt 7 ps .2 t 'splu(K,M_p)-tol=1e-5',\
+x**1.8/3e7 lt -1 dt 2 t 'x^{1.8}',\
+x**1.5/3e6 lt -1 dt 3 t 'x^{1.5}'
 
+set title 'Stokes solve (time per iteration)' 
+set ylabel 'time per iteration (s)'
+set output 'solve_times4.pdf'
+plot[][]\
+'solve_times_splu2.ascii'      u 7:($5/$9) w lp lt 4 pt 5 ps .2 t 'splu(K,M_p)-tol=1e-6',\
+'solve_times_splu2_1e-5.ascii' u 7:($5/$9) w lp lt 5 pt 7 ps .2 t 'splu(K,M_p)-tol=1e-5',\
+x**1.5/5e7 lt -1 dt 2 t 'Nfem^{1.5}'
+
+
+unset log y 
+set title 'Stokes solve' 
+set output 'solve_times3.pdf'
+plot[][:200]\
+'solve_times_powersaver.ascii'  u 7:5 w lp pt 5 t 'laptop (power saver)',\
+'solve_times_performance.ascii' u 7:5 w lp pt 5 ps .2 t 'laptop (performance)',\
+'solve_times_splu.ascii' u 7:5 w lp pt 5 ps .2 t 'splu(K)',\
+'solve_times_splu2.ascii' u 7:5 w lp pt 5 ps .2 t 'splu(K,M_p)',\
+'solve_times_splu2_1e-5.ascii' u 7:5 w lp lt 5 pt 7 ps .2 t 'splu(K,M_p)-tol=1e-5',\
+'solve_times_cdu_splu2.ascii' u 7:5 w lp lt 6 pt 7 ps .2 t 'cd-U',\
+60 lt -1 dt 2 t '1min',\
+120 lt -1 dt 3 t '2min',\
+180 lt -1 dt 4 t '3min'
+
+
+
+
+
+set log y 
 ############################################
 set pointsize .3
 
 set xlabel 'nelx=nelz'
 set ylabel 'time (s)'
 
+set title 'Stokes solve' 
 set output 'solve_times2.pdf'
 plot[][0.005:250]\
-'solve_times_performance.ascii' u (sqrt($8)):5 w lp pt 5 t 'laptop (performance)',\
+'solve_times_performance.ascii' u (sqrt($8)):5 w lp lt 2 pt 5 t 'laptop (performance)',\
+'solve_times_splu.ascii'        u (sqrt($8)):5 w lp lt 3 pt 5 ps .2 t 'splu(K)',\
+'solve_times_splu2.ascii'       u (sqrt($8)):5 w lp lt 4 pt 5 ps .2 t 'splu(K,M_p)',\
+'solve_times_splu2_Kcg.ascii'   u (sqrt($8)):5 w lp lt 6 pt 5 ps .2 t 'splu(M_p),cg(K)',\
 x**3.3/170000 lt -1 dt 2 t 'x^{3.3}'
+
+
+
+
+
+
+############################################
+unset log x
+set log y
+set xlabel 'iteration'
+
+set title 'velocity convergence'
+
+set ylabel 'xi_V'
+set output 'solver_convergence_xiV.pdf'
+plot[][]\
+'solver_convergence_16.ascii' u 1 w lp t '16^2',\
+'solver_convergence_24.ascii' u 1 w lp t '24^2',\
+'solver_convergence_32.ascii' u 1 w lp t '32^2',\
+'solver_convergence_48.ascii' u 1 w lp t '48^2',\
+'solver_convergence_64.ascii' u 1 w lp t '64^2',\
+'solver_convergence_80.ascii' u 1 w lp t '80^2',\
+'solver_convergence_96.ascii' u 1 w lp t '96^2',\
+'solver_convergence_128.ascii' u 1 w lp t '128^2',\
+'solver_convergence_160.ascii' u 1 w lp t '160^2',\
+'solver_convergence_190.ascii' u 1 w lp t '190^2',\
+'solver_convergence_200.ascii' u 1 w lp t '200^2',\
+'solver_convergence_256.ascii' u 1 w lp t '256^2',\
+1e-6 lt -1 lw 3 
+
+
+set title 'pressure convergence'
+set ylabel 'xi_P'
+set output 'solver_convergence_xiP.pdf'
+plot[][]\
+'solver_convergence_16.ascii'  u 2 w lp t '16^2',\
+'solver_convergence_24.ascii'  u 2 w lp t '24^2',\
+'solver_convergence_32.ascii'  u 2 w lp t '32^2',\
+'solver_convergence_48.ascii'  u 2 w lp t '48^2',\
+'solver_convergence_64.ascii'  u 2 w lp t '64^2',\
+'solver_convergence_80.ascii'  u 2 w lp t '80^2',\
+'solver_convergence_96.ascii'  u 2 w lp t '96^2',\
+'solver_convergence_128.ascii' u 2 w lp t '128^2',\
+'solver_convergence_160.ascii' u 2 w lp t '160^2',\
+'solver_convergence_190.ascii' u 2 w lp t '190^2',\
+'solver_convergence_200.ascii' u 2 w lp t '200^2',\
+'solver_convergence_256.ascii' u 2 w lp t '256^2',\
+1e-6 lt -1 lw 3 
+
+
+reset
+set term pdf enhanced font "times,12pt"
+set grid
+set pointsize .25
+set key outside
+set xlabel 'iteration'
+set ylabel 'alpha'
+set output 'solver_convergence_alpha.pdf'
+unset title 
+plot[][]\
+'solver_convergence_16.ascii'  u 3 w lp t '16^2',\
+'solver_convergence_24.ascii'  u 3 w lp t '24^2',\
+'solver_convergence_32.ascii'  u 3 w lp t '32^2',\
+'solver_convergence_48.ascii'  u 3 w lp t '48^2',\
+'solver_convergence_64.ascii'  u 3 w lp t '64^2',\
+'solver_convergence_80.ascii'  u 3 w lp t '80^2',\
+'solver_convergence_96.ascii'  u 3 w lp t '96^2',\
+'solver_convergence_128.ascii' u 3 w lp t '128^2',\
+'solver_convergence_160.ascii' u 3 w lp t '160^2',\
+'solver_convergence_190.ascii' u 3 w lp t '190^2',\
+'solver_convergence_200.ascii' u 3 w lp t '200^2',\
+'solver_convergence_256.ascii' u 3 w lp t '256^2',\
+
+
+
+
+
+
+
+
