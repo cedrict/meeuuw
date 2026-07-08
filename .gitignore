@@ -224,5 +224,7 @@ RESULTS/*.toc
 RESULTS/*.pdf
 RESULTS/*.out
 
+DUMP/
+
 GARBAGE/
 SOURCES/

@@ -23,13 +23,14 @@ def output_quadpoints_to_vtu(
     dpdzq,
     gxq,
     gzq,
+    output_folder,
 ):
     """
     Args:
     Returns:
     """
 
-    filename = "OUTPUT/quadpoints_{:04d}.vtu".format(istep)
+    filename = output_folder+"/quadpoints_{:04d}.vtu".format(istep)
     vtufile = open(filename, "w")
     vtufile.write("<VTKFile type='UnstructuredGrid' version='0.1' byte_order='BigEndian'> \n")
     vtufile.write("<UnstructuredGrid> \n")

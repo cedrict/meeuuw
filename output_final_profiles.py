@@ -25,11 +25,12 @@ def output_final_profiles(
     eta_e,
     middleV_element,
     middleH_element,
+    output_folder,
 ):
 
     #######################################################
     np.savetxt(
-        "OUTPUT/profiles/profile_vertical.ascii",
+        output_folder+"/profiles/profile_vertical.ascii",
         np.array(
             [
                 z_V[middleV_nodes],
@@ -46,7 +47,7 @@ def output_final_profiles(
 
     #######################################################
     np.savetxt(
-        "OUTPUT/profiles/profile_horizontal.ascii",
+        output_folder+"/profiles/profile_horizontal.ascii",
         np.array(
             [
                 x_V[middleH_nodes],
@@ -63,7 +64,7 @@ def output_final_profiles(
 
     #######################################################
     np.savetxt(
-        "OUTPUT/profiles/profile_vertical_e.ascii",
+        output_folder+"/profiles/profile_vertical_e.ascii",
         np.array(
             [
                 z_e[middleV_element],
@@ -77,7 +78,7 @@ def output_final_profiles(
 
     #######################################################
     np.savetxt(
-        "OUTPUT/profiles/profile_horizontal_e.ascii",
+        output_folder+"/profiles/profile_horizontal_e.ascii",
         np.array(
             [
                 x_e[middleH_element],

@@ -7,7 +7,6 @@ pressure_normalisation = "surface"
 
 
 end_time = 0.0
-formulation = "BA"
 vel_scale = 1
 vel_unit = " "
 time_scale = 1
@@ -26,8 +25,11 @@ zsamplepoints = [0]
 dt_max = 1e30
 compute_dynamic_topography = False
 nmat = 1
-
+use_free_surface = False
 verbose_output=False
+
+use_stretching_x=False
+use_stretching_z=False
 
 #######################################
 # output  

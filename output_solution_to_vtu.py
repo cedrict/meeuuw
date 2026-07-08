@@ -77,11 +77,12 @@ def output_solution_to_vtu(
     export_strainrate_tensor_components,
     export_devstress_tensor_components,
     export_stress_tensor_components,
+    output_folder,
 ):
 
     debug_sol = False
 
-    filename = "OUTPUT/solution_{:04d}.vtu".format(istep)
+    filename = output_folder+"/solution_{:04d}.vtu".format(istep)
     vtufile = open(filename, "w")
     vtufile.write("<VTKFile type='UnstructuredGrid' version='0.1' byte_order='BigEndian'> \n")
     vtufile.write("<UnstructuredGrid> \n")

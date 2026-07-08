@@ -32,6 +32,7 @@ def compute_full_stress_tensor(
     bot_Vnodes,
     top_element,
     bot_element,
+    output_folder,
 ):
 
     if solve_Stokes:
@@ -52,19 +53,19 @@ def compute_full_stress_tensor(
             match geometry:
                 case "box":
                     np.savetxt(
-                        "OUTPUT/top/top_sigmazz_n_" + str(istep) + ".ascii",
+                        output_folder+"/top/top_sigmazz_n_" + str(istep) + ".ascii",
                         np.array([x_V[top_Vnodes], sigmazz_n[top_Vnodes]]).T,
                     )
                     np.savetxt(
-                        "OUTPUT/bottom/bot_sigmazz_n_" + str(istep) + ".ascii",
+                        output_folder+"/bottom/bot_sigmazz_n_" + str(istep) + ".ascii",
                         np.array([x_V[bot_Vnodes], sigmazz_n[bot_Vnodes]]).T,
                     )
                     np.savetxt(
-                        "OUTPUT/top/top_sigmazz_e_" + str(istep) + ".ascii",
+                        output_folder+"/top/top_sigmazz_e_" + str(istep) + ".ascii",
                         np.array([x_e[top_element], sigmazz_e[top_element]]).T,
                     )
                     np.savetxt(
-                        "OUTPUT/bottom/bot_sigmazz_e_" + str(istep) + ".ascii",
+                        output_folder+"/bottom/bot_sigmazz_e_" + str(istep) + ".ascii",
                         np.array([x_e[bot_element], sigmazz_e[bot_element]]).T,
                     )
                 case "quarter" | "half" | "eighth" | "annulus":
@@ -83,19 +84,19 @@ def compute_full_stress_tensor(
                             theta_e, sigmaxx_e, sigmazz_e, sigmaxz_e
                         )
                     np.savetxt(
-                        "OUTPUT/top/top_sigmarr_n_" + str(istep) + ".ascii",
+                        output_folder+"/top/top_sigmarr_n_" + str(istep) + ".ascii",
                         np.array([theta_V[top_Vnodes], sigmarr_n[top_Vnodes]]).T,
                     )
                     np.savetxt(
-                        "OUTPUT/bottom/bot_sigmarr_n_" + str(istep) + ".ascii",
+                        output_folder+"/bottom/bot_sigmarr_n_" + str(istep) + ".ascii",
                         np.array([theta_V[bot_Vnodes], sigmarr_n[bot_Vnodes]]).T,
                     )
                     np.savetxt(
-                        "OUTPUT/top/top_sigmarr_e_" + str(istep) + ".ascii",
+                        output_folder+"/top/top_sigmarr_e_" + str(istep) + ".ascii",
                         np.array([theta_e[top_element], sigmarr_e[top_element]]).T,
                     )
                     np.savetxt(
-                        "OUTPUT/bottom/bot_sigmarr_e_" + str(istep) + ".ascii",
+                        output_folder+"/bottom/bot_sigmarr_e_" + str(istep) + ".ascii",
                         np.array([theta_e[bot_element], sigmarr_e[bot_element]]).T,
                     )
 

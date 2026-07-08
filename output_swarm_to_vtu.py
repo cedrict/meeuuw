@@ -1,7 +1,10 @@
 ###################################################################################################
 # MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW - MEEUUW
 ###################################################################################################
+
 import numpy as np
+
+from toolbox import effective
 
 ###################################################################################################
 
@@ -44,6 +47,7 @@ def output_swarm_to_vtu(
     swarm_strain,
     swarm_F,
     swarm_sst,
+    output_folder,
 ):
     """
     Args:
@@ -52,9 +56,9 @@ def output_swarm_to_vtu(
 
     nparticle_active=np.sum(swarm_active)
 
-    debug_swarm = False
+    debug_swarm = True
 
-    filename = "OUTPUT/SWARM/swarm_{:04d}.vtu".format(istep)
+    filename = output_folder+"/SWARM/swarm_{:04d}.vtu".format(istep)
     vtufile = open(filename, "w")
     vtufile.write("<VTKFile type='UnstructuredGrid' version='0.1' byte_order='BigEndian'> \n")
     vtufile.write("<UnstructuredGrid> \n")
@@ -111,6 +115,11 @@ def output_swarm_to_vtu(
         vtufile.write("<DataArray type='Float32' Name='" + material_names[imat] + "' Format='binary'> \n")
         swarm_wf[imat, :][swarm_active].tofile(vtufile, sep=" ", format="%.3e")
         vtufile.write("</DataArray>\n")
+    # --
+    ee = effective(swarm_exx, swarm_ezz, swarm_exz)
+    vtufile.write("<DataArray type='Float32' Name='e' Format='binary'> \n")
+    ee.tofile(vtufile, sep=" ", format="%.4e")
+    vtufile.write("</DataArray>\n")
     # --
     vtufile.write("<DataArray type='Float32' Name='Density' Format='binary'> \n")
     swarm_rho[swarm_active].tofile(vtufile, sep=" ", format="%.3e")

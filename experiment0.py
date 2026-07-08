@@ -19,7 +19,7 @@ every_swarm_vtu = 100
 RKorder = -1
 nstep = 500
 
-###################################################################################################
+#######################################
 
 icase = "1a"
 
@@ -49,6 +49,17 @@ match icase:
         Ra = 1e4
         nelx = 80
         nelz = 32
+
+use_stretching_x=True
+use_stretching_z=True
+n_segments_x=3
+n_segments_z=5
+x_segments=np.array([0,0.25,0.75,1], dtype=np.float64)
+z_segments=np.array([0,0.1,0.25,0.75,0.9,1], dtype=np.float64)
+nelx_segments=np.array([16,16,16], dtype=np.int16)
+nelz_segments=np.array([16,16,16,16,16], dtype=np.int16)
+nelx=nelx_segments.sum()
+nelz=nelz_segments.sum()
 
 ###################################################################################################
 

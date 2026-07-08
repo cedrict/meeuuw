@@ -7,7 +7,7 @@ set ylabel 'time(s)'
 set output 'timings.pdf'
 set key outside
 
-plot[][1e-4:10]\
+plot[][1e-4:100]\
 'timings.ascii' u 1:2  w lp lt 1 pt 6 t 'build FE matrix V (1)',\
 'timings.ascii' u 1:3  w lp lt 1 pt 7 t 'solve system V (2)',\
 'timings.ascii' u 1:5  w lp lt 5 pt 6 t 'build matrix T(3)',\
@@ -36,6 +36,7 @@ plot[][1e-4:10]\
 'timings.ascii' u 1:19 w lp lt 4 pt 5 t 'comp nodal rho,eta (18)',\
 'timings.ascii' u 1:25 w lp lt 4 pt 6 t 'interp sr,p on ptcls (24)',\
 'timings.ascii' u 1:25 w lp lt 4 pt 7 t 'interp T on ptcls (25)',\
+'timings.ascii' u 1:39 w lp lt 4 pt 8 t 'population control (39)',\
 \
 'timings.ascii' u 1:24 w lp lt 4 pt 7 t 'compute gravity (23)'
 

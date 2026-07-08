@@ -5,8 +5,6 @@
 import numba
 import numpy as np
 
-## PB: shear heating should use dev strain rate
-
 ###################################################################################################
 
 
@@ -91,6 +89,9 @@ def build_matrix_energy(
                     * 2
                     * etaq[iel, iq]
                     * (
+                        #1.0 / 2.0 * exxq[iel, iq] ** 2
+                        #+ 1.0 / 2.0 * ezzq[iel, iq] ** 2
+                        #-  exxq[iel, iq] * ezzq[iel, iq]
                         2.0 / 3.0 * exxq[iel, iq] ** 2
                         + 2.0 / 3.0 * ezzq[iel, iq] ** 2
                         - 2.0 / 3.0 * exxq[iel, iq] * ezzq[iel, iq]
@@ -103,7 +104,8 @@ def build_matrix_energy(
                     N[:]
                     * alphaq[iel, iq]
                     * Tq[iel, iq]
-                    * (velq[0, 0] * dpdxq[iel, iq] + velq[0, 1] * dpdzq[iel, iq])
+                    #* (velq[0, 0] * dpdxq[iel, iq] + velq[0, 1] * dpdzq[iel, iq]) # FULL
+                    * (- velq[0, 1] * rho0 * 10)
                     * JxWq[iel, iq]
                 )
         # end for

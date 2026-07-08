@@ -1,0 +1,40 @@
+#! /bin/bash
+
+for n in 16 24 32 48 64 80 96 ; do
+
+    echo BA resolution: $n
+
+    python3 meeuuw.py --e 25 --nelx $n --nelz $n --nstep 5 --formulation 'BA' > opla
+
+    mkdir BA_$n
+    cp OUTPUT/Nu.ascii BA_$n
+    cp OUTPUT/delta_wag_tvd.ascii BA_$n
+    cp OUTPUT/kinetic_energy.ascii BA_$n
+    cp OUTPUT/T_avrg.ascii BA_$n
+    cp OUTPUT/tvd.ascii BA_$n
+    cp OUTPUT/vrms.ascii BA_$n
+    cp OUTPUT/wag.ascii BA_$n
+    cp OUTPUT/boundary_velocity_statistics.ascii BA_$n
+    cp OUTPUT/top/avrg_dTdz_top.ascii BA_$n
+    cp OUTPUT/bottom/avrg_dTdz_bot.ascii BA_$n
+
+    ###############################################
+
+    echo EBA resolution: $n
+
+    python3 meeuuw.py --e 25 --nelx $n --nelz $n --nstep 5 --formulation 'EBA' > opla
+
+    mkdir EBA_$n
+    cp OUTPUT/Nu.ascii EBA_$n
+    cp OUTPUT/delta_wag_tvd.ascii EBA_$n
+    cp OUTPUT/kinetic_energy.ascii EBA_$n
+    cp OUTPUT/T_avrg.ascii EBA_$n
+    cp OUTPUT/tvd.ascii EBA_$n
+    cp OUTPUT/vrms.ascii EBA_$n
+    cp OUTPUT/wag.ascii EBA_$n
+    cp OUTPUT/boundary_velocity_statistics.ascii EBA_$n
+    cp OUTPUT/top/avrg_dTdz_top.ascii EBA_$n
+    cp OUTPUT/bottom/avrg_dTdz_bot.ascii EBA_$n
+
+done
+

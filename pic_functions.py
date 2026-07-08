@@ -106,7 +106,7 @@ def interpolate_field_on_particles(nparticle, swarm_active, swarm_r, swarm_t, sw
 
 @numba.njit
 def locate_particles___box(
-    nparticle: int, swarm_active, swarm_x, swarm_z, hx: float, hz: float, x_V, z_V, icon, nelx: int
+    nparticle, swarm_active, swarm_x, swarm_z, hx, hz, x_V, z_V, icon, nelx
 ):
     """
     Particles that are not active receive r=t=0, iel=0.
@@ -1290,9 +1290,9 @@ def compute_ls_coefficients_Q1(nel, x_e, z_e, swarm_x, swarm_z, swarm_iel, swarm
 ###################################################################################################
 
 
-def output_fields_ls_P1(istep, nel, x, z, icon, x_e, z_e, ls_rho_a, ls_rho_b, ls_rho_c, ls_eta_a, ls_eta_b, ls_eta_c):
+def output_fields_ls_P1(istep, nel, x, z, icon, x_e, z_e, ls_rho_a, ls_rho_b, ls_rho_c, ls_eta_a, ls_eta_b, ls_eta_c, output_folder):
 
-    filename = "OUTPUT/fields_ls_{:04d}.vtu".format(istep)
+    filename = output_folder+"/fields_ls_{:04d}.vtu".format(istep)
     vtufile = open(filename, "w")
     vtufile.write("<VTKFile type='UnstructuredGrid' version='0.1' byte_order='BigEndian'> \n")
     vtufile.write("<UnstructuredGrid> \n")
@@ -1457,9 +1457,10 @@ def output_fields_ls_Q1(
     ls_eta_b,
     ls_eta_c,
     ls_eta_d,
+    output_folder,
 ):
 
-    filename = "OUTPUT/fields_ls_{:04d}.vtu".format(istep)
+    filename = output_folder+"/fields_ls_{:04d}.vtu".format(istep)
     vtufile = open(filename, "w")
     vtufile.write("<VTKFile type='UnstructuredGrid' version='0.1' byte_order='BigEndian'> \n")
     vtufile.write("<UnstructuredGrid> \n")
@@ -1645,6 +1646,7 @@ def population_control(
     use_melting,
     nmat,
     ptcl_active_file,
+    output_folder,
 ):
 
     debug_population_control = False
@@ -1808,7 +1810,7 @@ def population_control(
 
     if debug_population_control:
         np.savetxt(
-            "OUTPUT/swarm_pp_" + str(istep) + ".ascii",
+            output_folder+"/swarm_pp_" + str(istep) + ".ascii",
             np.array(
                 [
                     swarm_x[swarm_active],

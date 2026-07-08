@@ -14,13 +14,13 @@ from constants import *
 
 # min/max viscosity?
 
-nelx = 120
-nelz = 60
+nelx = 150
+nelz = 75
 
 Lx = 2000 * km
 Lz = 1000 * km
 
-nstep = 500
+nstep = 1
 dt_max = 50000 * year
 end_time = 100e6 * year
 eta_ref = 1e21
@@ -35,8 +35,8 @@ time_scale = year
 time_unit = "yr"
 
 nmat = 3
-nparticle_per_dim = 7
-particle_distribution = 1  # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
+nparticle_per_dim = 10
+particle_distribution = 3  # 0: random, 1: reg, 2: Poisson Disc, 3: pseudo-random
 
 solve_T = True
 Tbottom = 1525 + 273
@@ -45,8 +45,20 @@ Ttop = 25 + 273
 rho0 = 3300
 
 nonlinear = True
-niter_nl = 10
+niter_nl = 5
 tol_nl = 1e-2
+
+use_stretching_x=True
+use_stretching_z=True
+n_segments_x=4
+n_segments_z=3
+x_segments=np.array([0,0.2,0.5,0.8,1], dtype=np.float64)
+z_segments=np.array([0,0.5,0.8,1], dtype=np.float64)
+nelx_segments=np.array([25,50,50,25], dtype=np.int16)
+nelz_segments=np.array([30,30,30], dtype=np.int16)
+nelx=nelx_segments.sum()
+nelz=nelz_segments.sum()
+
 
 ###################################################################################################
 
@@ -164,12 +176,12 @@ def material_model(
                 c = 1e20
                 phi = 0
 
-            swarm_rho[ip] = rho * (1 - swarm_alpha[ip] * swarm_T[ip])
+            swarm_rho[ip] = rho * (1 - swarm_alpha[ip] * (swarm_T[ip]-298))
 
             # compute effective strain rate
             e = np.sqrt(0.5 * (swarm_exx[ip] ** 2 + swarm_ezz[ip] ** 2) + swarm_exz[ip] ** 2)
             e = min(e, 1e-12)
-            e = max(e, 1e-18)
+            e = max(e, 1e-20)
 
             # compute effective dislocation creep viscosity
             eta_eff = 0.5 * A ** (-1 / n) * e ** (1 / n - 1) * np.exp(Q / (n * Rgas * swarm_T[ip]))
@@ -180,8 +192,8 @@ def material_model(
                 eta_eff = sigma_y / 2 / e
                 swarm_mechanism[ip] = 1
 
-            eta_eff = max(1e19, eta_eff)
-            eta_eff = min(1e25, eta_eff)
+            eta_eff = max(5e19, eta_eff)
+            eta_eff = min(5e22, eta_eff)
 
             swarm_eta[ip] = eta_eff
 

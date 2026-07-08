@@ -8,7 +8,10 @@ import numba
 import time as clock
 import scipy.sparse as sps
 import argparse
+import os
 
+from apply_mesh_stretching_x import *
+from apply_mesh_stretching_z import *
 from assess_steady_state import *
 from basis_functions_setup_q import *
 from basis_functions_setup_Vnodes import *
@@ -22,6 +25,7 @@ from build_velocity_connectivity import *
 from build_pressure_mesh import *
 from build_pressure_connectivity import *
 from define_mapping import *
+from evolve_mesh import *
 from compute_domain_volume import *
 from compute_normals import *
 from compute_strain_rate import *
@@ -47,7 +51,10 @@ from output_swarm_to_ascii import *
 from output_solution_to_vtu import *
 from output_solution_to_png import *
 from output_quadpoints_to_vtu import *
+from output_test_results import *
+from output_mesh_V import *
 from pic_functions import *
+from prescribe_initial_topography import *
 from print_timings import *
 from process_velocity_solution_vectors import *
 from project_nodal_field_onto_qpoints import *
@@ -105,7 +112,7 @@ from set_default_parameters import *
 # experiment 28: Lithospheric Drip based on bagu25
 ###############################################################################
 
-experiment = 28
+experiment = 25
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx", type=int, default=0)
@@ -123,12 +130,14 @@ parser.add_argument("--nodal_projection_type", type=int, default=0, choices=[1, 
 parser.add_argument("--particle_rho_projection", type=int, default=-1)
 parser.add_argument("--particle_eta_projection", type=int, default=-1)
 parser.add_argument("--RKorder", type=int, default=0)
+parser.add_argument("--output_folder", default='OUTPUT')
+parser.add_argument("--formulation", default='BA')
 args = parser.parse_args()
 
 # if int(len(sys.argv)==8):
 #   experiment = int(sys.argv[1])
 
-if args.e > 0:
+if args.e >= 0:
     experiment = args.e
 print("experiment=", experiment)
 
@@ -266,6 +275,63 @@ if args.RKorder > 0:
     RKorder = args.RKorder
 print("RKorder=", args.RKorder)
 
+formulation=str(args.formulation)
+
+output_folder=str(args.output_folder)
+print('output_folder=',output_folder)
+
+try:
+    os.mkdir(output_folder)
+    print(f"Directory '{output_folder}' created successfully.")
+except FileExistsError:
+    print(f"Directory '{output_folder}' already exists.")
+except PermissionError:
+    print(f"Permission denied: Unable to create '{output_folder}'.")
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+try:
+    os.mkdir(output_folder+'/bottom')
+    print(f"Directory '{output_folder}/bottom' created successfully.")
+except FileExistsError:
+    print(f"Directory '{output_folder}' already exists.")
+except PermissionError:
+    print(f"Permission denied: Unable to create '{output_folder}'.")
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+try:
+    os.mkdir(output_folder+'/top')
+    print(f"Directory '{output_folder}' created successfully.")
+except FileExistsError:
+    print(f"Directory '{output_folder}' already exists.")
+except PermissionError:
+    print(f"Permission denied: Unable to create '{output_folder}'.")
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+try:
+    os.mkdir(output_folder+'/SWARM')
+    print(f"Directory '{output_folder}/SWARM' created successfully.")
+except FileExistsError:
+    print(f"Directory '{output_folder}/SWARM' already exists.")
+except PermissionError:
+    print(f"Permission denied: Unable to create '{output_folder}/SWARM'.")
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+try:
+    os.mkdir(output_folder+'/profiles')
+    print(f"Directory '{output_folder}/profiles' created successfully.")
+except FileExistsError:
+    print(f"Directory '{output_folder}/profiles' already exists.")
+except PermissionError:
+    print(f"Permission denied: Unable to create '{output_folder}/profiles'.")
+except Exception as e:
+    print(f"An error occurred: {e}")
+
+
+
 ###############################################################################
 
 match geometry:
@@ -383,8 +449,9 @@ qcoords, qweights, nq_per_element, nq = quadrature_setup(nq_per_dim, nel)
     avrg_T_top_file,
     avrg_dTdz_bot_file,
     avrg_dTdz_top_file,
+    bc_vel_file,
     conv_file,
-) = open_files(vel_unit, time_unit)
+) = open_files(vel_unit, time_unit, output_folder)
 
 ###############################################################################
 
@@ -545,6 +612,35 @@ else:
    icon_T=np.copy(icon_V)
 
 print("build icon_T: ................................ %.3f s" % (clock.time() - start))
+
+###############################################################################
+# @@ apply mesh stretching 
+###############################################################################
+start = clock.time()
+
+if use_stretching_x:
+   x_V,x_P,x_T,xi=apply_mesh_stretching_x(m_V,x_V,x_P,nelx,nelz,icon_V,icon_P,x_segments,nelx_segments,Lx)
+   np.savetxt("DEBUG/mesh_after_x_stretching.ascii", np.array([x_V, z_V]).T)
+
+if use_stretching_z:
+   z_V,z_P,z_T,zeta=apply_mesh_stretching_z(m_V,z_V,z_P,nelx,nelz,icon_V,icon_P,z_segments,nelz_segments,Lz)
+   np.savetxt("DEBUG/mesh_after_z_stretching.ascii", np.array([x_V, z_V]).T)
+
+if debug_ascii: output_mesh_V(x_V,z_V,icon_V,nn_V,m_V,nel)
+
+print("apply mesh stretching: ....................... %.3f s" % (clock.time() - start))
+
+###############################################################################
+# @@ prescribe initial topography if necessary
+###############################################################################
+start = clock.time()
+
+if use_free_surface:
+   z_V,z_P,z_T=\
+   prescribe_initial_topography(experiment,Lx,Lz,nn_V,nelx,nelz,x_V,z_V,z_P,z_T,\
+                                icon_V,icon_P,top_Vnodes,m_V,use_stretching)
+
+print("prescrive initial topo: ...................... %.3f s" % (clock.time() - start))
 
 ###############################################################################
 # @@ define velocity boundary conditions
@@ -1169,6 +1265,7 @@ for iloop in range(0, nstep*niter_nl):
             ls_eta_a,
             ls_eta_b,
             ls_eta_c,
+            output_folder
         )
 
     elif particle_rho_projection == "least_squares_Q1" or particle_eta_projection == "least_squares_Q1":
@@ -1215,6 +1312,7 @@ for iloop in range(0, nstep*niter_nl):
             ls_eta_b,
             ls_eta_c,
             ls_eta_d,
+            output_folder,
         )
 
     else:
@@ -1358,8 +1456,8 @@ for iloop in range(0, nstep*niter_nl):
             counter += 1
     rho_e_profile /= nelx
 
-    # np.savetxt('OUTPUT/profiles/rho_n_profile.ascii',np.array([coords_n_profile,rho_n_profile]).T,header='# z,rho')
-    # np.savetxt('OUTPUT/profiles/rho_e_profile.ascii',np.array([coords_e_profile,rho_e_profile]).T,header='# z,rho')
+    # np.savetxt(output_folder+'/profiles/rho_n_profile.ascii',np.array([coords_n_profile,rho_n_profile]).T,header='# z,rho')
+    # np.savetxt(output_folder+'/profiles/rho_e_profile.ascii',np.array([coords_e_profile,rho_e_profile]).T,header='# z,rho')
 
     print("     -> rho_n_profile (m,M) %.3e %.3e " % (np.min(rho_n_profile), np.max(rho_n_profile)))
     print("     -> rho_e_profile (m,M) %.3e %.3e " % (np.min(rho_e_profile), np.max(rho_e_profile)))
@@ -1719,7 +1817,7 @@ for iloop in range(0, nstep*niter_nl):
                 for k in range(0, nniter):
                     print("     iter %3d xiP= %e xiV= %e" % (k, array_xiP[k], array_xiV[k]))
             np.savetxt(
-                "OUTPUT/solver_convergence_" + str(istep) + ".ascii",
+                output_folder+"/solver_convergence_" + str(istep) + ".ascii",
                 np.array(
                     [
                         array_xiV[:nniter],
@@ -1796,6 +1894,7 @@ for iloop in range(0, nstep*niter_nl):
         debug_ascii,
         every_solution_vtu,
         vstats_file,
+        output_folder,
     )
 
     print("process u,w vectors: ................. %.3f s" % (clock.time() - start))
@@ -1887,20 +1986,20 @@ for iloop in range(0, nstep*niter_nl):
         match geometry:
             case "box":
                 np.savetxt(
-                    "OUTPUT/top/top_p_" + str(istep) + ".ascii",
+                    output_folder+"/top/top_p_" + str(istep) + ".ascii",
                     np.array([x_P[top_Pnodes], p[top_Pnodes]]).T,
                 )
                 np.savetxt(
-                    "OUTPUT/bottom/bot_p_" + str(istep) + ".ascii",
+                    output_folder+"/bottom/bot_p_" + str(istep) + ".ascii",
                     np.array([x_P[bot_Pnodes], p[bot_Pnodes]]).T,
                 )
             case "quarter" | "half" | "eighth" | "annulus":
                 np.savetxt(
-                    "OUTPUT/top/top_p_" + str(istep) + ".ascii",
+                    output_folder+"/top/top_p_" + str(istep) + ".ascii",
                     np.array([theta_P[top_Pnodes], p[top_Pnodes]]).T,
                 )
                 np.savetxt(
-                    "OUTPUT/bottom/bot_p_" + str(istep) + ".ascii",
+                    output_folder+"/bottom/bot_p_" + str(istep) + ".ascii",
                     np.array([theta_P[bot_Pnodes], p[bot_Pnodes]]).T,
                 )
 
@@ -1930,14 +2029,14 @@ for iloop in range(0, nstep*niter_nl):
         match geometry:
             case "box":
                 array = np.array([x_e[top_element], p_e[top_element]]).T
-                np.savetxt("OUTPUT/top/top_p_e_" + str(istep) + ".ascii", array)
+                np.savetxt(output_folder+"/top/top_p_e_" + str(istep) + ".ascii", array)
                 array = np.array([x_e[bot_element], p_e[bot_element]]).T
-                np.savetxt("OUTPUT/bottom/bot_p_e_" + str(istep) + ".ascii", array)
+                np.savetxt(output_folder+"/bottom/bot_p_e_" + str(istep) + ".ascii", array)
             case "quarter" | "half" | "eighth" | "annulus":
                 array = np.array([theta_e[top_element], p_e[top_element]]).T
-                np.savetxt("OUTPUT/top/top_p_e_" + str(istep) + ".ascii", array)
+                np.savetxt(output_folder+"/top/top_p_e_" + str(istep) + ".ascii", array)
                 array = np.array([theta_e[bot_element], p_e[bot_element]]).T
-                np.savetxt("OUTPUT/bottom/bot_p_e_" + str(istep) + ".ascii", array)
+                np.savetxt(output_folder+"/bottom/bot_p_e_" + str(istep) + ".ascii", array)
 
     if debug_ascii:
         np.savetxt("DEBUG/pressure_e.ascii", np.array([x_e, z_e, p_e]).T, header="# x,z,p")
@@ -1961,20 +2060,20 @@ for iloop in range(0, nstep*niter_nl):
         match geometry:
             case "box":
                 np.savetxt(
-                    "OUTPUT/top/top_q_" + str(istep) + ".ascii",
+                    output_folder+"/top/top_q_" + str(istep) + ".ascii",
                     np.array([x_V[top_Vnodes], q[top_Vnodes]]).T,
                 )
                 np.savetxt(
-                    "OUTPUT/bottom/bot_q_" + str(istep) + ".ascii",
+                    output_folder+"/bottom/bot_q_" + str(istep) + ".ascii",
                     np.array([x_V[bot_Vnodes], q[bot_Vnodes]]).T,
                 )
             case "quarter" | "half" | "eighth" | "annulus":
                 np.savetxt(
-                    "OUTPUT/top/top_q_" + str(istep) + ".ascii",
+                    output_folder+"/top/top_q_" + str(istep) + ".ascii",
                     np.array([theta_V[top_Vnodes], q[top_Vnodes]]).T,
                 )
                 np.savetxt(
-                    "OUTPUT/bottom/bot_q_" + str(istep) + ".ascii",
+                    output_folder+"/bottom/bot_q_" + str(istep) + ".ascii",
                     np.array([theta_V[bot_Vnodes], q[bot_Vnodes]]).T,
                 )
 
@@ -1999,6 +2098,8 @@ for iloop in range(0, nstep*niter_nl):
        u_mem, w_mem, p_mem, T_mem, inside_nonlinear_iterations = \
        assess_nlconvergence(istep, iter_nl, solve_Stokes, solve_T, \
        u, w, p, T, u_mem, w_mem, p_mem, T_mem, tol_nl, inside_nonlinear_iterations, conv_file)
+    else:
+        T_mem = T.copy()
 
     print("assess steady state: ........................ %.4f s" % (clock.time() - start))
     timings[38] += clock.time() - start
@@ -2158,19 +2259,8 @@ for iloop in range(0, nstep*niter_nl):
 
     if solve_T:
         dTdx_n, dTdz_n, qx_n, qz_n = compute_nodal_heat_flux(
-            icon_T,
-            T,
-            hcond_n,
-            nn_T,
-            m_T,
-            nel,
-            dNdr_T_n,
-            dNdt_T_n,
-            jcbi00_T,
-            jcbi01_T,
-            jcbi10_T,
-            jcbi11_T,
-        )
+            icon_T,T,hcond_n,nn_T,m_T,nel,dNdr_T_n,dNdt_T_n,
+            jcbi00_T,jcbi01_T,jcbi10_T,jcbi11_T)
 
         print("     -> dTdx_n (m,M) %.3e %.3e " % (np.min(dTdx_n), np.max(dTdx_n)))
         print("     -> dTdz_n (m,M) %.3e %.3e " % (np.min(dTdz_n), np.max(dTdz_n)))
@@ -2286,11 +2376,11 @@ for iloop in range(0, nstep*niter_nl):
 
             if istep % every_solution_vtu == 0 or istep == nstep - 1:
                 np.savetxt(
-                    "OUTPUT/top/top_err_e_" + str(istep) + ".ascii",
+                    output_folder+"/top/top_err_e_" + str(istep) + ".ascii",
                     np.array([theta_e[top_element], err_e[top_element]]).T,
                 )
                 np.savetxt(
-                    "OUTPUT/top/top_drr_e_" + str(istep) + ".ascii",
+                    output_folder+"/top/top_drr_e_" + str(istep) + ".ascii",
                     np.array([theta_e[top_element], drr_e[top_element]]).T,
                 )
 
@@ -2365,11 +2455,11 @@ for iloop in range(0, nstep*niter_nl):
             ert_n = 0
             if istep % every_solution_vtu == 0 or istep == nstep - 1:
                 np.savetxt(
-                    "OUTPUT/top/top_ezz_n" + str(istep) + ".ascii",
+                    output_folder+"/top/top_ezz_n" + str(istep) + ".ascii",
                     np.array([x_V[top_Vnodes], ezz_n[top_Vnodes]]).T,
                 )
                 np.savetxt(
-                    "OUTPUT/bottom/bot_ezz_n" + str(istep) + ".ascii",
+                    output_folder+"/bottom/bot_ezz_n" + str(istep) + ".ascii",
                     np.array([x_V[bot_Vnodes], ezz_n[bot_Vnodes]]).T,
                 )
 
@@ -2398,11 +2488,11 @@ for iloop in range(0, nstep*niter_nl):
 
             if istep % every_solution_vtu == 0 or istep == nstep - 1:
                 np.savetxt(
-                    "OUTPUT/top/top_err_n_" + str(istep) + ".ascii",
+                    output_folder+"/top/top_err_n_" + str(istep) + ".ascii",
                     np.array([theta_V[top_Vnodes], err_n[top_Vnodes]]).T,
                 )
                 np.savetxt(
-                    "OUTPUT/bottom/bot_err_n_" + str(istep) + ".ascii",
+                    output_folder+"/bottom/bot_err_n_" + str(istep) + ".ascii",
                     np.array([theta_V[bot_Vnodes], err_n[bot_Vnodes]]).T,
                 )
 
@@ -2479,6 +2569,24 @@ for iloop in range(0, nstep*niter_nl):
     timings[6] += clock.time() - start
 
     ###############################################################################################
+    # @@ compute boundary velocity statistics
+    ###############################################################################################
+    start = clock.time()
+
+    vel_max_left,vel_max_right,vel_max_bottom,vel_max_top=\
+    compute_boundary_velocity_statistics(x_V,z_V,u,w,left_Vnodes,right_Vnodes,bot_Vnodes,top_Vnodes)
+
+    bc_vel_file.write("%.4e %.4e %.4e %.4e %.4e  \n" % (geo_time / time_scale,\
+                                                        vel_max_left / vel_scale,\
+                                                        vel_max_right / vel_scale,\
+                                                        vel_max_bottom / vel_scale,\
+                                                        vel_max_top / vel_scale)) 
+
+    print("compute boundary vel stats: .................. %.3f s" % (clock.time() - start))
+    #timings[6] += clock.time() - start
+
+
+    ###############################################################################################
     # @@ compute deviatoric stress tensor components (elemental & nodal)
     ###############################################################################################
     start = clock.time()
@@ -2519,6 +2627,8 @@ for iloop in range(0, nstep*niter_nl):
         bot_Vnodes,
         top_element,
         bot_element,
+        verbose_output,
+        output_folder,
     )
 
     print("compute deviatoric stress: ................... %.3f s" % (clock.time() - start))
@@ -2565,6 +2675,7 @@ for iloop in range(0, nstep*niter_nl):
         bot_Vnodes,
         top_element,
         bot_element,
+        output_folder,
     )
 
     print("compute full stress: ......................... %.3f s" % (clock.time() - start))
@@ -2584,7 +2695,7 @@ for iloop in range(0, nstep*niter_nl):
                     (sigmazz_n[top_Vnodes] - avrg_sigmazz) / gz_n[top_Vnodes] / (rho_n[top_Vnodes] - rho_DT_top)
                 )
                 np.savetxt(
-                    "OUTPUT/top/top_dynamic_topography_n_" + str(istep) + ".ascii",
+                    output_folder+"/top/top_dynamic_topography_n_" + str(istep) + ".ascii",
                     np.array([x_V[top_Vnodes], dyn_topo_top]).T,
                 )
                 #
@@ -2593,7 +2704,7 @@ for iloop in range(0, nstep*niter_nl):
                     (sigmazz_n[bot_Vnodes] - avrg_sigmazz) / gz_n[bot_Vnodes] / (rho_n[bot_Vnodes] - rho_DT_bot)
                 )
                 np.savetxt(
-                    "OUTPUT/bottom/bot_dynamic_topography_n_" + str(istep) + ".ascii",
+                    output_folder+"/bottom/bot_dynamic_topography_n_" + str(istep) + ".ascii",
                     np.array([x_V[bot_Vnodes], dyn_topo_bot]).T,
                 )
 
@@ -2604,7 +2715,7 @@ for iloop in range(0, nstep*niter_nl):
                     (sigmarr_n[top_Vnodes] - avrg_sigmarr) / gr_n[top_Vnodes] / (rho_n[top_Vnodes] - rho_DT_top)
                 )
                 np.savetxt(
-                    "OUTPUT/top/top_dynamic_topography_n_" + str(istep) + ".ascii",
+                    output_folder+"/top/top_dynamic_topography_n_" + str(istep) + ".ascii",
                     np.array([theta_V[top_Vnodes], dyn_topo_top]).T,
                 )
                 #
@@ -2613,7 +2724,7 @@ for iloop in range(0, nstep*niter_nl):
                     (sigmarr_e[top_element] - avrg_sigmarr) / gr_e[top_element] / (rho_e[top_element] - rho_DT_top)
                 )
                 np.savetxt(
-                    "OUTPUT/top/top_dynamic_topography_e_" + str(istep) + ".ascii",
+                    output_folder+"/top/top_dynamic_topography_e_" + str(istep) + ".ascii",
                     np.array([theta_e[top_element], dyn_topo_top]).T,
                 )
                 #
@@ -2622,7 +2733,7 @@ for iloop in range(0, nstep*niter_nl):
                     (sigmarr_n[bot_Vnodes] - avrg_sigmarr) / gr_n[bot_Vnodes] / (rho_n[bot_Vnodes] - rho_DT_bot)
                 )
                 np.savetxt(
-                    "OUTPUT/bot/bot_dynamic_topography_n_" + str(istep) + ".ascii",
+                    output_folder+"/bot/bot_dynamic_topography_n_" + str(istep) + ".ascii",
                     np.array([theta_V[bot_Vnodes], dyn_topo_bot]).T,
                 )
                 #
@@ -2631,7 +2742,7 @@ for iloop in range(0, nstep*niter_nl):
                     (sigmarr_e[bot_element] - avrg_sigmarr) / gr_e[bot_element] / (rho_e[bot_element] - rho_DT_bot)
                 )
                 np.savetxt(
-                    "OUTPUT/bottom/bot_dynamic_topography_e_" + str(istep) + ".ascii",
+                    output_folder+"/bottom/bot_dynamic_topography_e_" + str(istep) + ".ascii",
                     np.array([theta_e[bot_element], dyn_topo_bot]).T,
                 )
 
@@ -2669,24 +2780,13 @@ for iloop in range(0, nstep*niter_nl):
     if solve_Stokes and not inside_nonlinear_iterations:
         match geometry:
             case "box":
-                swarm_x, swarm_z, swarm_u, swarm_w, swarm_active = advect_particles___box(
-                    RKorder,
-                    dt,
-                    nparticle,
-                    swarm_x,
-                    swarm_z,
-                    swarm_active,
-                    u,
-                    w,
-                    Lx,
-                    Lz,
-                    hx,
-                    hz,
-                    nelx,
-                    icon_V,
-                    x_V,
-                    z_V,
-                )
+                if use_free_surface:
+                   swarm_x,swarm_z,swarm_u,swarm_w,swarm_active = advect_particles___box_fs(
+                   RKorder,dt,nparticle,swarm_x,swarm_z,swarm_active,u,w,Lx,Lz,hx,hz,nelx,icon_V,x_V,z_V)
+                else:
+                   swarm_x, swarm_z, swarm_u, swarm_w, swarm_active = advect_particles___box(
+                   RKorder,dt,nparticle,swarm_x,swarm_z,swarm_active,u,w,Lx,Lz,hx,hz,nelx,icon_V,x_V,z_V)
+
             case "quarter":
                 swarm_x, swarm_z, swarm_rad, swarm_theta, swarm_u, swarm_w, swarm_active = advect_particles___quarter(
                     RKorder,
@@ -2791,9 +2891,14 @@ for iloop in range(0, nstep*niter_nl):
 
     ###############################################################################################
     ###############################################################################################
+    start = clock.time()
 
-    #if not inside_nonlinear_iterations:
-    #       evolve_mesh()
+    if use_free_surface and not inside_nonlinear_iterations:
+        print('calling evolve mesh')
+        evolve_mesh(nelx,nelz,u,w,x_V,z_V,z_P,z_T,icon_V,icon_P,top_Vnodes,m_V,N_V,dNdr_V,dNdt_V,nq_per_dim,weightq)
+
+    print("evolve mesh: ............................ %.3f s" % (clock.time() - start))
+    #timings[13] += clock.time() - start
 
     ###############################################################################################
     # @@ population control
@@ -2804,7 +2909,7 @@ for iloop in range(0, nstep*niter_nl):
        population_control(istep, x_V, z_V, icon_V, nel, nparticle_min, nparticle, nparticle_e, swarm_active,\
                           swarm_id, swarm_iel, swarm_r, swarm_t, swarm_x, swarm_z, swarm_u, swarm_w, \
                           swarm_strain, swarm_eta, swarm_wf, swarm_F, \
-                          swarm_paint, use_melting, nmat, ptcl_active_file)
+                          swarm_paint, use_melting, nmat, ptcl_active_file,output_folder)
 
     print("population control: .......................... %.3f s" % (clock.time() - start))
     timings[39] += clock.time() - start
@@ -2814,26 +2919,10 @@ for iloop in range(0, nstep*niter_nl):
     ###############################################################################################
     start = clock.time()
 
-    swarm_r, swarm_t, swarm_iel = locate_particles(
-        geometry,
-        nparticle,
-        swarm_active,
-        swarm_x,
-        swarm_z,
-        swarm_rad,
-        swarm_theta,
-        hx,
-        hz,
-        hrad,
-        htheta,
-        x_V,
-        z_V,
-        rad_V,
-        theta_V,
-        icon_V,
-        nelx,
-        Rinner,
-    )
+    if RKorder>0:
+       swarm_r, swarm_t, swarm_iel = locate_particles(geometry,nparticle,swarm_active,swarm_x,swarm_z,
+                                                      swarm_rad,swarm_theta,hx,hz,hrad,htheta,
+                                                      x_V,z_V,rad_V,theta_V,icon_V,nelx,Rinner)
 
     print("locate particles: ............................ %.3f s" % (clock.time() - start))
     timings[16] += clock.time() - start
@@ -2951,6 +3040,7 @@ for iloop in range(0, nstep*niter_nl):
             export_strainrate_tensor_components,
             export_devstress_tensor_components,
             export_stress_tensor_components,
+            output_folder,
         )
 
         print("output solution to vtu file: ................. %.3f s" % (clock.time() - start))
@@ -3000,6 +3090,7 @@ for iloop in range(0, nstep*niter_nl):
             swarm_strain,
             swarm_F,
             swarm_sst,
+            output_folder,
         )
 
         print("output particles to vtu file: ................ %.3f s" % (clock.time() - start))
@@ -3046,6 +3137,7 @@ for iloop in range(0, nstep*niter_nl):
             swarm_strain,
             swarm_F,
             swarm_sst,
+            output_folder,
         )
 
         print("output particles to png file: ................ %.3f s" % (clock.time() - start))
@@ -3090,6 +3182,7 @@ for iloop in range(0, nstep*niter_nl):
             swarm_strain,
             swarm_F,
             swarm_sst,
+            output_folder,
         )
 
         print("output particles to ascii file: .............. %.3f s" % (clock.time() - start))
@@ -3118,6 +3211,7 @@ for iloop in range(0, nstep*niter_nl):
             dpdzq,
             gx_q,
             gz_q,
+            output_folder,
         )
 
         print("output quad pts to vtu file: ................. %.3f s" % (clock.time() - start))
@@ -3156,6 +3250,7 @@ for iloop in range(0, nstep*niter_nl):
             divv_n,
             qx_n,
             qz_n,
+            output_folder,
         )
 
         print("output solution to png file: ................. %.3f s" % (clock.time() - start))
@@ -3173,27 +3268,27 @@ for iloop in range(0, nstep*niter_nl):
         )
 
         np.savetxt(
-            "OUTPUT/profiles/avrg_profile_q_" + str(istep) + ".ascii",
+            output_folder+"/profiles/avrg_profile_q_" + str(istep) + ".ascii",
             np.array([coord_profile, q_profile]).T,
             header="#z,T",
         )
         np.savetxt(
-            "OUTPUT/profiles/avrg_profile_T_" + str(istep) + ".ascii",
+            output_folder+"/profiles/avrg_profile_T_" + str(istep) + ".ascii",
             np.array([coord_profile, T_profile]).T,
             header="#z,T",
         )
         np.savetxt(
-            "OUTPUT/profiles/avrg_profile_eta_" + str(istep) + ".ascii",
+            output_folder+"/profiles/avrg_profile_eta_" + str(istep) + ".ascii",
             np.array([coord_profile, eta_profile]).T,
             header="#z,eta",
         )
         np.savetxt(
-            "OUTPUT/profiles/avrg_profile_rho_" + str(istep) + ".ascii",
+            output_folder+"/profiles/avrg_profile_rho_" + str(istep) + ".ascii",
             np.array([coord_profile, rho_profile]).T,
             header="#z,rho",
         )
         np.savetxt(
-            "OUTPUT/profiles/avrg_profile_vel_" + str(istep) + ".ascii",
+            output_folder+"/profiles/avrg_profile_vel_" + str(istep) + ".ascii",
             np.array([coord_profile, vel_profile]).T,
             header="#z,vel",
         )
@@ -3261,17 +3356,17 @@ for iloop in range(0, nstep*niter_nl):
                     )
 
                 np.savetxt(
-                    "OUTPUT/gravityI_" + str(istep) + ".ascii",
+                    output_folder+"/gravityI_" + str(istep) + ".ascii",
                     np.array([xs, zs, gnormI[:, istep], gxI[:, istep], gzI[:, istep]]).T,
                     header="#x,z,g,gx,gz",
                 )
                 np.savetxt(
-                    "OUTPUT/gravityDTt_" + str(istep) + ".ascii",
+                    output_folder+"/gravityDTt_" + str(istep) + ".ascii",
                     np.array([xs, zs, gnormDTt[:, istep], gxDTt[:, istep], gzDTt[:, istep]]).T,
                     header="#x,z,g,gx,gz",
                 )
                 np.savetxt(
-                    "OUTPUT/gravityDTb_" + str(istep) + ".ascii",
+                    output_folder+"/gravityDTb_" + str(istep) + ".ascii",
                     np.array([xs, zs, gnormDTb[:, istep], gxDTb[:, istep], gzDTb[:, istep]]).T,
                     header="#x,z,g,gx,gz",
                 )
@@ -3290,7 +3385,7 @@ for iloop in range(0, nstep*niter_nl):
                 gtI[:, istep] = -gxI[:, istep] * np.sin(thetas) + gzI[:, istep] * np.cos(thetas)
 
                 np.savetxt(
-                    "OUTPUT/gravityI_" + str(istep) + ".ascii",
+                    output_folder+"/gravityI_" + str(istep) + ".ascii",
                     np.array([rads, thetas, gnormI[:, istep], grI[:, istep], gtI[:, istep]]).T,
                     header="#r,theta,g,gx,gz",
                 )
@@ -3304,23 +3399,23 @@ for iloop in range(0, nstep*niter_nl):
             gnormDTb_rate[:, istep] = (gnormDTb[:, istep] - gnormDTb[:, istep - 1]) / dt
             if geometry == "box":
                 np.savetxt(
-                    "OUTPUT/gravityI_rate_" + str(istep) + ".ascii",
+                    output_folder+"/gravityI_rate_" + str(istep) + ".ascii",
                     np.array([xs, gnormI_rate[:, istep] / mGal * year]).T,
                     header="#x,g",
                 )
                 np.savetxt(
-                    "OUTPUT/gravityDTt_rate_" + str(istep) + ".ascii",
+                    output_folder+"/gravityDTt_rate_" + str(istep) + ".ascii",
                     np.array([xs, gnormDTt_rate[:, istep] / mGal * year]).T,
                     header="#x,g",
                 )
                 np.savetxt(
-                    "OUTPUT/gravityDTb_rate_" + str(istep) + ".ascii",
+                    output_folder+"/gravityDTb_rate_" + str(istep) + ".ascii",
                     np.array([xs, gnormDTb_rate[:, istep] / mGal * year]).T,
                     header="#x,g",
                 )
             if geometry == "quarter" or geometry == "half":
                 np.savetxt(
-                    "OUTPUT/gravityI_rate_" + str(istep) + ".ascii",
+                    output_folder+"/gravityI_rate_" + str(istep) + ".ascii",
                     np.array([thetas, gnormI_rate[:, istep] / mGal * year]).T,
                     header="#theta,g",
                 )
@@ -3410,7 +3505,16 @@ output_final_profiles(
     eta_e,
     middleV_element,
     middleH_element,
+    output_folder,
 )
+
+###############################################################################
+###############################################################################
+
+output_test_results(m_V,x_V,z_V,Nfem_V,\
+                    m_P,x_P,z_P,Nfem_P,\
+                    m_T,x_T,z_T,Nfem_T,\
+                    nelx,nelz,vrms,T_avrg,output_folder)
 
 ###############################################################################
 # close files

@@ -44,6 +44,7 @@ def process_velocity_solution_vectors(
     debug_ascii,
     every_solution,
     vstats_file,
+    output_folder,
 ):
 
     if debug_nan and np.isnan(np.sum(u)):
@@ -83,20 +84,20 @@ def process_velocity_solution_vectors(
         match geometry:
             case "box":
                 np.savetxt(
-                    "OUTPUT/top/top_vel_" + str(istep) + ".ascii",
+                    output_folder+"/top/top_vel_" + str(istep) + ".ascii",
                     np.array([x_V[top_Vnodes], vel[top_Vnodes]]).T,
                 )
                 np.savetxt(
-                    "OUTPUT/bottom/bot_vel_" + str(istep) + ".ascii",
+                    output_folder+"/bottom/bot_vel_" + str(istep) + ".ascii",
                     np.array([x_V[bot_Vnodes], vel[bot_Vnodes]]).T,
                 )
             case "eighth" | "quarter" | "half" | "annulus":
                 np.savetxt(
-                    "OUTPUT/top/top_vel_" + str(istep) + ".ascii",
+                    output_folder+"/top/top_vel_" + str(istep) + ".ascii",
                     np.array([theta_V[top_Vnodes], vel[top_Vnodes]]).T,
                 )
                 np.savetxt(
-                    "OUTPUT/bottom/bot_vel_" + str(istep) + ".ascii",
+                    output_folder+"/bottom/bot_vel_" + str(istep) + ".ascii",
                     np.array([theta_V[bot_Vnodes], vel[bot_Vnodes]]).T,
                 )
             case _:

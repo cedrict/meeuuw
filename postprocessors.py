@@ -81,6 +81,30 @@ def compute_global_quantities(
 
     return vrms, EK, WAG, TVD, GPE, ITE, TM, Tavrg, eta_avrg
 
+###################################################################################################
+# TODO: add avrg over face
+
+def compute_boundary_velocity_statistics(x_V,z_V,u,w,left_Vnodes,right_Vnodes,bottom_Vnodes,top_Vnodes):
+
+    vel_left=np.sqrt(u[left_Vnodes]**2+w[left_Vnodes]**2)
+    vel_min_left=np.min(vel_left)
+    vel_max_left=np.max(vel_left)
+
+    vel_right=np.sqrt(u[right_Vnodes]**2+w[right_Vnodes]**2)
+    vel_min_right=np.min(vel_right)
+    vel_max_right=np.max(vel_right)
+
+    vel_bottom=np.sqrt(u[bottom_Vnodes]**2+w[bottom_Vnodes]**2)
+    vel_min_bottom=np.min(vel_bottom)
+    vel_max_bottom=np.max(vel_bottom)
+
+    vel_top=np.sqrt(u[top_Vnodes]**2+w[top_Vnodes]**2)
+    vel_min_top=np.min(vel_top)
+    vel_max_top=np.max(vel_top)
+
+    return vel_max_left,vel_max_right,vel_max_bottom,vel_max_top
+
+
 
 ###################################################################################################
 
@@ -144,7 +168,7 @@ def compute_Nu(
     avrg_dTdz_top /= Lx
     avrg_dTdz_bottom /= Lx
 
-    Nu = np.abs(avrg_dTdz_top) / avrg_T_bottom * Lz
+    Nu = np.abs(avrg_dTdz_top) / (avrg_T_bottom-avrg_T_top) * Lz
 
     return avrg_T_bottom, avrg_T_top, avrg_dTdz_bottom, avrg_dTdz_top, Nu
 

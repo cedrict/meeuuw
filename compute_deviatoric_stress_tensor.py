@@ -32,6 +32,8 @@ def compute_deviatoric_stress_tensor(
     bot_Vnodes,
     top_element,
     bot_element,
+    verbose_output,
+    output_folder,
 ):
 
     if solve_Stokes:
@@ -52,11 +54,11 @@ def compute_deviatoric_stress_tensor(
             match geometry:
                 case "box":
                     np.savetxt(
-                        "OUTPUT/top/top_tauzz_n_" + str(istep) + ".ascii",
+                        output_folder+"/top/top_tauzz_n_" + str(istep) + ".ascii",
                         np.array([x_V[top_Vnodes], tauzz_n[top_Vnodes]]).T,
                     )
                     np.savetxt(
-                        "OUTPUT/bottom/bot_tauzz_n_" + str(istep) + ".ascii",
+                        output_folder+"/bottom/bot_tauzz_n_" + str(istep) + ".ascii",
                         np.array([x_V[bot_Vnodes], tauzz_n[bot_Vnodes]]).T,
                     )
                 case "quarter" | "half" | "eighth" | "annulus":
@@ -76,28 +78,29 @@ def compute_deviatoric_stress_tensor(
                     print("     -> taurt_n (m,M) %.3e %.3e " % (np.min(taurt_n), np.max(taurt_n)))
 
                     np.savetxt(
-                        "OUTPUT/top/top_taurr_n_" + str(istep) + ".ascii",
+                        output_folder+"/top/top_taurr_n_" + str(istep) + ".ascii",
                         np.array([theta_V[top_Vnodes], taurr_n[top_Vnodes]]).T,
                     )
                     np.savetxt(
-                        "OUTPUT/bottom/bot_taurr_n_" + str(istep) + ".ascii",
+                        output_folder+"/bottom/bot_taurr_n_" + str(istep) + ".ascii",
                         np.array([theta_V[bot_Vnodes], taurr_n[bot_Vnodes]]).T,
                     )
                     np.savetxt(
-                        "OUTPUT/top/top_taurr_e_" + str(istep) + ".ascii",
+                        output_folder+"/top/top_taurr_e_" + str(istep) + ".ascii",
                         np.array([theta_e[top_element], taurr_e[top_element]]).T,
                     )
                     np.savetxt(
-                        "OUTPUT/bottom/bot_taurr_e_" + str(istep) + ".ascii",
+                        output_folder+"/bottom/bot_taurr_e_" + str(istep) + ".ascii",
                         np.array([theta_e[bot_element], taurr_e[bot_element]]).T,
                     )
 
-        print("     -> tauxx_n (m,M) %.3e %.3e " % (np.min(tauxx_n), np.max(tauxx_n)))
-        print("     -> tauzz_n (m,M) %.3e %.3e " % (np.min(tauzz_n), np.max(tauzz_n)))
-        print("     -> tauxz_n (m,M) %.3e %.3e " % (np.min(tauxz_n), np.max(tauxz_n)))
-        print("     -> tauxx_e (m,M) %.3e %.3e " % (np.min(tauxx_e), np.max(tauxx_e)))
-        print("     -> tauzz_e (m,M) %.3e %.3e " % (np.min(tauzz_e), np.max(tauzz_e)))
-        print("     -> tauxz_e (m,M) %.3e %.3e " % (np.min(tauxz_e), np.max(tauxz_e)))
+        if verbose_output:
+            print("     -> tauxx_n (m,M) %.3e %.3e " % (np.min(tauxx_n), np.max(tauxx_n)))
+            print("     -> tauzz_n (m,M) %.3e %.3e " % (np.min(tauzz_n), np.max(tauzz_n)))
+            print("     -> tauxz_n (m,M) %.3e %.3e " % (np.min(tauxz_n), np.max(tauxz_n)))
+            print("     -> tauxx_e (m,M) %.3e %.3e " % (np.min(tauxx_e), np.max(tauxx_e)))
+            print("     -> tauzz_e (m,M) %.3e %.3e " % (np.min(tauzz_e), np.max(tauzz_e)))
+            print("     -> tauxz_e (m,M) %.3e %.3e " % (np.min(tauxz_e), np.max(tauxz_e)))
 
     else:
         taurr_n = 0

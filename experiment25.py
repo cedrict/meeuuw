@@ -1,26 +1,47 @@
 import numpy as np
 from constants import *
 
+CFLnb=0.75
+
 nelx = 16
 nelz = nelx
 
+#formulation = "BA"
 formulation = "EBA"
 
-Lx = 3000e3
-Lz = 3000e3
 solve_T = True
-Ttop = 0
-Tbottom = 3000
-alphaT = 1e-5  # thermal expansion coefficient
-hcond = 3  # thermal conductivity
-hcapa = 1200  # heat capacity
-rho0 = 2500
-g0 = 10
-# eta0 = 2.025e24 # Ra=1e4
-# eta0 = 2.025e23 # Ra=1e5
-eta0 = 2.025e22  # Ra=1e6
 
-end_time = 1e12 * year
+
+#mine old
+#Lx = 3000e3
+#Lz = 3000e3
+#Ttop = 500 + 273
+#Tbottom = 3500 +273 
+#alphaT = 1e-5  # thermal expansion coefficient
+#hcond = 3  # thermal conductivity
+#hcapa = 1200  # heat capacity
+#rho0 = 2500 # reference density
+#g0 = 10 # gravitational acceleration
+#eta0 = 2.025e24 # Ra=1e4
+#eta0 = 2.025e23 # Ra=1e5
+#eta0 = 2.025e22  # Ra=1e6
+
+# lee_13 ----------------------
+Lx = 1000e3
+Lz = 1000e3
+g0 = 10 # gravitational acceleration
+Ttop = 0 + 273
+Tbottom = 3000 +273 
+alphaT = 3.125e-5  # thermal expansion coefficient
+rho0 = 4000 # reference density
+hcapa = 1250  # heat capacity
+kappa=1e-6
+hcond=kappa*rho0*hcapa
+eta0 = 3.750e23 # Ra=1e4
+#------------------------------
+
+
+end_time = 1e10 * year
 every_solution_vtu = 100
 every_swarm_vtu = 100
 RKorder = -1
@@ -178,7 +199,7 @@ def material_model(
     swarm_alpha = np.zeros(nparticle, dtype=np.float64)
     swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
-    swarm_rho[:] = rho0 * (1 - alphaT * swarm_T[:])
+    swarm_rho[:] = rho0 * (1 - alphaT * (swarm_T[:]-Ttop))
     swarm_eta[:] = eta0
     swarm_hcond[:] = hcond
     swarm_hcapa[:] = hcapa

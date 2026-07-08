@@ -36,6 +36,7 @@ def output_solution_to_png(
     divv_n,
     qx_n,
     qz_n,
+    output_folder,
 ):
     """
     Args:
@@ -71,7 +72,7 @@ def output_solution_to_png(
         plt.title("Velocity x-component")
         plt.xlabel("x")
         plt.ylabel("z")
-        filename = "OUTPUT/solution_u_{:04d}.png".format(istep)
+        filename = output_folder+"/solution_u_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -82,7 +83,7 @@ def output_solution_to_png(
         plt.title("Velocity z-component")
         plt.xlabel("x")
         plt.ylabel("z")
-        filename = "OUTPUT/solution_w_{:04d}.png".format(istep)
+        filename = output_folder+"/solution_w_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -93,7 +94,7 @@ def output_solution_to_png(
         plt.title("Velocity norm")
         plt.xlabel("x")
         plt.ylabel("z")
-        filename = "OUTPUT/solution_vel_{:04d}.png".format(istep)
+        filename = output_folder+"/solution_vel_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -104,7 +105,7 @@ def output_solution_to_png(
         plt.title("Density")
         plt.xlabel("x")
         plt.ylabel("z")
-        filename = "OUTPUT/solution_rho_{:04d}.png".format(istep)
+        filename = output_folder+"/solution_rho_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -115,7 +116,7 @@ def output_solution_to_png(
         plt.title("Velocity divergence")
         plt.xlabel("x")
         plt.ylabel("z")
-        filename = "OUTPUT/solution_divv_{:04d}.png".format(istep)
+        filename = output_folder+"/solution_divv_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -126,7 +127,7 @@ def output_solution_to_png(
         plt.title("Effective strain rate")
         plt.xlabel("x")
         plt.ylabel("z")
-        filename = "OUTPUT/solution_e_{:04d}.png".format(istep)
+        filename = output_folder+"/solution_e_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -137,7 +138,7 @@ def output_solution_to_png(
         plt.title("Pressure")
         plt.xlabel("x")
         plt.ylabel("z")
-        filename = "OUTPUT/solution_p_{:04d}.png".format(istep)
+        filename = output_folder+"/solution_p_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -148,7 +149,7 @@ def output_solution_to_png(
         plt.title("Viscosity")
         plt.xlabel("x")
         plt.ylabel("z")
-        filename = "OUTPUT/solution_eta_{:04d}.png".format(istep)
+        filename = output_folder+"/solution_eta_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -159,7 +160,7 @@ def output_solution_to_png(
         plt.title("Strain rate e_xx")
         plt.xlabel("x")
         plt.ylabel("z")
-        filename = "OUTPUT/solution_exx_{:04d}.png".format(istep)
+        filename = output_folder+"/solution_exx_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -170,7 +171,7 @@ def output_solution_to_png(
         plt.title("Strain rate e_zz")
         plt.xlabel("x")
         plt.ylabel("z")
-        filename = "OUTPUT/solution_ezz_{:04d}.png".format(istep)
+        filename = output_folder+"/solution_ezz_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -181,7 +182,7 @@ def output_solution_to_png(
         plt.title("Strain rate e_xz")
         plt.xlabel("x")
         plt.ylabel("z")
-        filename = "OUTPUT/solution_exz_{:04d}.png".format(istep)
+        filename = output_folder+"/solution_exz_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -197,7 +198,7 @@ def output_solution_to_png(
             plt.title("Temperature")
             plt.xlabel("x")
             plt.ylabel("z")
-            filename = "OUTPUT/solution_T_{:04d}.png".format(istep)
+            filename = output_folder+"/solution_T_{:04d}.png".format(istep)
             plt.savefig(filename, bbox_inches="tight")
             plt.close()
 
@@ -208,7 +209,7 @@ def output_solution_to_png(
             plt.title("Heat flux x-component")
             plt.xlabel("x")
             plt.ylabel("z")
-            filename = "OUTPUT/solution_qx_{:04d}.png".format(istep)
+            filename = output_folder+"/solution_qx_{:04d}.png".format(istep)
             plt.savefig(filename, bbox_inches="tight")
             plt.close()
 
@@ -219,7 +220,7 @@ def output_solution_to_png(
             plt.title("Heat flux z-component")
             plt.xlabel("x")
             plt.ylabel("z")
-            filename = "OUTPUT/solution_qz_{:04d}.png".format(istep)
+            filename = output_folder+"/solution_qz_{:04d}.png".format(istep)
             plt.savefig(filename, bbox_inches="tight")
             plt.close()
 

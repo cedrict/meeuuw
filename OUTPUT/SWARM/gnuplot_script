@@ -1,0 +1,13 @@
+set term png size 606 400 font 'Times,8pt' 
+set title 'velocity x-component' 
+set output 'gnuplot_swarm_u_0000.png' 
+plot[][] './OUTPUT/SWARM/swarm_0000.ascii' u 1:2:3 palette w d notitle 
+set title 'velocity z-component' 
+set output 'gnuplot_swarm_w_0000.png' 
+plot[][] './OUTPUT/SWARM/swarm_0000.ascii' u 1:2:4 palette w d notitle 
+set title 'material' 
+set output 'gnuplot_swarm_mat_0000.png' 
+plot[][] './OUTPUT/SWARM/swarm_0000.ascii' u 1:2:5 palette w d notitle 
+set title 'density' 
+set output 'gnuplot_swarm_rho_0000.png' 
+plot[][] './OUTPUT/SWARM/swarm_0000.ascii' u 1:2:6 palette w d notitle 

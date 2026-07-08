@@ -4,18 +4,22 @@ from constants import *
 ###################################################################################################
 
 Lx = 1400e3  # half domain!
-Lz = 900e3
+Lz = 700e3
 eta_ref = 1e21
+
 p_scale = 1e6
 p_unit = "MPa"
 vel_scale = cm / year
 vel_unit = "cm/yr"
 time_scale = year
 time_unit = "yr"
-every_solution = 1
-every_swarm_vtu = 10
-CFLnb = 0.1
-averaging = "harmonic"
+
+CFLnb=0.
+pressure_normalisation = "none"
+
+nmat=2
+
+#use_free_surface=True
 
 # a: cosine perturbation
 # b: plume
@@ -23,9 +27,9 @@ averaging = "harmonic"
 icase = "a"
 
 if icase == "a":
-    nelx = 140
-    nelz = 90
-    nstep = 15
+    nelx = 14
+    nelz = 7
+    nstep = 1
     end_time = 2e5 * year
 
 if icase == "b":
@@ -35,7 +39,6 @@ if icase == "b":
     end_time = 20e6 * year
 
 ###################################################################################################
-
 
 def assign_boundary_conditions_V(
     x_V,
@@ -67,9 +70,6 @@ def assign_boundary_conditions_V(
             bc_val_V[i * ndof_V] = 0.0
             bc_fix_V[i * ndof_V + 1] = True
             bc_val_V[i * ndof_V + 1] = 0.0
-        if z_V[i] / Lz > (1 - eps):
-            bc_fix_V[i * ndof_V + 1] = True
-            bc_val_V[i * ndof_V + 1] = 0.0
 
     return bc_fix_V, bc_val_V
 
@@ -77,37 +77,38 @@ def assign_boundary_conditions_V(
 ###################################################################################################
 
 
-def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
+def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-    swarm_mat = np.zeros(nparticle, dtype=np.int32)
-
-    swarm_mat[:] = 2  # mantle
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
 
     if icase == "a":
         for ip in range(0, nparticle):
             if swarm_z[ip] > 600e3:
-                swarm_mat[ip] = 1  # lithosphere
-            if swarm_z[ip] > 700e3 + 7e3 * np.cos(swarm_x[ip] / Lx * np.pi):
-                swarm_mat[ip] = 0  # sticky air
+               swarm_wf[0, ip] = 1
+            else:
+               swarm_wf[1, ip] = 1
 
-    if icase == "b":
-        for ip in range(0, nparticle):
-            if swarm_z[ip] > 600e3:
-                swarm_mat[ip] = 1  # lithosphere
-            if swarm_z[ip] > 700e3:
-                swarm_mat[ip] = 0  # sticky air
-            if (swarm_x[ip] - Lx) ** 2 + (swarm_z[ip] - 300e3) ** 2 < 50e3**2:
-                swarm_mat[ip] = 3  # plume
+    #if icase == "b":
+    #    for ip in range(0, nparticle):
+    #        if swarm_z[ip] > 600e3:
+    #            swarm_mat[ip] = 1  # lithosphere
+    #        if swarm_z[ip] > 700e3:
+    #            swarm_mat[ip] = 0  # sticky air
+    #        if (swarm_x[ip] - Lx) ** 2 + (swarm_z[ip] - 300e3) ** 2 < 50e3**2:
+    #            swarm_mat[ip] = 3  # plume
 
-    return swarm_mat
+    material_names = ["lithosphere", "mantle"]
+
+    return swarm_wf, material_names
 
 
 ###################################################################################################
 
-
 def material_model(
     nparticle,
-    swarm_mat,
+    swarm_active,
+    nmat,
+    swarm_wf,
     swarm_x,
     swarm_z,
     swarm_rad,
@@ -124,21 +125,16 @@ def material_model(
     swarm_hcond = 0
     swarm_hcapa = 0
     swarm_hprod = 0
+    swarm_alpha = np.zeros(nparticle, dtype=np.float64)
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
-    mask = swarm_mat == 0
-    swarm_eta[mask] = 1e19
-    swarm_rho[mask] = 0
-    mask = swarm_mat == 1
-    swarm_eta[mask] = 1e23
-    swarm_rho[mask] = 3300
-    mask = swarm_mat == 2
-    swarm_eta[mask] = 1e21
-    swarm_rho[mask] = 3300
-    mask = swarm_mat == 3
-    swarm_eta[mask] = 1e20
-    swarm_rho[mask] = 3200
+    swarm_rho[:]=3300
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    for ip in range(0, nparticle):
+        if swarm_active[ip]:
+           swarm_eta[ip]=swarm_wf[0,ip] * 1e23 + swarm_wf[1,ip]* 1e21
+          
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################

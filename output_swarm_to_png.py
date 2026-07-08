@@ -46,6 +46,7 @@ def output_swarm_to_png(
     swarm_strain,
     swarm_F,
     swarm_sst,
+    output_folder,
 ):
     """
     Args:
@@ -63,7 +64,7 @@ def output_swarm_to_png(
     # plt.gca().set_aspect('equal') ; plt.colorbar(format="%.3e")
     # plt.xlim(0,Lx) ; plt.ylim(0,Lz) ; plt.axis('scaled')
     # plt.title('material identity') ; plt.xlabel('x-axis') ; plt.ylabel('y-axis')
-    # filename='OUTPUT/SWARM/swarm_mat_{:04d}.png'.format(istep)
+    # filename='/SWARM/swarm_mat_{:04d}.png'.format(istep)
     # plt.savefig(filename, bbox_inches='tight') ; plt.close()
 
     plt.figure(dpi=nbdpi)
@@ -76,7 +77,8 @@ def output_swarm_to_png(
     plt.title("element identity")
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")
-    filename = "OUTPUT/SWARM/swarm_iel_{:04d}.png".format(istep)
+    
+    filename = output_folder+"/SWARM/swarm_iel_{:04d}.png".format(istep)
     plt.savefig(filename, bbox_inches="tight")
     plt.close()
 
@@ -90,7 +92,7 @@ def output_swarm_to_png(
     plt.title("paint")
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")
-    filename = "OUTPUT/SWARM/swarm_paint_{:04d}.png".format(istep)
+    filename = output_folder+"/SWARM/swarm_paint_{:04d}.png".format(istep)
     plt.savefig(filename, bbox_inches="tight")
     plt.close()
 
@@ -104,7 +106,7 @@ def output_swarm_to_png(
     plt.title("velocity x-component")
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")
-    filename = "OUTPUT/SWARM/swarm_u_{:04d}.png".format(istep)
+    filename = output_folder+"/SWARM/swarm_u_{:04d}.png".format(istep)
     plt.savefig(filename, bbox_inches="tight")
     plt.close()
 
@@ -118,7 +120,7 @@ def output_swarm_to_png(
     plt.title("velocity z-component")
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")
-    filename = "OUTPUT/SWARM/swarm_w_{:04d}.png".format(istep)
+    filename = output_folder+"/SWARM/swarm_w_{:04d}.png".format(istep)
     plt.savefig(filename, bbox_inches="tight")
     plt.close()
 
@@ -132,7 +134,7 @@ def output_swarm_to_png(
     plt.title("density")
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")
-    filename = "OUTPUT/SWARM/swarm_rho_{:04d}.png".format(istep)
+    filename = output_folder+"/SWARM/swarm_rho_{:04d}.png".format(istep)
     plt.savefig(filename, bbox_inches="tight")
     plt.close()
 
@@ -146,7 +148,7 @@ def output_swarm_to_png(
     plt.title("viscosity")
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")
-    filename = "OUTPUT/SWARM/swarm_eta_{:04d}.png".format(istep)
+    filename = output_folder+"/SWARM/swarm_eta_{:04d}.png".format(istep)
     plt.savefig(filename, bbox_inches="tight")
     plt.close()
 
@@ -160,7 +162,7 @@ def output_swarm_to_png(
     plt.title("strain rate e_xx")
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")
-    filename = "OUTPUT/SWARM/swarm_exx_{:04d}.png".format(istep)
+    filename = output_folder+"/SWARM/swarm_exx_{:04d}.png".format(istep)
     plt.savefig(filename, bbox_inches="tight")
     plt.close()
 
@@ -174,7 +176,7 @@ def output_swarm_to_png(
     plt.title("strain rate e_zz")
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")
-    filename = "OUTPUT/SWARM/swarm_ezz_{:04d}.png".format(istep)
+    filename = output_folder+"/SWARM/swarm_ezz_{:04d}.png".format(istep)
     plt.savefig(filename, bbox_inches="tight")
     plt.close()
 
@@ -188,7 +190,7 @@ def output_swarm_to_png(
     plt.title("strain rate e_xz")
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")
-    filename = "OUTPUT/SWARM/swarm_exz_{:04d}.png".format(istep)
+    filename = output_folder+"/SWARM/swarm_exz_{:04d}.png".format(istep)
     plt.savefig(filename, bbox_inches="tight")
     plt.close()
 
@@ -202,7 +204,7 @@ def output_swarm_to_png(
     plt.title("pressure")
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")
-    filename = "OUTPUT/SWARM/swarm_p_{:04d}.png".format(istep)
+    filename = output_folder+"/SWARM/swarm_p_{:04d}.png".format(istep)
     plt.savefig(filename, bbox_inches="tight")
     plt.close()
 
@@ -217,7 +219,7 @@ def output_swarm_to_png(
         plt.title("temperature")
         plt.xlabel("x-axis")
         plt.ylabel("y-axis")
-        filename = "OUTPUT/SWARM/swarm_T_{:04d}.png".format(istep)
+        filename = output_folder+"/SWARM/swarm_T_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -231,7 +233,7 @@ def output_swarm_to_png(
         plt.title("heat conductivity")
         plt.xlabel("x-axis")
         plt.ylabel("y-axis")
-        filename = "OUTPUT/SWARM/swarm_hcond_{:04d}.png".format(istep)
+        filename = output_folder+"/SWARM/swarm_hcond_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 
@@ -245,7 +247,7 @@ def output_swarm_to_png(
         plt.title("heat capacity")
         plt.xlabel("x-axis")
         plt.ylabel("y-axis")
-        filename = "OUTPUT/SWARM/swarm_hcapa_{:04d}.png".format(istep)
+        filename = output_folder+"/SWARM/swarm_hcapa_{:04d}.png".format(istep)
         plt.savefig(filename, bbox_inches="tight")
         plt.close()
 

@@ -14,6 +14,9 @@ rm OUTPUT/SWARM/*.vtu
 rm OUTPUT/SWARM/*.ascii
 rm OUTPUT/SWARM/*.pdf
 rm OUTPUT/SWARM/*.png
+rm OUTPUT/profiles/*.ascii
+rm OUTPUT/top/*.ascii
+rm OUTPUT/bottom/*.ascii
 rm *.txt
 
 

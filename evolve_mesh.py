@@ -25,18 +25,18 @@ def evolve_mesh_box(
     dNdt_V,
     nq_per_dim,
     weightq,
-    area,
 ):
     """
-    The underlying assumption is that the mesh only deforms vertically: the x position
-    of nodes does not change.
-    Second important assumption: elements remain trapezes with parallel vertical edges.
-    steps:
-    1 move top row of nodes. I will start with only vertical advection - easier- but will
-      later implement an advection+resampling approach.
-    2 apply surface processes or small diffusion
-    3 move interior nodes. I need to be careful about moving T nodes/T field!
-    4 regenerate q pts and jacobians and ... ?
+    Underlying assumption:
+    - the mesh only deforms vertically: the x position of nodes does not change.
+    - elements remain trapezes with parallel vertical edges.
+    Steps:
+    + move top row of V nodes. I will start with only vertical advection as it 
+      is easier but will later implement an advection+resampling approach.
+    + apply surface processes or small diffusion
+    + move interior nodes 
+    + regenerate q pts and jacobians
+    + regenerate P and T meshes
 
     Args:
         a:
@@ -51,20 +51,19 @@ def evolve_mesh_box(
     z_V_old = np.copy(z_V)
 
     ###############################################
-    # step 1: evolve free surface (top V nodes only)
+    # evolve free surface (top V nodes only)
     # at the moment only vertical movement is allowed
     # TODO: This will be revisited later on.
 
     z_V[top_Vnodes] += w[top_Vnodes] * dt
 
     ###############################################
-    # step 2: surface processes
+    # surface processes
 
     # TODO: some day
 
     ###############################################
-    # step 3: resample per column
-    # only Q2 velocity!!
+    # resample per column
 
     match m_V:
         case 5:
@@ -111,7 +110,7 @@ def evolve_mesh_box(
             z_V[icon_V[8, :]] = 0.5 * (z_V[icon_V[4, :]] + z_V[icon_V[6, :]])  # center
 
     ###############################################
-    # step 4: now that elements are trapezoidal,
+    # now that elements are trapezoidal,
     # we need to recompute q pts coordinates
 
     nq_per_element = nq_per_dim**2
@@ -120,13 +119,14 @@ def evolve_mesh_box(
     zq = project_nodal_Vfield_onto_qpoints(z_V, nq_per_element, nel, m_V, N_V, icon_V)
 
     ###############################################
-    # step 4: we now recompute the jacobian entries
+    # we now recompute the jacobian entries
 
     jcbi00q = np.zeros((nel, nq_per_element), dtype=np.float64)
     jcbi01q = np.zeros((nel, nq_per_element), dtype=np.float64)
     jcbi10q = np.zeros((nel, nq_per_element), dtype=np.float64)
     jcbi11q = np.zeros((nel, nq_per_element), dtype=np.float64)
     JxWq = np.zeros((nel, nq_per_element), dtype=np.float64)
+    area = np.zeros(nel, dtype=np.float64)
     jcb = np.zeros((2, 2), dtype=np.float64)
 
     for iel in range(0, nel):
@@ -167,7 +167,7 @@ def evolve_mesh_box(
         case 9:
             z_T = np.copy(z_V)
 
-    return xq, zq, JxWq, jcbi00q, jcbi01q, jcbi10q, jcbi11q, area
+    return xq, zq, JxWq, jcbi00q, jcbi01q, jcbi10q, jcbi11q, area, z_V, z_P, z_T
 
 
 ###################################################################################################
