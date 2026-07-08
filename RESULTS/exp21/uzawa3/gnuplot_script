@@ -1,0 +1,72 @@
+#
+set term pdf enhanced font "Times,12pt"
+set grid
+set log y
+set pointsize .4
+
+############################################
+set xlabel 'iteration'
+
+set title 'velocity convergence'
+
+set ylabel 'xi_V'
+set output 'solver_convergence_xiV.pdf'
+plot[][]\
+'solver_convergence_16.ascii' u 1 w lp t '16^2',\
+'solver_convergence_24.ascii' u 1 w lp t '24^2',\
+'solver_convergence_32.ascii' u 1 w lp t '32^2',\
+'solver_convergence_48.ascii' u 1 w lp t '48^2',\
+'solver_convergence_64.ascii' u 1 w lp t '64^2',\
+'solver_convergence_96.ascii' u 1 w lp t '96^2',\
+'solver_convergence_128.ascii' u 1 w lp t '128^2',\
+'solver_convergence_160.ascii' u 1 w lp t '160^2',\
+'solver_convergence_200.ascii' u 1 w lp t '200^2',\
+'solver_convergence_256.ascii' u 1 w lp t '256^2',\
+1e-6 lt -1 lw 3 
+
+
+set title 'pressure convergence'
+set ylabel 'xi_P'
+set output 'solver_convergence_xiP.pdf'
+plot[][]\
+'solver_convergence_16.ascii'  u 2 w lp t '16^2',\
+'solver_convergence_24.ascii'  u 2 w lp t '24^2',\
+'solver_convergence_32.ascii'  u 2 w lp t '32^2',\
+'solver_convergence_48.ascii'  u 2 w lp t '48^2',\
+'solver_convergence_64.ascii'  u 2 w lp t '64^2',\
+'solver_convergence_96.ascii'  u 2 w lp t '96^2',\
+'solver_convergence_128.ascii' u 2 w lp t '128^2',\
+'solver_convergence_160.ascii' u 2 w lp t '160^2',\
+'solver_convergence_200.ascii' u 2 w lp t '200^2',\
+'solver_convergence_256.ascii' u 2 w lp t '256^2',\
+1e-6 lt -1 lw 3 
+
+
+reset
+set term pdf enhanced font "times,12pt"
+set grid
+set pointsize .25
+set key outside
+set xlabel 'iteration'
+set ylabel 'alpha'
+set output 'solver_convergence_alpha.pdf'
+unset title 
+plot[][]\
+'solver_convergence_16.ascii'  u 3 w lp t '16^2',\
+'solver_convergence_24.ascii'  u 3 w lp t '24^2',\
+'solver_convergence_32.ascii'  u 3 w lp t '32^2',\
+'solver_convergence_48.ascii'  u 3 w lp t '48^2',\
+'solver_convergence_64.ascii'  u 3 w lp t '64^2',\
+'solver_convergence_96.ascii'  u 3 w lp t '96^2',\
+'solver_convergence_128.ascii' u 3 w lp t '128^2',\
+'solver_convergence_160.ascii' u 3 w lp t '160^2',\
+'solver_convergence_200.ascii' u 3 w lp t '200^2',\
+'solver_convergence_256.ascii' u 3 w lp t '256^2',\
+
+
+
+
+
+
+
+
