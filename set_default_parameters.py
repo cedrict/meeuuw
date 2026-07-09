@@ -34,6 +34,7 @@ use_stretching_z=False
 # output  
 #######################################
 
+output_folder='OUTPUT'
 every_solution_vtu = 1
 every_solution_png = 1000000
 every_swarm_vtu = 1000000

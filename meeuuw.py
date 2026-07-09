@@ -131,17 +131,16 @@ parser.add_argument("--nodal_projection_type", type=int, default=0, choices=[1, 
 parser.add_argument("--particle_rho_projection", type=int, default=-1)
 parser.add_argument("--particle_eta_projection", type=int, default=-1)
 parser.add_argument("--RKorder", type=int, default=0)
-parser.add_argument("--output_folder", default='OUTPUT')
+parser.add_argument("--output_folder",default="OUTPUT")
 parser.add_argument("--formulation", default='BA')
 parser.add_argument("--icase", default='x')
 args = parser.parse_args()
 
 global_stuff.icase=args.icase
 
-
-
-# if int(len(sys.argv)==8):
-#   experiment = int(sys.argv[1])
+if args.output_folder != 'OUTPUT':
+   output_folder=str(args.output_folder)
+   print('output_folder=',output_folder)
 
 if args.e >= 0:
     experiment = args.e
@@ -283,8 +282,6 @@ print("RKorder=", args.RKorder)
 
 formulation=str(args.formulation)
 
-#output_folder=str(args.output_folder)
-print('output_folder=',output_folder)
 
 try:
     os.mkdir(output_folder)
@@ -351,6 +348,7 @@ match geometry:
         opening_angle = 0
         hrad = 0
         htheta = 0
+        theta_min = 0 
     case "eighth":
         nn_V = (2 * nelx + 1) * (2 * nelz + 1)  # number of V nodes
         nn_P = (nelx + 1) * (nelz + 1)  # number of P nodes

@@ -3,14 +3,13 @@ from constants import *
 
 CFLnb=0.75
 
-nelx = 16
+nelx = 64
 nelz = nelx
 
 #formulation = "BA"
 formulation = "EBA"
 
 solve_T = True
-
 
 #mine old
 #Lx = 3000e3
@@ -40,12 +39,13 @@ hcond=kappa*rho0*hcapa
 eta0 = 3.750e23 # Ra=1e4
 #------------------------------
 
+print("     -> hcond=", hcond)
 
 end_time = 1e10 * year
 every_solution_vtu = 100
 every_swarm_vtu = 100
 RKorder = -1
-nstep = 25000
+nstep = 1 
 
 Di = alphaT * g0 * Lz / hcapa
 kappa = hcond / rho0 / hcapa

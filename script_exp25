@@ -1,10 +1,12 @@
 #! /bin/bash
 
+nstep=20
+
 for n in 16 24 32 48 64 80 96 ; do
 
     echo BA resolution: $n
 
-    python3 meeuuw.py --e 25 --nelx $n --nelz $n --nstep 5 --formulation 'BA' > opla
+    python3 meeuuw.py --e 25 --nelx $n --nelz $n --nstep $nstep --formulation 'BA' > opla_BA_$n
 
     mkdir BA_$n
     cp OUTPUT/Nu.ascii BA_$n
@@ -22,7 +24,7 @@ for n in 16 24 32 48 64 80 96 ; do
 
     echo EBA resolution: $n
 
-    python3 meeuuw.py --e 25 --nelx $n --nelz $n --nstep 5 --formulation 'EBA' > opla
+    python3 meeuuw.py --e 25 --nelx $n --nelz $n --nstep $nstep --formulation 'EBA' > opla_EBA_$n
 
     mkdir EBA_$n
     cp OUTPUT/Nu.ascii EBA_$n
