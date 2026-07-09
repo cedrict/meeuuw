@@ -1,0 +1,131 @@
+#
+set term pdf enhanced font "Times,12pt"
+set grid
+set format y "10^{%L}"
+set log y
+set pointsize .4
+set key outside
+
+############################################
+set xlabel 'iteration'
+
+set title 'velocity convergence'
+
+set ylabel 'xi_V'
+set output 'solver_convergence_xiV.pdf'
+plot[][]\
+'solver_convergence_16.ascii' u 1 w lp t '16^2',\
+'solver_convergence_24.ascii' u 1 w lp t '24^2',\
+'solver_convergence_32.ascii' u 1 w lp t '32^2',\
+'solver_convergence_48.ascii' u 1 w lp t '48^2',\
+'solver_convergence_64.ascii' u 1 w lp t '64^2',\
+'solver_convergence_80.ascii' u 1 w lp t '80^2',\
+'solver_convergence_96.ascii' u 1 w lp t '96^2',\
+'solver_convergence_128.ascii' u 1 w lp t '128^2',\
+'solver_convergence_160.ascii' u 1 w lp t '160^2',\
+'solver_convergence_200.ascii' u 1 w lp t '200^2',\
+'solver_convergence_256.ascii' u 1 w lp t '256^2',\
+1e-6 lt -1 lw 3 
+
+
+set title 'pressure convergence'
+set ylabel 'xi_P'
+set output 'solver_convergence_xiP.pdf'
+plot[][]\
+'solver_convergence_16.ascii'  u 2 w lp t '16^2',\
+'solver_convergence_24.ascii'  u 2 w lp t '24^2',\
+'solver_convergence_32.ascii'  u 2 w lp t '32^2',\
+'solver_convergence_48.ascii'  u 2 w lp t '48^2',\
+'solver_convergence_64.ascii'  u 2 w lp t '64^2',\
+'solver_convergence_80.ascii'  u 2 w lp t '80^2',\
+'solver_convergence_96.ascii'  u 2 w lp t '96^2',\
+'solver_convergence_128.ascii' u 2 w lp t '128^2',\
+'solver_convergence_160.ascii' u 2 w lp t '160^2',\
+'solver_convergence_200.ascii' u 2 w lp t '200^2',\
+'solver_convergence_256.ascii' u 2 w lp t '256^2',\
+1e-6 lt -1 lw 3 
+
+
+reset
+set term pdf enhanced font "times,12pt"
+set grid
+set pointsize .25
+set key outside
+set xlabel 'iteration'
+
+set ylabel 'alpha'
+set output 'solver_convergence_alpha.pdf'
+plot[][]\
+'solver_convergence_16.ascii'  u 3 w lp t '16^2',\
+'solver_convergence_24.ascii'  u 3 w lp t '24^2',\
+'solver_convergence_32.ascii'  u 3 w lp t '32^2',\
+'solver_convergence_48.ascii'  u 3 w lp t '48^2',\
+'solver_convergence_64.ascii'  u 3 w lp t '64^2',\
+'solver_convergence_80.ascii'  u 3 w lp t '80^2',\
+'solver_convergence_96.ascii'  u 3 w lp t '96^2',\
+'solver_convergence_128.ascii' u 3 w lp t '128^2',\
+'solver_convergence_160.ascii' u 3 w lp t '160^2',\
+'solver_convergence_200.ascii' u 3 w lp t '200^2',\
+'solver_convergence_256.ascii' u 3 w lp t '256^2',\
+
+set log y
+set ylabel 'beta'
+set output 'solver_convergence_beta.pdf'
+plot[][]\
+'solver_convergence_16.ascii'  u 4 w lp t '16^2',\
+'solver_convergence_24.ascii'  u 4 w lp t '24^2',\
+'solver_convergence_32.ascii'  u 4 w lp t '32^2',\
+'solver_convergence_48.ascii'  u 4 w lp t '48^2',\
+'solver_convergence_64.ascii'  u 4 w lp t '64^2',\
+'solver_convergence_80.ascii'  u 4 w lp t '80^2',\
+'solver_convergence_96.ascii'  u 4 w lp t '96^2',\
+'solver_convergence_128.ascii' u 4 w lp t '128^2',\
+'solver_convergence_160.ascii' u 4 w lp t '160^2',\
+'solver_convergence_200.ascii' u 4 w lp t '200^2',\
+'solver_convergence_256.ascii' u 4 w lp t '256^2',\
+
+unset log y
+
+
+##################################################################################
+
+set log xy
+
+set xlabel 'h'
+set ylabel 'L_2 errors'
+set output 'errors.pdf'
+
+plot[][]\
+'errors_direct.ascii'   u (1./sqrt($5)):3 w lp lt 1 pt 1 ps .7 t 'velocity - direct',\
+'errors_cd_u_eta.ascii' u (1./sqrt($5)):3 w lp lt 1 pt 5 t 'velocity - CD-U-eta',\
+'errors_direct.ascii'   u (1./sqrt($5)):4 w lp lt 2 pt 1 ps .7 t 'pressure - direct',\
+'errors_cd_u_eta.ascii' u (1./sqrt($5)):4 w lp lt 2 pt 5 t 'pressure - CD-U-eta',\
+x**3/80 lt -1 dt 2 t 'h^3',\
+x**2/10 lt -1 dt 3 t 'h^2'
+
+############################################
+set xlabel 'Nfem'
+set ylabel 'time (s)'
+set title 'Stokes solve' 
+
+set output 'solve_times1.pdf'
+plot[][0.005:400]\
+'solve_times_direct.ascii'         u 7:5 w lp pt 5 ps .2 t 'Full matrix, direct',\
+'solve_times_blocks_directs.ascii' u 7:5 w lp pt 5 ps .2 t 'CD-U-eta (direct)',\
+'solve_times_blocks_splus.ascii'   u 7:5 w lp pt 5 ps .2 t 'CD-U-eta (splu)',\
+x**1.8/2e7 lt -1 dt 2 t 'x^{1.8}',\
+x**1.5/3e6 lt -1 dt 3 t 'x^{1.5}'
+
+set ytics 20
+unset log y
+set output 'solve_times2.pdf'
+plot[][0.005:300]\
+'solve_times_direct.ascii'         u 7:5 w lp pt 5 ps .2 t 'Full matrix, direct',\
+'solve_times_blocks_directs.ascii' u 7:5 w lp pt 5 ps .2 t 'CD-U-eta (direct)',\
+'solve_times_blocks_splus.ascii'   u 7:5 w lp pt 5 ps .2 t 'CD-U-eta (splu)',\
+
+
+
+
+
+
