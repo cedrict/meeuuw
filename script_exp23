@@ -1,0 +1,24 @@
+#! /bin/bash
+
+nstep=5
+
+echo '1a_BA_q_32|48|64'
+python3 meeuuw.py --e 23 --nstep $nstep --icase '1a_BA_q_32' > opla_1a_BA_q_32
+python3 meeuuw.py --e 23 --nstep $nstep --icase '1a_BA_q_48' > opla_1a_BA_q_48
+python3 meeuuw.py --e 23 --nstep $nstep --icase '1a_BA_q_64' > opla_1a_BA_q_64
+ 
+echo '1a_EBA_q_32|48|64'
+python3 meeuuw.py --e 23 --nstep $nstep --icase '1a_EBA_q_32' > opla_1a_EBA_q_32
+python3 meeuuw.py --e 23 --nstep $nstep --icase '1a_EBA_q_48' > opla_1a_EBA_q_48
+python3 meeuuw.py --e 23 --nstep $nstep --icase '1a_EBA_q_64' > opla_1a_EBA_q_64
+
+echo '1a_BA_h_32|48|64'
+python3 meeuuw.py --e 23 --nstep $nstep --icase '1a_BA_h_32' > opla_1a_BA_h_32
+python3 meeuuw.py --e 23 --nstep $nstep --icase '1a_BA_h_48' > opla_1a_BA_h_48
+python3 meeuuw.py --e 23 --nstep $nstep --icase '1a_BA_h_64' > opla_1a_BA_h_64
+ 
+echo '1a_EBA_h_32|48|64'
+python3 meeuuw.py --e 23 --nstep $nstep --icase '1a_EBA_h_32' > opla_1a_EBA_h_32
+python3 meeuuw.py --e 23 --nstep $nstep --icase '1a_EBA_h_48' > opla_1a_EBA_h_48
+python3 meeuuw.py --e 23 --nstep $nstep --icase '1a_EBA_h_64' > opla_1a_EBA_h_64
+

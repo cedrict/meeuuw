@@ -29,6 +29,10 @@ def swarm_coordinates_setup(
     x_V,
     z_V,
     icon_V,
+    Rinner,
+    Router,
+    opening_angle,
+    theta_min,
 ):
 
     swarm_x = np.zeros(nparticle, dtype=np.float64)

@@ -10,6 +10,7 @@ import scipy.sparse as sps
 import argparse
 import os
 
+import global_stuff
 from apply_mesh_stretching_x import *
 from apply_mesh_stretching_z import *
 from assess_steady_state import *
@@ -132,7 +133,12 @@ parser.add_argument("--particle_eta_projection", type=int, default=-1)
 parser.add_argument("--RKorder", type=int, default=0)
 parser.add_argument("--output_folder", default='OUTPUT')
 parser.add_argument("--formulation", default='BA')
+parser.add_argument("--icase", default='x')
 args = parser.parse_args()
+
+global_stuff.icase=args.icase
+
+
 
 # if int(len(sys.argv)==8):
 #   experiment = int(sys.argv[1])
@@ -277,7 +283,7 @@ print("RKorder=", args.RKorder)
 
 formulation=str(args.formulation)
 
-output_folder=str(args.output_folder)
+#output_folder=str(args.output_folder)
 print('output_folder=',output_folder)
 
 try:
@@ -1018,7 +1024,7 @@ start = clock.time()
 
 swarm_active,swarm_x,swarm_z,swarm_r,swarm_t,swarm_id,swarm_iel, swarm_rad, swarm_theta,swarm_paint=\
 swarm_coordinates_setup(geometry,particle_distribution,nparticle,nparticle_per_element,nparticle_per_dim,\
-nel,nq_per_dim,nelx,nelz,Lx,Lz,hx,hz,xq,zq,qcoords,x_V,z_V,icon_V)
+nel,nq_per_dim,nelx,nelz,Lx,Lz,hx,hz,xq,zq,qcoords,x_V,z_V,icon_V,Rinner,Router,opening_angle,theta_min)
 
 if debug_ascii:
     np.savetxt("DEBUG/swarm_distribution.ascii", np.array([swarm_x, swarm_z]).T, header="#x,z")

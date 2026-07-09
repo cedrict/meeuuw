@@ -5,7 +5,6 @@
 CFLnb = 0.25
 pressure_normalisation = "surface"
 
-
 end_time = 0.0
 vel_scale = 1
 vel_unit = " "
