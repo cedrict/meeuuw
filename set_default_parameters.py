@@ -18,6 +18,7 @@ remove_rho_profile = False
 ##nstep=1
 nq_per_dim = 3
 use_melting = False
+use_latent_heat = False
 nsamplepoints = 0
 xsamplepoints = [0]
 zsamplepoints = [0]

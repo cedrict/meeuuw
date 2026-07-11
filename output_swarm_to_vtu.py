@@ -56,7 +56,7 @@ def output_swarm_to_vtu(
 
     nparticle_active=np.sum(swarm_active)
 
-    debug_swarm = True
+    debug_swarm = False
 
     filename = output_folder+"/SWARM/swarm_{:04d}.vtu".format(istep)
     vtufile = open(filename, "w")

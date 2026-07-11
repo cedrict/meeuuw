@@ -113,7 +113,7 @@ from set_default_parameters import *
 # experiment 28: Lithospheric Drip based on bagu25
 ###############################################################################
 
-experiment = 25
+experiment = 10
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx", type=int, default=0)
@@ -1608,43 +1608,43 @@ for iloop in range(0, nstep*niter_nl):
         np.savetxt(
             "DEBUG/rhoq.ascii",
             np.array([xq.flatten(), zq.flatten(), rhoq.flatten()]).T,
-            header="#x,z,rho",
+            header="#x,z,rho",fmt='%1.4e'
         )
     if debug_ascii:
         np.savetxt(
             "DEBUG/etaq.ascii",
             np.array([xq.flatten(), zq.flatten(), etaq.flatten()]).T,
-            header="#x,z,eta",
+            header="#x,z,eta",fmt='%1.4e'
         )
     if debug_ascii and solve_T:
         np.savetxt(
             "DEBUG/Tq.ascii",
             np.array([xq.flatten(), zq.flatten(), Tq.flatten()]).T,
-            header="#x,z,T",
+            header="#x,z,T",fmt='%1.4e'
         )
     if debug_ascii and solve_T:
         np.savetxt(
             "DEBUG/hcapaq.ascii",
             np.array([xq.flatten(), zq.flatten(), hcapaq.flatten()]).T,
-            header="#x,z,hcapa",
+            header="#x,z,hcapa",fmt='%1.4e'
         )
     if debug_ascii and solve_T:
         np.savetxt(
             "DEBUG/hcondq.ascii",
             np.array([xq.flatten(), zq.flatten(), hcondq.flatten()]).T,
-            header="#x,z,hcond",
+            header="#x,z,hcond",fmt='%1.4e'
         )
     if debug_ascii and solve_T:
         np.savetxt(
             "DEBUG/hprodq.ascii",
             np.array([xq.flatten(), zq.flatten(), hprodq.flatten()]).T,
-            header="#x,z,hprod",
+            header="#x,z,hprod",fmt='%1.4e'
         )
     if debug_ascii and solve_T:
         np.savetxt(
             "DEBUG/alphaq.ascii",
             np.array([xq.flatten(), zq.flatten(), alphaq.flatten()]).T,
-            header="#x,z,alpha",
+            header="#x,z,alpha",fmt='%1.4e'
         )
 
     print("project nodal fields onto qpts: .............. %.3f s" % (clock.time() - start))
@@ -1822,15 +1822,8 @@ for iloop in range(0, nstep*niter_nl):
                     print("     iter %3d xiP= %e xiV= %e" % (k, array_xiP[k], array_xiV[k]))
             np.savetxt(
                 output_folder+"/solver_convergence_" + str(istep) + ".ascii",
-                np.array(
-                    [
-                        array_xiV[:nniter],
-                        array_xiP[:nniter],
-                        array_alpha[:nniter],
-                        array_beta[:nniter],
-                    ]
-                ).T,
-            )
+                np.array([array_xiV[:nniter],array_xiP[:nniter],
+                        array_alpha[:nniter],array_beta[:nniter]]).T,fmt='%1.4e')
         else:
             b_fem = np.zeros(Nfem, dtype=np.float64)
             b_fem[0:Nfem_V] = rhs_f
@@ -1921,17 +1914,17 @@ for iloop in range(0, nstep*niter_nl):
                 np.savetxt(
                     "DEBUG/velocity_polar.ascii",
                     np.array([x_V, z_V, vr, vt, rad_V, theta_V]).T,
-                    header="#x,z,vr,vt,rad,theta",
+                    header="#x,z,vr,vt,rad,theta",fmt='%1.4e'
                 )
                 np.savetxt(
                     "DEBUG/top_vt.ascii",
                     np.array([theta_V[top_Vnodes], vt[top_Vnodes]]).T,
-                    header="#theta,vt",
+                    header="#theta,vt",fmt='%1.4e'
                 )
                 np.savetxt(
                     "DEBUG/bot_vt.ascii",
                     np.array([theta_V[bot_Vnodes], vt[bot_Vnodes]]).T,
-                    header="#theta,vt",
+                    header="#theta,vt",fmt='%1.4e'
                 )
 
             print("convert velocity to polar/sph coords: %.3f s" % (clock.time() - start))
@@ -1991,27 +1984,27 @@ for iloop in range(0, nstep*niter_nl):
             case "box":
                 np.savetxt(
                     output_folder+"/top/top_p_" + str(istep) + ".ascii",
-                    np.array([x_P[top_Pnodes], p[top_Pnodes]]).T,
+                    np.array([x_P[top_Pnodes], p[top_Pnodes]]).T,fmt='%1.4e'
                 )
                 np.savetxt(
                     output_folder+"/bottom/bot_p_" + str(istep) + ".ascii",
-                    np.array([x_P[bot_Pnodes], p[bot_Pnodes]]).T,
+                    np.array([x_P[bot_Pnodes], p[bot_Pnodes]]).T,fmt='%1.4e'
                 )
             case "quarter" | "half" | "eighth" | "annulus":
                 np.savetxt(
                     output_folder+"/top/top_p_" + str(istep) + ".ascii",
-                    np.array([theta_P[top_Pnodes], p[top_Pnodes]]).T,
+                    np.array([theta_P[top_Pnodes], p[top_Pnodes]]).T,fmt='%1.4e'
                 )
                 np.savetxt(
                     output_folder+"/bottom/bot_p_" + str(istep) + ".ascii",
-                    np.array([theta_P[bot_Pnodes], p[bot_Pnodes]]).T,
+                    np.array([theta_P[bot_Pnodes], p[bot_Pnodes]]).T,fmt='%1.4e'
                 )
 
     if debug_ascii:
         np.savetxt(
             "DEBUG/pressure_normalised.ascii",
             np.array([x_P, z_P, p, rad_P, theta_P]).T,
-            header="# x,z,p,rad,theta",
+            header="# x,z,p,rad,theta",fmt='%1.4e'
         )
 
     print("normalise pressure: .......................... %.3f s" % (clock.time() - start))
@@ -2737,7 +2730,7 @@ for iloop in range(0, nstep*niter_nl):
                     (sigmarr_n[bot_Vnodes] - avrg_sigmarr) / gr_n[bot_Vnodes] / (rho_n[bot_Vnodes] - rho_DT_bot)
                 )
                 np.savetxt(
-                    output_folder+"/bot/bot_dynamic_topography_n_" + str(istep) + ".ascii",
+                    output_folder+"/bottom/bot_dynamic_topography_n_" + str(istep) + ".ascii",
                     np.array([theta_V[bot_Vnodes], dyn_topo_bot]).T,
                 )
                 #

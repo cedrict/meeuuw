@@ -54,6 +54,7 @@ Ra = alphaT * rho0 * g0 * (Lz**3) * (Tbottom - Ttop) / kappa / eta0
 print("     -> Di=", Di)
 print("     -> kappa=", kappa)
 print("     -> Ra=", Ra)
+print("     -> Di/Ra=", Di/Ra)
 
 reftime = rho0 * hcapa * Lz**2 / hcond
 refvel = Lz / reftime

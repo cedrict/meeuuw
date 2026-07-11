@@ -10,7 +10,7 @@ geometry = "half"
 Lx = 1
 Lz = 1
 
-nelz = 16
+nelz = 64
 
 if geometry == "quarter":
     nelx = int(3 * nelz)
@@ -39,6 +39,8 @@ depth_uppermantle = 896e3
 
 eta_lowermantle = 2e21
 rho_lowermantle = 3600
+
+nmat=5
 
 rho_DT_top = 0
 rho_DT_bot = 10000
@@ -148,35 +150,42 @@ def assign_boundary_conditions_V(
 ###################################################################################################
 
 
-def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
+def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-    swarm_mat = np.zeros(nparticle, dtype=np.int32)
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
 
-    for ip in range(nparticle):
+    for ip in range(0, nparticle):
         if swarm_rad[ip] > Router - depth_crust:
-            swarm_mat[ip] = 1
+           swarm_wf[0, ip] = 1
         elif swarm_rad[ip] > Router - depth_lithosphere:
-            swarm_mat[ip] = 2
+           swarm_wf[1, ip] = 1
         elif swarm_rad[ip] > Router - depth_uppermantle:
-            swarm_mat[ip] = 3
+           swarm_wf[2, ip] = 1
         else:
-            swarm_mat[ip] = 4
+           swarm_wf[3, ip] = 1
 
+        # blob
         if (
             abs(swarm_theta[ip] - np.pi / 2) < np.pi / 10
             and abs(swarm_rad[ip] - (Router - depth_blob)) < thickness_blob / 2
         ):
-            swarm_mat[ip] = 5
+            swarm_wf[1, ip] = 0
+            swarm_wf[2, ip] = 0
+            swarm_wf[3, ip] = 0
+            swarm_wf[4, ip] = 1
 
-    return swarm_mat
+    material_names = ["crust", "lithosphere", "uppermantle", "lowermantle", "blob"]
+
+    return swarm_wf, material_names
 
 
 ###################################################################################################
 
-
 def material_model(
     nparticle,
-    swarm_mat,
+    swarm_active,
+    nmat,
+    swarm_wf,
     swarm_x,
     swarm_z,
     swarm_rad,
@@ -193,24 +202,23 @@ def material_model(
     swarm_hcond = 0
     swarm_hcapa = 0
     swarm_hprod = 0
+    swarm_alpha = 0 
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
-    mask = swarm_mat == 1
-    swarm_eta[mask] = eta_crust
-    swarm_rho[mask] = rho_crust
-    mask = swarm_mat == 2
-    swarm_eta[mask] = eta_lithosphere
-    swarm_rho[mask] = rho_lithosphere
-    mask = swarm_mat == 3
-    swarm_eta[mask] = eta_uppermantle
-    swarm_rho[mask] = rho_uppermantle
-    mask = swarm_mat == 4
-    swarm_eta[mask] = eta_lowermantle
-    swarm_rho[mask] = rho_lowermantle
-    mask = swarm_mat == 5
-    swarm_eta[mask] = eta_blob
-    swarm_rho[mask] = rho_blob
+    for ip in range(0,nparticle):
+        if swarm_active[ip]:
+           swarm_rho[ip]=swarm_wf[0,ip] * rho_crust +\
+                         swarm_wf[1,ip] * rho_lithosphere +\
+                         swarm_wf[2,ip] * rho_uppermantle +\
+                         swarm_wf[3,ip] * rho_lowermantle +\
+                         swarm_wf[4,ip] * rho_blob 
+           swarm_eta[ip]=swarm_wf[0,ip] * eta_crust +\
+                         swarm_wf[1,ip] * eta_lithosphere +\
+                         swarm_wf[2,ip] * eta_uppermantle +\
+                         swarm_wf[3,ip] * eta_lowermantle +\
+                         swarm_wf[4,ip] * eta_blob 
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################
