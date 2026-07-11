@@ -1,0 +1,46 @@
+# 1: Time step number
+# 2: Time (years)
+# 3: Time step size (years)
+# 4: Number of mesh cells
+# 5: Number of Stokes degrees of freedom
+# 6: Number of temperature degrees of freedom
+# 7: Number of degrees of freedom for all compositions
+# 8: Number of nonlinear iterations
+# 9: Iterations for Stokes solver
+# 10: Velocity iterations in Stokes preconditioner
+# 11: Schur complement iterations in Stokes preconditioner
+# 12: RMS velocity (m/year)
+# 13: Max. velocity (m/year)
+# 14: Minimal value for composition C_1
+# 15: Maximal value for composition C_1
+# 16: Global mass for composition C_1
+# 17: Pressure at top (Pa)
+# 18: Pressure at bottom (Pa)
+# 19: System matrix memory consumption (MB) 
+# 20: Triangulation memory consumption (MB) 
+# 21: p4est memory consumption (MB) 
+# 22: DoFHandler memory consumption (MB) 
+# 23: AffineConstraints<double> memory consumption (MB) 
+# 24: Solution vector memory consumption (MB) 
+# 25: MGTransfer memory consumption (MB) 
+# 26: Matrix-free cell data memory consumption (MB) 
+# 27: Peak virtual memory usage (VmPeak) (MB) 
+# 28: Minimal pressure (Pa)
+# 29: Average pressure (Pa)
+# 30: Maximal pressure (Pa)
+# 31: Angular momentum (kg*m^2/year)
+# 32: Moment of inertia (kg*m^2)
+# 33: Angular velocity (1/year)
+# 34: Surface angular velocity (1/year)
+# 35: Radial RMS velocity (m/yr)
+# 36: Tangential RMS velocity (m/yr)
+# 37: Total RMS velocity (m/yr)
+# 38: Maximum velocity magnitude on boundary with indicator 0 ("bottom") (m/year)
+# 39: Minimum velocity magnitude on boundary with indicator 0 ("bottom") (m/year)
+# 40: RMS velocity on boundary with indicator 0 ("bottom") (m/year)
+# 41: Maximum velocity magnitude on boundary with indicator 1 ("top") (m/year)
+# 42: Minimum velocity magnitude on boundary with indicator 1 ("top") (m/year)
+# 43: RMS velocity on boundary with indicator 1 ("top") (m/year)
+# 44: Visualization file name
+# 45: Surface visualization file name
+0 0.000000000000e+00 0.000000000000e+00 49152 446208 198144 198144 1 14 15 15 1.17843978e-01 7.90804145e-01 0.00000000e+00 1.00000000e+00 4.99617010e+11 1.58855291e-04 1.19993509e+11 12.8740 13.2151 1.5325 15.0235 3.9601 9.6425 14.9241 4.5074 2028.1992 -2.75036252e+06 5.38748022e+10 1.19997254e+11 1.16499071e+11 9.70131000e+30 1.20085917e-20 7.10198887e-18 8.07210724e-02 8.58563430e-02 1.17843978e-01 2.75672060e-01 6.02496489e-12 9.65898662e-02 3.59218583e-01 5.13443885e-11 1.19843620e-01 output_4d_dynamic_earth_2d/solution/solution-00000 output_4d_dynamic_earth_2d/solution_surface/solution_surface-00000 
