@@ -135,6 +135,18 @@ i.e. $\sim 360,000$, each carrying approx. 10 double precision floats (64 bits).
 In total the memory use for these is $360000 \cdot 10 \cdot 64 = 230400000$bits, 
 or about 220Mb of memory.
 
+Non-negociables:
+\begin{itemize}
+\item 2d only
+\item quadrilateral elements
+\item fixed topology
+\item mixed formulation, solving for v,p
+\item elements are trapezes (box)
+\item Vspace is Q1+ or Q2
+\item Pspace is Q1
+\end{itemize}
+
+
 There are at the moment 18 so-called experiments (also called cookbooks in ASPECT)
 that either aim at reproducing existing articles results (numerical benchmarks)
 or built as setups to be used in class or for research purposes.
@@ -192,6 +204,9 @@ model, it is recommended to remove all results by running the following script:
 \begin{verbatim}
 ./cleandata
 \end{verbatim}
+
+
+
 
 \newpage
 %==============================================================================

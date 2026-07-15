@@ -113,7 +113,7 @@ from set_default_parameters import *
 # experiment 28: Lithospheric Drip based on bagu25
 ###############################################################################
 
-experiment = 10
+experiment = 19
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx", type=int, default=0)
@@ -2138,12 +2138,12 @@ for iloop in range(0, nstep*niter_nl):
 
     if not inside_nonlinear_iterations:
 
-       geo_time += dt
+       #geo_time += dt #moved at the end
 
        print("     -> dt = %.3e %s" % (dt / time_scale, time_unit))
        print("     -> geological time = %e %s" % (geo_time / time_scale, time_unit))
 
-       dt_file.write("%e %e %e %e\n" % (geo_time / time_scale, dt1 / time_scale, dt2 / time_scale, dt / time_scale))
+       dt_file.write("%e %e %e %e\n" % (geo_time / time_scale, dt / time_scale, dt1 / time_scale, dt2 / time_scale))
        dt_file.flush()
 
        dt1_mem = dt1
@@ -2310,7 +2310,7 @@ for iloop in range(0, nstep*niter_nl):
         print("     -> <dTdz> (bot,top)= %.3e %.3e " % (avrg_dTdz_bot, avrg_dTdz_top))
         print("     -> Nusselt= %.3e " % (Nu))
 
-        Nu_file.write("%e %e \n" % (geo_time / time_scale, Nu))
+        Nu_file.write("%e %.6e \n" % (geo_time / time_scale, Nu))
         Nu_file.flush()
         avrg_T_bot_file.write("%e %e \n" % (geo_time / time_scale, avrg_T_bot))
         avrg_T_bot_file.flush()
@@ -2543,7 +2543,7 @@ for iloop in range(0, nstep*niter_nl):
 
     delta = WAG + TVD  # see tosn15
 
-    vrms_file.write("%.4e %.4e \n" % (geo_time / time_scale, vrms / vel_scale))
+    vrms_file.write("%.4e %.6e \n" % (geo_time / time_scale, vrms / vel_scale))
     vrms_file.flush()
     TM_file.write("%.4e %.4e \n" % (geo_time / time_scale, TM))
     TM_file.flush()
@@ -2555,7 +2555,7 @@ for iloop in range(0, nstep*niter_nl):
     WAG_file.flush()
     delta_file.write("%.4e %.4e %.4e\n" % (geo_time / time_scale, delta, max(abs(WAG), TVD)))
     delta_file.flush()
-    T_avrg_file.write("%.4e %.4e \n" % (geo_time / time_scale, T_avrg))
+    T_avrg_file.write("%.4e %.6e \n" % (geo_time / time_scale, T_avrg))
     T_avrg_file.flush()
     eta_avrg_file.write("%.4e %.4e \n" % (geo_time / time_scale, eta_avrg))
     eta_avrg_file.flush()
@@ -3467,6 +3467,7 @@ for iloop in range(0, nstep*niter_nl):
     if inside_nonlinear_iterations:
        iter_nl+=1
     else:
+       geo_time += dt 
        iter_nl=0
        istep+=1
        print("NL: resetting iter_nl=0")

@@ -5,6 +5,7 @@ rm swarm.pvd
 rm timings.pdf
 rm opla_*
 rm DEBUG/*.ascii
+rm DEBUG/*.vtu
 rm OUTPUT/*.ascii
 rm OUTPUT/*.vtu 
 rm OUTPUT/*.pvd 

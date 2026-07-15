@@ -21,7 +21,7 @@ def open_files(vel_unit, time_unit, output_folder):
     srstats_file.write("#time min(e_n) max(e_n)\n")
 
     dt_file = open(output_folder+"/dt.ascii", "w")
-    dt_file.write("#time dt1 dt2 dt\n")
+    dt_file.write("#time dt dt1 dt2\n")
     dt_file.write("#" + time_unit + "\n")
 
     ptcl_stats_file = open(output_folder+"/stats_particle.ascii", "w")
