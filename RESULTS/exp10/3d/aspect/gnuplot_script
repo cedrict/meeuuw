@@ -1,0 +1,78 @@
+#
+set term pdf enhanced font "Times,12pt"
+set pointsize 0.15
+
+set xlabel 'theta (co-latitude)'
+set ylabel 'dynamic topography (m)'
+set key outside
+
+
+####################################
+
+set output 'stress_top.pdf'
+plot[][]\
+'4+0/stress_top.00000' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .2 t 'ASPECT, 4+0',\
+'4+1/stress_top.00000' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .2 t 'ASPECT, 4+1',\
+'STUDY/64_5/top_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp t 'new, 64',\
+'STUDY/64_10/top_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp t 'new, 64',\
+'STUDY/64_5_reduced/top_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp t 'new, 64, red',\
+'STUDY/64_5_reduced_straight/top_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp   t 'new, 64, red, straight',\
+'STUDY/64_5_reduced_straight_sr2/top_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp lt -1  t 'new, 64, red, straight, sr2',\
+
+#'../res64_axi/top_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp t 'nodal, 64',\
+#'../res96_axi/top_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp t 'nodal, 96',\
+
+set output 'stress_bottom.pdf'
+plot[][]\
+'4+0/stress_bottom.00000' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .2 t 'ASPECT, 4+0, a',\
+'4+1/stress_bottom.00000' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .2 t 'ASPECT, 4+1',\
+'STUDY/64_5/bot_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp t 'new, 64',\
+'STUDY/64_10/bot_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp t 'new, 64',\
+'STUDY/64_5_reduced/bot_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp t 'new, 64, red',\
+'STUDY/64_5_reduced_straight/bot_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp lt -1  t 'new, 64, red, straight',\
+
+#'../res64_axi/top_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp t 'nodal, 64',\
+#'../res96_axi/bot_sigmarr_nodal_0.ascii' u (pi/2-$1):($2) w lp t 'nodal, 96',\
+
+
+exit
+#quit
+
+####################################
+
+set output 'pressure_top.pdf'
+plot[][]\
+'4+0/pressure_top.00000' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .2 t 'ASPECT, 4+0',\
+
+set output 'pressure_bottom.pdf'
+plot[][]\
+'4+0/pressure_bottom.00000' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .2 t 'ASPECT, 4+0',\
+
+####################################
+
+set output 'dynamic_topography_top.pdf'
+plot[][]\
+'3+3/dynamic_topography_top.00000' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .2 t 'ASPECT, 3+3',\
+'4+0/dynamic_topography_top.00000' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .2 t 'ASPECT, 4+0',\
+'4+1/dynamic_topography_top.00000' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .2 t 'ASPECT, 4+1',\
+'../stolgar/topo_surface_sphere_1c_function_none_3960_44x44x22.txt' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .1 t 'STOLGAR, 42x42x26',\
+'../res96_axi/top_dynamic_topography_nodal_0.ascii' u (pi/2-$1):($2) w lp t 'nodal',\
+'../res96_axi/top_dynamic_topography_elemental_0.ascii' u (pi/2-$1):2 w lp t 'elemental'
+
+set output 'dynamic_topography_bot.pdf'
+plot[][]\
+'3+3/dynamic_topography_bottom.00000' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .2 t 'ASPECT, 3+3',\
+'4+0/dynamic_topography_bottom.00000' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .2 t 'ASPECT, 4+0',\
+'4+1/dynamic_topography_bottom.00000' u (-atan2($3,sqrt($1**2+$2**2))+pi/2):4 pt 1 ps .2 t 'ASPECT, 4+1',\
+'../res96_axi/bot_dynamic_topography_nodal0.ascii' u (pi/2-$1):2 w lp t 'nodal',\
+'../res96_axi/bot_dynamic_topography_elemental_0.ascii' u (pi/2-$1):2 w lp t 'elemental'
+
+set output 'pressure.pdf'
+plot[][]\
+'4+0/solution-00000.0000.gnuplot' u (sqrt($1**2+$2**2+$3**2)):7 w d ,\
+'pressure_normalised.ascii' u 4:3 t '64' w l lw .5
+
+set output 'strainrate.pdf'
+plot[][]\
+'4+0/solution-00000.0000.gnuplot' u (sqrt($1**2+$2**2+$3**2)):17 w d t 'ASPECT',\
+'strainrate_cartesian_nodal.ascii' u 7:6 t '64' ps .1 
