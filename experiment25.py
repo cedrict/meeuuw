@@ -45,7 +45,7 @@ end_time = 1e10 * year
 every_solution_vtu = 100
 every_swarm_vtu = 100
 RKorder = -1
-nstep = 1 
+nstep = 100 
 
 Di = alphaT * g0 * Lz / hcapa
 kappa = hcond / rho0 / hcapa

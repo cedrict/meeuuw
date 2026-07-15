@@ -1,0 +1,6 @@
+#! /bin/bash
+
+echo .....test0
+python3 ../meeuuw.py --e 0 --nelx 8 --nelz 8 --nstep 1  --output_folder 'OUTPUT_test0' > opla
+diff OUTPUT_test0/output_test.ascii output_test0.ascii | wc -l
+

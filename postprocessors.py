@@ -112,31 +112,70 @@ def compute_boundary_velocity_statistics(x_V,z_V,u,w,left_Vnodes,right_Vnodes,bo
 def compute_Nu(
     Lx,
     Lz,
+    x_V,z_V,
     nel,
+    left_element,
+    right_element,
     top_element,
     bottom_element,
     icon_V,
     T,
+    dTdx_nodal,
     dTdz_nodal,
     nq_per_dim,
     qcoords,
     qweights,
-    hx,
 ):
     """
     Args:
     Returns:
     """
 
-    avrg_T_top = 0
-    avrg_dTdz_top = 0
+    avrg_T_left = 0
+    avrg_T_right = 0
     avrg_T_bottom = 0
+    avrg_T_top = 0
+    avrg_dTdx_left = 0
+    avrg_dTdx_right = 0
     avrg_dTdz_bottom = 0
-
-    jcob = hx / 2
+    avrg_dTdz_top = 0
 
     for iel in range(0, nel):
+
+        if left_element[iel]:
+            hz = z_V[icon_V[3,iel]]-z_V[icon_V[0,iel]]
+            jcob = hz / 2
+            rq = -1
+            nx = -1
+            for iq in range(0, nq_per_dim):
+                tq = qcoords[iq]
+                N = basis_functions_V(rq, tq)
+                Tq = np.dot(N, T[icon_V[:, iel]])
+                dTdxq = np.dot(N, dTdx_nodal[icon_V[:, iel]])
+                avrg_T_left += Tq * jcob * qweights[iq]
+                avrg_dTdx_left += dTdxq * jcob * qweights[iq] * nx
+            # end for
+        # end if
+
+        if right_element[iel]:
+            hz = z_V[icon_V[2,iel]]-z_V[icon_V[1,iel]]
+            jcob = hz / 2
+            rq = +1
+            nx = +1
+            for iq in range(0, nq_per_dim):
+                tq = qcoords[iq]
+                N = basis_functions_V(rq, tq)
+                Tq = np.dot(N, T[icon_V[:, iel]])
+                dTdxq = np.dot(N, dTdx_nodal[icon_V[:, iel]])
+                avrg_T_right += Tq * jcob * qweights[iq]
+                avrg_dTdx_right += dTdxq * jcob * qweights[iq] * nx
+            # end for
+        # end if
+
+
         if top_element[iel]:
+            hx = x_V[icon_V[2,iel]]-x_V[icon_V[3,iel]]
+            jcob = hx / 2
             sq = +1
             ny = +1
             for iq in range(0, nq_per_dim):
@@ -150,6 +189,8 @@ def compute_Nu(
         # end if
 
         if bottom_element[iel]:
+            hx = x_V[icon_V[1,iel]]-x_V[icon_V[0,iel]]
+            jcob = hx / 2
             sq = -1
             ny = -1
             for iq in range(0, nq_per_dim):
@@ -160,17 +201,24 @@ def compute_Nu(
                 avrg_T_bottom += Tq * jcob * qweights[iq]
                 avrg_dTdz_bottom += dTdzq * jcob * qweights[iq] * ny
             # end for
+
         # end if
     # end for
 
-    avrg_T_top /= Lx
+    avrg_T_left /= Lz
+    avrg_T_right /= Lz
     avrg_T_bottom /= Lx
-    avrg_dTdz_top /= Lx
+    avrg_T_top /= Lx
+    avrg_dTdx_left /= Lz
+    avrg_dTdx_right /= Lz
     avrg_dTdz_bottom /= Lx
+    avrg_dTdz_top /= Lx
 
     Nu = np.abs(avrg_dTdz_top) / (avrg_T_bottom-avrg_T_top) * Lz
 
-    return avrg_T_bottom, avrg_T_top, avrg_dTdz_bottom, avrg_dTdz_top, Nu
+    return avrg_T_left, avrg_T_right, avrg_T_bottom, avrg_T_top,\
+           avrg_dTdx_left, avrg_dTdx_right, avrg_dTdz_bottom, avrg_dTdz_top,\
+           Nu
 
 
 ###################################################################################################

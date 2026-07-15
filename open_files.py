@@ -5,7 +5,7 @@
 
 def open_files(vel_unit, time_unit, output_folder):
 
-    print(output_folder)
+    #print(output_folder)
 
     vrms_file = open(output_folder+"/vrms.ascii", "w")
     vrms_file.write("#time,vrms\n")
@@ -83,6 +83,8 @@ def open_files(vel_unit, time_unit, output_folder):
 
     bc_vel_file = open(output_folder+"/boundary_velocity_statistics.ascii", "w")
 
+    hf_file = open(output_folder+"/boundary_heatflux.ascii", "w")
+
     return (
         vrms_file,
         pstats_file,
@@ -112,7 +114,8 @@ def open_files(vel_unit, time_unit, output_folder):
         avrg_dTdz_bot_file,
         avrg_dTdz_top_file,
         bc_vel_file,
-        conv_file
+        conv_file,
+        hf_file,
     )
 
 
