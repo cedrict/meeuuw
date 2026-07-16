@@ -27,6 +27,7 @@ rho_blob = 3200
 rho_profile = 0
 eta_profile = 0
 
+nmat=2
 rho_mantle = 3300  # used if rho_profile=0
 eta_mantle = 1e21  # used if eta_profile=0
 
@@ -96,26 +97,27 @@ def assign_boundary_conditions_V(
 
 ###################################################################################################
 
+def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
-
-    swarm_mat = np.zeros(nparticle, dtype=np.int32)
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
 
     for ip in range(nparticle):
         if (swarm_x[ip] - Lx / 2) ** 2 + (swarm_z[ip] - z_blob) ** 2 < R_blob**2:
-            swarm_mat[ip] = 2
+            swarm_wf[1,ip] = 1
         else:
-            swarm_mat[ip] = 1
+            swarm_wf[0,ip] = 1
 
-    return swarm_mat
+    material_names = ["mantle" , "blob"]
 
+    return swarm_wf, material_names
 
 ###################################################################################################
 
-
 def material_model(
     nparticle,
-    swarm_mat,
+    swarm_active,
+    nmat,
+    swarm_wf,
     swarm_x,
     swarm_z,
     swarm_rad,
@@ -132,12 +134,14 @@ def material_model(
     swarm_hcond = 0
     swarm_hcapa = 0
     swarm_hprod = 0
+    swarm_alpha = 0 
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
     # density
 
     if rho_profile == 0:
-        mask = swarm_mat == 1
-        swarm_rho[mask] = rho_mantle
+        for ip in range(0, nparticle):
+            swarm_rho[ip] = rho_mantle
     elif rho_profile == 1:
         for ip in range(0, nparticle):
             swarm_rho[ip] = prem_density(6368e3 - Lz + swarm_z[ip])
@@ -153,8 +157,8 @@ def material_model(
     # viscosity
 
     if eta_profile == 0:
-        mask = swarm_mat == 1
-        swarm_eta[mask] = eta_mantle
+        for ip in range(0, nparticle):
+            swarm_eta[ip] = eta_mantle
     elif eta_profile == 1:
         momo = np.loadtxt("DATA/civs12.ascii")
         depths = momo[:, 0]  # ; print(depths)
@@ -180,11 +184,13 @@ def material_model(
     else:
         exit("wrong eta_profile value")
 
-    mask = swarm_mat == 2
-    swarm_eta[mask] = eta_blob
-    swarm_rho[mask] = rho_blob
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    for ip in range(0, nparticle):
+        if swarm_wf[1,ip]>0.99:
+           swarm_eta[ip] = eta_blob
+           swarm_rho[ip] = rho_blob
+
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################
