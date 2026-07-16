@@ -1,0 +1,418 @@
+#
+set term pdf enhanced font "Times,12pt"
+#set grid
+
+reftime=3.168809e+10
+refvel=3.155760e-03
+hcond=5
+
+Tref=3000
+
+tmax=0.3
+
+tvdref=15000 # WHY??!
+
+################################################################
+set output 'vrms.pdf'
+set key outside
+set multiplot
+set size 1,1
+set origin 0,0
+
+set xlabel 'time'
+set ylabel 'v_{rms}'
+plot[:tmax][:]\
+'EBA_16/vrms.ascii'  u ($1/reftime):($2/refvel)  w l lt 1 t'16^2',\
+'EBA_24/vrms.ascii'  u ($1/reftime):($2/refvel)  w l lt 2 t'24^2',\
+'EBA_32/vrms.ascii'  u ($1/reftime):($2/refvel)  w l lt 3 t'32^2',\
+'EBA_48/vrms.ascii'  u ($1/reftime):($2/refvel)  w l lt 4 t'48^2',\
+'EBA_64/vrms.ascii'  u ($1/reftime):($2/refvel)  w l lt 5 t'64^2',\
+'EBA_96/vrms.ascii'  u ($1/reftime):($2/refvel)  w l lt 6 t'96^2',\
+'EBA_128/vrms.ascii' u ($1/reftime):($2/refvel)  w l lt 7 t'128^2',\
+'EBA_16_ASPECT/statistics' u ($2/reftime):($11/refvel*100)  w l lt 1 dt 2 t '16^2, ASPECT',\
+'EBA_32_ASPECT/statistics' u ($2/reftime):($11/refvel*100)  w l lt 3 dt 2 t '32^2, ASPECT',\
+'EBA_64_ASPECT/statistics' u ($2/reftime):($11/refvel*100)  w l lt 5 dt 2 t '64^2, ASPECT',\
+38.4340 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+38.3905 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+38.4782 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+38.5000 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+38.4761 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+38.4000 lt -1 lw 0.5 dt 2 t 'King et al 2010'
+
+
+unset key
+unset ylabel
+unset xlabel
+unset grid
+set size 0.5, 0.4
+set origin 0.25,0.1
+plot[0.2:0.5][:]\
+'EBA_16/vrms.ascii'  u ($1/reftime):($2/refvel)  w l lt 1 t'16^2',\
+'EBA_24/vrms.ascii'  u ($1/reftime):($2/refvel)  w l lt 2 t'24^2',\
+'EBA_32/vrms.ascii'  u ($1/reftime):($2/refvel)  w l lt 3 t'32^2',\
+'EBA_48/vrms.ascii'  u ($1/reftime):($2/refvel)  w l lt 4 t'48^2',\
+'EBA_64/vrms.ascii'  u ($1/reftime):($2/refvel)  w l lt 5 t'64^2',\
+'EBA_96/vrms.ascii'  u ($1/reftime):($2/refvel)  w l lt 6 t'96^2',\
+'EBA_128/vrms.ascii' u ($1/reftime):($2/refvel)  w l lt 7 t'128^2',\
+'EBA_16_ASPECT/statistics' u ($2/reftime):($11/refvel*100)  w l lt 1 dt 2 t '16^2, ASPECT',\
+'EBA_32_ASPECT/statistics' u ($2/reftime):($11/refvel*100)  w l lt 3 dt 2 t '32^2, ASPECT',\
+'EBA_64_ASPECT/statistics' u ($2/reftime):($11/refvel*100)  w l lt 5 dt 2 t '64^2, ASPECT',\
+38.4340 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+38.3905 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+38.4782 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+38.5000 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+38.4761 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+38.4000 lt -1 lw 0.5 dt 2 t 'King et al 2010'
+
+
+
+unset multiplot
+
+############################################################
+set output 'Tavrg.pdf'
+set key outside
+set multiplot
+set size 1,1
+set origin 0,0
+
+set xlabel 'time'
+set ylabel '<T>'
+plot[:][0.4905:]\
+'EBA_16/T_avrg.ascii'  u ($1/reftime):(($2-273)/Tref) w l t '16^2',\
+'EBA_24/T_avrg.ascii'  u ($1/reftime):(($2-273)/Tref) w l t '24^2',\
+'EBA_32/T_avrg.ascii'  u ($1/reftime):(($2-273)/Tref) w l t '32^2',\
+'EBA_48/T_avrg.ascii'  u ($1/reftime):(($2-273)/Tref) w l t '48^2',\
+'EBA_64/T_avrg.ascii'  u ($1/reftime):(($2-273)/Tref) w l t '64^2',\
+'EBA_96/T_avrg.ascii'  u ($1/reftime):(($2-273)/Tref) w l t '96^2',\
+'EBA_128/T_avrg.ascii' u ($1/reftime):(($2-273)/Tref) w l t '128^2',\
+'EBA_16_ASPECT/statistics' u ($2/reftime):(($14-273)/Tref)  w l lt 1 dt 2 t '16^2, ASPECT',\
+'EBA_32_ASPECT/statistics' u ($2/reftime):(($14-273)/Tref)  w l lt 3 dt 2 t '32^2, ASPECT',\
+'EBA_64_ASPECT/statistics' u ($2/reftime):(($14-273)/Tref)  w l lt 5 dt 2 t '64^2, ASPECT',\
+0.4912 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.4914 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.4911 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.4909 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.491  lt -1 lw 0.5 dt 2 t 'Lee (2013)'
+
+unset key
+unset ylabel
+unset xlabel
+set size 0.5, 0.4
+set origin 0.25,0.55
+plot[0.2:][0.4908:]\
+'EBA_16/T_avrg.ascii'  u ($1/reftime):(($2-273)/Tref) w l t '16^2',\
+'EBA_24/T_avrg.ascii'  u ($1/reftime):(($2-273)/Tref) w l t '24^2',\
+'EBA_32/T_avrg.ascii'  u ($1/reftime):(($2-273)/Tref) w l t '32^2',\
+'EBA_48/T_avrg.ascii'  u ($1/reftime):(($2-273)/Tref) w l t '48^2',\
+'EBA_64/T_avrg.ascii'  u ($1/reftime):(($2-273)/Tref) w l t '64^2',\
+'EBA_96/T_avrg.ascii'  u ($1/reftime):(($2-273)/Tref) w l t '96^2',\
+'EBA_128/T_avrg.ascii' u ($1/reftime):(($2-273)/Tref) w l t '128^2',\
+'EBA_16_ASPECT/statistics' u ($2/reftime):(($14-273)/Tref)  w l lt 1 dt 2 t '16^2, ASPECT',\
+'EBA_32_ASPECT/statistics' u ($2/reftime):(($14-273)/Tref)  w l lt 3 dt 2 t '32^2, ASPECT',\
+'EBA_64_ASPECT/statistics' u ($2/reftime):(($14-273)/Tref)  w l lt 5 dt 2 t '64^2, ASPECT',\
+0.4912 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.4914 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.4911 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.4909 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.491  lt -1 lw 0.5 dt 2 t 'Lee (2013)'
+
+
+unset multiplot
+
+############################################################
+set output 'Nu.pdf'
+set key outside
+set multiplot
+set size 1,1
+set origin 0,0
+
+set xlabel 'time'
+set ylabel 'Nu'
+plot[:][:6.1]\
+'EBA_16/Nu.ascii'  u ($1/reftime):2 w l t '16^2',\
+'EBA_24/Nu.ascii'  u ($1/reftime):2 w l t '24^2',\
+'EBA_32/Nu.ascii'  u ($1/reftime):2 w l t '32^2',\
+'EBA_48/Nu.ascii'  u ($1/reftime):2 w l t '48^2',\
+'EBA_64/Nu.ascii'  u ($1/reftime):2 w l t '64^2',\
+'EBA_96/Nu.ascii'  u ($1/reftime):2 w l t '96^2',\
+'EBA_128/Nu.ascii' u ($1/reftime):2 w l t '128^2',\
+'EBA_16_ASPECT/statistics' u ($2/reftime):($24/5/3*1000)  w l lt 1 dt 2 t'16^2, ASPECT',\
+'EBA_32_ASPECT/statistics' u ($2/reftime):($24/5/3*1000)  w l lt 3 dt 2 t'32^2, ASPECT',\
+'EBA_64_ASPECT/statistics' u ($2/reftime):($24/5/3*1000)  w l lt 5 dt 2 t'64^2, ASPECT',\
+4.0900 lt -1 lw 0.5 t 'King et al 2010',\
+4.0957 lt -1 lw 0.5 t 'King et al 2010',\
+4.0839 lt -1 lw 0.5 t 'King et al 2010',\
+4.0463 lt -1 lw 0.5 t 'King et al 2010',\
+4.0924 lt -1 lw 0.5 t 'King et al 2010',\
+4.092 lt -1 dt 2  t 'Lee (2013)'
+
+unset key
+unset ylabel
+unset xlabel
+set size 0.5, 0.4
+set origin 0.25,0.15
+plot[0.2:0.5][:4.14]\
+'EBA_16/Nu.ascii'  u ($1/reftime):2 w l t '16^2',\
+'EBA_24/Nu.ascii'  u ($1/reftime):2 w l t '24^2',\
+'EBA_32/Nu.ascii'  u ($1/reftime):2 w l t '32^2',\
+'EBA_48/Nu.ascii'  u ($1/reftime):2 w l t '48^2',\
+'EBA_64/Nu.ascii'  u ($1/reftime):2 w l t '64^2',\
+'EBA_96/Nu.ascii'  u ($1/reftime):2 w l t '96^2',\
+'EBA_128/Nu.ascii' u ($1/reftime):2 w l t '128^2',\
+'EBA_16_ASPECT/statistics' u ($2/reftime):($24/5/3*1000)  w l lt 1 dt 2 t'16^2, ASPECT',\
+'EBA_32_ASPECT/statistics' u ($2/reftime):($24/5/3*1000)  w l lt 3 dt 2 t'32^2, ASPECT',\
+'EBA_64_ASPECT/statistics' u ($2/reftime):($24/5/3*1000)  w l lt 5 dt 2 t'64^2, ASPECT',\
+4.0900 lt -1 lw 0.5 t 'King et al 2010',\
+4.0957 lt -1 lw 0.5 t 'King et al 2010',\
+4.0839 lt -1 lw 0.5 t 'King et al 2010',\
+4.0924 lt -1 lw 0.5 t 'King et al 2010',\
+4.092 lt -1 dt 2  t 'Lee (2013)'
+
+unset multiplot
+
+
+############################################################
+set output 'vsurfmax.pdf'
+set key outside
+set multiplot
+set size 1,1
+set origin 0,0
+
+set xlabel 'time'
+set ylabel 'vsurf max'
+plot[:][:105]\
+'EBA_16/boundary_velocity_statistics.ascii'  u ($1/reftime):($5/refvel) w l t '16^2',\
+'EBA_24/boundary_velocity_statistics.ascii'  u ($1/reftime):($5/refvel) w l t '24^2',\
+'EBA_32/boundary_velocity_statistics.ascii'  u ($1/reftime):($5/refvel) w l t '32^2',\
+'EBA_48/boundary_velocity_statistics.ascii'  u ($1/reftime):($5/refvel) w l t '48^2',\
+'EBA_64/boundary_velocity_statistics.ascii'  u ($1/reftime):($5/refvel) w l t '64^2',\
+'EBA_96/boundary_velocity_statistics.ascii'  u ($1/reftime):($5/refvel) w l t '96^2',\
+'EBA_128/boundary_velocity_statistics.ascii' u ($1/reftime):($5/refvel) w l t '128^2',\
+54.9000 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+54.8969 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+54.9000 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+54.8989 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+54.7793 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+54.8310 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+54.870 lt -1 dt 2  t 'Lee (2013)'
+
+unset key
+unset ylabel
+unset xlabel
+set size 0.5, 0.4
+set origin 0.25,0.15
+plot[0.25:][:]\
+'EBA_16/boundary_velocity_statistics.ascii'  u ($1/reftime):($5/refvel) w l t '16^2',\
+'EBA_24/boundary_velocity_statistics.ascii'  u ($1/reftime):($5/refvel) w l t '24^2',\
+'EBA_32/boundary_velocity_statistics.ascii'  u ($1/reftime):($5/refvel) w l t '32^2',\
+'EBA_48/boundary_velocity_statistics.ascii'  u ($1/reftime):($5/refvel) w l t '48^2',\
+'EBA_64/boundary_velocity_statistics.ascii'  u ($1/reftime):($5/refvel) w l t '64^2',\
+'EBA_96/boundary_velocity_statistics.ascii'  u ($1/reftime):($5/refvel) w l t '96^2',\
+'EBA_128/boundary_velocity_statistics.ascii' u ($1/reftime):($5/refvel) w l t '128^2',\
+54.9000 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+54.8969 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+54.9000 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+54.8989 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+54.7793 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+54.8310 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+54.870 lt -1 dt 2  t 'Lee (2013)'
+
+
+unset multiplot
+
+
+################################################################
+#probable bug in ASPECT, their tvd is 1/2 ?!
+set output 'tvd.pdf'
+set key outside
+set multiplot
+set size 1,1
+set origin 0,0
+
+set ylabel 'total viscous dissipation {/Symbol F}_T'
+plot[:][]\
+'EBA_16/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '16^2',\
+'EBA_24/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '24^2',\
+'EBA_32/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '32^2',\
+'EBA_48/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '48^2',\
+'EBA_64/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '64^2',\
+'EBA_96/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '96^2',\
+'EBA_128/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '128^2',\
+'EBA_16_ASPECT/statistics' u ($2/reftime):($25*2/tvdref)  w l lt 1 dt 2 t'16^2, ASPECT',\
+'EBA_32_ASPECT/statistics' u ($2/reftime):($25*2/tvdref)  w l lt 3 dt 2 t'32^2, ASPECT',\
+'EBA_64_ASPECT/statistics' u ($2/reftime):($25*2/tvdref)  w l lt 5 dt 2 t'64^2, ASPECT',\
+0.7735 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.7739 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.7689 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.7723 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.773  lt -1 lw 0.5 dt 2 t 'Lee (2013)'
+
+unset key
+unset ylabel
+unset xlabel
+set size 0.5, 0.4
+set origin 0.25,0.45
+plot[0.25:][]\
+'EBA_16/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '16^2',\
+'EBA_24/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '24^2',\
+'EBA_32/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '32^2',\
+'EBA_48/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '48^2',\
+'EBA_64/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '64^2',\
+'EBA_96/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '96^2',\
+'EBA_128/tvd.ascii' u ($1/reftime):($2/tvdref) w l t '128^2',\
+'EBA_16_ASPECT/statistics' u ($2/reftime):($25*2/tvdref)  w l lt 1 dt 2 t'16^2, ASPECT',\
+'EBA_32_ASPECT/statistics' u ($2/reftime):($25*2/tvdref)  w l lt 3 dt 2 t'32^2, ASPECT',\
+'EBA_64_ASPECT/statistics' u ($2/reftime):($25*2/tvdref)  w l lt 5 dt 2 t'64^2, ASPECT',\
+0.7735 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.7739 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.7689 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.7723 lt -1 lw 0.5 dt 2 t 'King et al 2010',\
+0.773  lt -1 lw 0.5 dt 2 t 'Lee (2013)'
+
+
+unset multiplot
+
+################################################################
+set output 'wag.pdf'
+set key outside
+set multiplot
+set size 1,1
+set origin 0,0
+
+
+set ylabel 'total work against gravity W_T'
+plot[:][]\
+'EBA_16/wag.ascii' u ($1/reftime):($2/tvdref) w l t '16^2',\
+'EBA_24/wag.ascii' u ($1/reftime):($2/tvdref) w l t '24^2',\
+'EBA_32/wag.ascii' u ($1/reftime):($2/tvdref) w l t '32^2',\
+'EBA_48/wag.ascii' u ($1/reftime):($2/tvdref) w l t '48^2',\
+'EBA_64/wag.ascii' u ($1/reftime):($2/tvdref) w l t '64^2',\
+'EBA_96/wag.ascii' u ($1/reftime):($2/tvdref) w l t '96^2',\
+'EBA_128/wag.ascii' u ($1/reftime):($2/tvdref) w l t '128^2',\
+-0.7736 lt -1 dt 2 lw 0.5 t 'King et al 2010',\
+-0.7746 lt -1 dt 2 lw 0.5 t 'King et al 2010',\
+-0.7692 lt -1 dt 2 lw 0.5 t 'King et al 2010',\
+-0.7723 lt -1 dt 2 lw 0.5 t 'King et al 2010',\
+-0.773  lt -1 dt 2 lw 0.5 t 'Lee (2013)'
+
+
+unset key
+unset ylabel
+unset xlabel
+set size 0.5, 0.4
+set origin 0.25,0.1
+plot[0.25:][]\
+'EBA_16/wag.ascii' u ($1/reftime):($2/tvdref) w l t '16^2',\
+'EBA_24/wag.ascii' u ($1/reftime):($2/tvdref) w l t '24^2',\
+'EBA_32/wag.ascii' u ($1/reftime):($2/tvdref) w l t '32^2',\
+'EBA_48/wag.ascii' u ($1/reftime):($2/tvdref) w l t '48^2',\
+'EBA_64/wag.ascii' u ($1/reftime):($2/tvdref) w l t '64^2',\
+'EBA_96/wag.ascii' u ($1/reftime):($2/tvdref) w l t '96^2',\
+'EBA_128/wag.ascii' u ($1/reftime):($2/tvdref) w l t '128^2',\
+-0.7736 lt -1 dt 2 lw 0.5 t 'King et al 2010',\
+-0.7746 lt -1 dt 2 lw 0.5 t 'King et al 2010',\
+-0.7692 lt -1 dt 2 lw 0.5 t 'King et al 2010',\
+-0.7723 lt -1 dt 2 lw 0.5 t 'King et al 2010',\
+-0.773  lt -1 dt 2 lw 0.5 t 'Lee (2013)'
+
+unset multiplot
+
+
+################################################################
+set output 'kinetic_energy.pdf'
+set key outside
+set multiplot
+set size 1,1
+set origin 0,0
+
+set ylabel 'total kinetic energy'
+plot[:][]\
+'EBA_16/kinetic_energy.ascii' u ($1/reftime):2 w l t '16^2',\
+'EBA_24/kinetic_energy.ascii' u ($1/reftime):2 w l t '24^2',\
+'EBA_32/kinetic_energy.ascii' u ($1/reftime):2 w l t '32^2',\
+'EBA_48/kinetic_energy.ascii' u ($1/reftime):2 w l t '48^2',\
+'EBA_64/kinetic_energy.ascii' u ($1/reftime):2 w l t '64^2',\
+'EBA_96/kinetic_energy.ascii' u ($1/reftime):2 w l t '96^2',\
+'EBA_128/kinetic_energy.ascii' u ($1/reftime):2 w l t '128^2',\
+
+unset key
+unset ylabel
+unset xlabel
+set size 0.5, 0.4
+set origin 0.35,0.45
+plot[0.25:][]\
+'EBA_16/kinetic_energy.ascii' u ($1/reftime):2 w l t '16^2',\
+'EBA_24/kinetic_energy.ascii' u ($1/reftime):2 w l t '24^2',\
+'EBA_32/kinetic_energy.ascii' u ($1/reftime):2 w l t '32^2',\
+'EBA_48/kinetic_energy.ascii' u ($1/reftime):2 w l t '48^2',\
+'EBA_64/kinetic_energy.ascii' u ($1/reftime):2 w l t '64^2',\
+'EBA_96/kinetic_energy.ascii' u ($1/reftime):2 w l t '96^2',\
+'EBA_128/kinetic_energy.ascii' u ($1/reftime):2 w l t '128^2',\
+
+unset multiplot
+
+
+
+#############################################################
+set output 'delta.pdf'
+set key outside
+set size 1,1
+set origin 0,0
+set log y
+
+set ylabel '|W_T+{/Symbol F}_T|'
+plot[:][]\
+'EBA_16/delta_wag_tvd.ascii' u ($1/reftime):(abs($2)) w l t '16^2',\
+'EBA_24/delta_wag_tvd.ascii' u ($1/reftime):(abs($2)) w l t '24^2',\
+'EBA_32/delta_wag_tvd.ascii' u ($1/reftime):(abs($2)) w l t '32^2',\
+'EBA_48/delta_wag_tvd.ascii' u ($1/reftime):(abs($2)) w l t '48^2',\
+'EBA_64/delta_wag_tvd.ascii' u ($1/reftime):(abs($2)) w l t '64^2',\
+'EBA_96/delta_wag_tvd.ascii' u ($1/reftime):(abs($2)) w l t '96^2',\
+'EBA_128/delta_wag_tvd.ascii' u ($1/reftime):(abs($2)) w l t '128^2',\
+
+unset log y
+
+
+
+#############################################################
+
+set xlabel 'time'
+set ylabel 'normalised total heat flux boundaries'
+set output 'boundary_heatflux.pdf'
+plot[][]\
+'EBA_16/boundary_heatflux.ascii'  u ($1/reftime):($6/(abs($2)+abs($3)+abs($4)+abs($5))) w l t '16^2',\
+'EBA_24/boundary_heatflux.ascii'  u ($1/reftime):($6/(abs($2)+abs($3)+abs($4)+abs($5))) w l t '24^2',\
+'EBA_32/boundary_heatflux.ascii'  u ($1/reftime):($6/(abs($2)+abs($3)+abs($4)+abs($5))) w l t '32^2',\
+'EBA_48/boundary_heatflux.ascii'  u ($1/reftime):($6/(abs($2)+abs($3)+abs($4)+abs($5))) w l t '48^2',\
+'EBA_64/boundary_heatflux.ascii'  u ($1/reftime):($6/(abs($2)+abs($3)+abs($4)+abs($5))) w l t '64^2',\
+'EBA_96/boundary_heatflux.ascii'  u ($1/reftime):($6/(abs($2)+abs($3)+abs($4)+abs($5))) w l t '96^2',\
+'EBA_128/boundary_heatflux.ascii' u ($1/reftime):($6/(abs($2)+abs($3)+abs($4)+abs($5))) w l t '128^2',\
+ 
+
+
+#############################################################
+
+set ylabel '<dT/dz>_{top}'
+set output 'avrg_dTdz_top.pdf'
+plot[][]\
+'EBA_16/top/avrg_dTdz_top.ascii' u 1:2 w l t '16^2',\
+'EBA_24/top/avrg_dTdz_top.ascii' u 1:2 w l t '24^2',\
+'EBA_32/top/avrg_dTdz_top.ascii' u 1:2 w l t '32^2',\
+'EBA_48/top/avrg_dTdz_top.ascii' u 1:2 w l t '48^2',\
+'EBA_64/top/avrg_dTdz_top.ascii' u 1:2 w l t '64^2',\
+'EBA_96/top/avrg_dTdz_top.ascii' u 1:2 w l t '96^2',\
+'EBA_128/top/avrg_dTdz_top.ascii' u 1:2 w l t '128^2',\
+
+set ylabel '<dT/dz>_{bottom}'
+set output 'avrg_dTdz_bottom.pdf'
+plot[][]\
+'EBA_16/bottom/avrg_dTdz_bot.ascii' u 1:2 w l t '16^2',\
+'EBA_24/bottom/avrg_dTdz_bot.ascii' u 1:2 w l t '24^2',\
+'EBA_32/bottom/avrg_dTdz_bot.ascii' u 1:2 w l t '32^2',\
+'EBA_48/bottom/avrg_dTdz_bot.ascii' u 1:2 w l t '48^2',\
+'EBA_64/bottom/avrg_dTdz_bot.ascii' u 1:2 w l t '64^2',\
+'EBA_96/bottom/avrg_dTdz_bot.ascii' u 1:2 w l t '96^2',\
+'EBA_128/bottom/avrg_dTdz_bot.ascii' u 1:2 w l t '128^2',\
+
+
+
