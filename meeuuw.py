@@ -2291,45 +2291,25 @@ for iloop in range(0, nstep*niter_nl):
     ###############################################################################################
     start = clock.time()
 
-    if solve_T:
-        avrg_T_left, avrg_T_right, avrg_T_bot, avrg_T_top,\
-        avrg_dTdx_left, avrg_dTdx_right, avrg_dTdz_bot, avrg_dTdz_top,Nu= compute_Nu(
-            Lx,
-            Lz,
-            x_V,z_V,
-            nel,
-            left_element,
-            right_element,
-            top_element,
-            bot_element,
-            icon_V,
-            T,
-            dTdx_n,
-            dTdz_n,
-            nq_per_dim,
-            qcoords,
-            qweights,
-        )
+    if solve_T and geometry=='box':
+        avrg_T_left, avrg_T_right, avrg_T_bottom, avrg_T_top,\
+        avrg_dTdx_left, avrg_dTdx_right, avrg_dTdz_bottom, avrg_dTdz_top,\
+        qx_left,qx_right,qz_bottom,qz_top,Nu=\
+        compute_Nu(Lx,Lz,x_V,z_V,nel,left_element,right_element,top_element,bot_element,
+                   icon_V,T,dTdx_n,dTdz_n,nq_per_dim,qcoords,qweights,hcond_n)
 
-        print("     -> <T> (left,right)= %.3e %.3e " % (avrg_T_left, avrg_T_right))
-        print("     -> <T> (bot,top)= %.3e %.3e " % (avrg_T_bot, avrg_T_top))
-        print("     -> <dTdx> (left,right)= %.3e %.3e " % (avrg_dTdx_left, avrg_dTdx_right))
-        print("     -> <dTdz> (bot,top)= %.3e %.3e " % (avrg_dTdz_bot, avrg_dTdz_top))
+        print("     -> Left: <T>, qx= %.3e %.3e " % (avrg_T_left, qx_left))
+        print("     -> Right: <T>, qx= %.3e %.3e " % (avrg_T_right, qx_right))
+        print("     -> Bottom: <T>, qz= %.3e %.3e " % (avrg_T_bottom, qz_bottom))
+        print("     -> Top: <T>, qz= %.3e %.3e " % (avrg_T_top, qz_top))
         print("     -> Nusselt= %.3e " % (Nu))
 
-        Nu_file.write("%e %.6e \n" % (geo_time / time_scale, Nu))
-        Nu_file.flush()
-        avrg_T_bot_file.write("%e %e \n" % (geo_time / time_scale, avrg_T_bot))
-        avrg_T_bot_file.flush()
-        avrg_T_top_file.write("%e %e \n" % (geo_time / time_scale, avrg_T_top))
-        avrg_T_top_file.flush()
-        avrg_dTdz_bot_file.write("%e %e \n" % (geo_time / time_scale, avrg_dTdz_bot))
-        avrg_dTdz_bot_file.flush()
-        avrg_dTdz_top_file.write("%e %e \n" % (geo_time / time_scale, avrg_dTdz_top))
-        avrg_dTdz_top_file.flush()
-        hf_file.write("%e %e \n" % (geo_time / time_scale, avrg_dTdx_left+avrg_dTdx_right+\
-                                                           avrg_dTdz_bot+avrg_dTdz_top))
-        hf_file.flush()
+        Nu_file.write("%e %.6e \n" % (geo_time / time_scale, Nu)) ; Nu_file.flush()
+        avrg_T_bot_file.write("%e %e \n" % (geo_time / time_scale, avrg_T_bottom)) ; avrg_T_bot_file.flush()
+        avrg_T_top_file.write("%e %e \n" % (geo_time / time_scale, avrg_T_top)) ; avrg_T_top_file.flush()
+        avrg_dTdz_bot_file.write("%e %e \n" % (geo_time / time_scale, avrg_dTdz_bottom)) ; avrg_dTdz_bot_file.flush()
+        avrg_dTdz_top_file.write("%e %e \n" % (geo_time / time_scale, avrg_dTdz_top)) ; avrg_dTdz_top_file.flush()
+        hf_file.write("%e %e \n" % (geo_time / time_scale, qx_left+qx_right+qz_bottom+qz_top)) ; hf_file.flush()
 
         print("compute q and Nu at top & bottom: ............ %.3f s" % (clock.time() - start))
         timings[8] += clock.time() - start

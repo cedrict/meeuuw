@@ -125,6 +125,7 @@ def compute_Nu(
     nq_per_dim,
     qcoords,
     qweights,
+    hcond_n,
 ):
     """
     Args:
@@ -139,6 +140,10 @@ def compute_Nu(
     avrg_dTdx_right = 0
     avrg_dTdz_bottom = 0
     avrg_dTdz_top = 0
+    qx_left = 0
+    qx_right = 0
+    qz_bottom = 0
+    qz_top = 0
 
     for iel in range(0, nel):
 
@@ -151,9 +156,11 @@ def compute_Nu(
                 tq = qcoords[iq]
                 N = basis_functions_V(rq, tq)
                 Tq = np.dot(N, T[icon_V[:, iel]])
+                hcond_q = np.dot(N, hcond_n[icon_V[:, iel]])
                 dTdxq = np.dot(N, dTdx_nodal[icon_V[:, iel]])
                 avrg_T_left += Tq * jcob * qweights[iq]
                 avrg_dTdx_left += dTdxq * jcob * qweights[iq] * nx
+                qx_left -= hcond_q * dTdxq * jcob * qweights[iq] * nx
             # end for
         # end if
 
@@ -166,9 +173,11 @@ def compute_Nu(
                 tq = qcoords[iq]
                 N = basis_functions_V(rq, tq)
                 Tq = np.dot(N, T[icon_V[:, iel]])
+                hcond_q = np.dot(N, hcond_n[icon_V[:, iel]])
                 dTdxq = np.dot(N, dTdx_nodal[icon_V[:, iel]])
                 avrg_T_right += Tq * jcob * qweights[iq]
                 avrg_dTdx_right += dTdxq * jcob * qweights[iq] * nx
+                qx_right -= hcond_q * dTdxq * jcob * qweights[iq] * nx
             # end for
         # end if
 
@@ -176,30 +185,34 @@ def compute_Nu(
         if top_element[iel]:
             hx = x_V[icon_V[2,iel]]-x_V[icon_V[3,iel]]
             jcob = hx / 2
-            sq = +1
-            ny = +1
+            tq = +1
+            nz = +1
             for iq in range(0, nq_per_dim):
                 rq = qcoords[iq]
-                N = basis_functions_V(rq, sq)
+                N = basis_functions_V(rq, tq)
                 Tq = np.dot(N, T[icon_V[:, iel]])
+                hcond_q = np.dot(N, hcond_n[icon_V[:, iel]])
                 dTdzq = np.dot(N, dTdz_nodal[icon_V[:, iel]])
                 avrg_T_top += Tq * jcob * qweights[iq]
-                avrg_dTdz_top += dTdzq * jcob * qweights[iq] * ny
+                avrg_dTdz_top += dTdzq * jcob * qweights[iq] * nz
+                qz_top -= hcond_q * dTdzq * jcob * qweights[iq] * nz
             # end for
         # end if
 
         if bottom_element[iel]:
             hx = x_V[icon_V[1,iel]]-x_V[icon_V[0,iel]]
             jcob = hx / 2
-            sq = -1
-            ny = -1
+            tq = -1
+            nz = -1
             for iq in range(0, nq_per_dim):
                 rq = qcoords[iq]
-                N = basis_functions_V(rq, sq)
+                N = basis_functions_V(rq, tq)
                 Tq = np.dot(N, T[icon_V[:, iel]])
+                hcond_q = np.dot(N, hcond_n[icon_V[:, iel]])
                 dTdzq = np.dot(N, dTdz_nodal[icon_V[:, iel]])
                 avrg_T_bottom += Tq * jcob * qweights[iq]
-                avrg_dTdz_bottom += dTdzq * jcob * qweights[iq] * ny
+                avrg_dTdz_bottom += dTdzq * jcob * qweights[iq] * nz
+                qz_bottom -= hcond_q * dTdzq * jcob * qweights[iq] * nz
             # end for
 
         # end if
@@ -218,7 +231,7 @@ def compute_Nu(
 
     return avrg_T_left, avrg_T_right, avrg_T_bottom, avrg_T_top,\
            avrg_dTdx_left, avrg_dTdx_right, avrg_dTdz_bottom, avrg_dTdz_top,\
-           Nu
+           qx_left,qx_right,qz_bottom,qz_top,Nu
 
 
 ###################################################################################################
