@@ -161,8 +161,19 @@ def assign_boundary_conditions_V(
 
 ###################################################################################################
 
-
-def assign_boundary_conditions_T(x_V, z_V, rad_V, theta_V, Nfem_T, nn_V):
+def assign_boundary_conditions_T(
+    x_T,
+    z_T,
+    rad_T,
+    theta_T,
+    Nfem_T,
+    nn_T,
+    hull_nodes,
+    top_nodes,
+    bot_nodes,
+    left_nodes,
+    right_nodes,
+):
 
     bc_fix_T = np.zeros(Nfem_T, dtype=bool)
     bc_val_T = np.zeros(Nfem_T, dtype=np.float64)
@@ -181,20 +192,23 @@ def assign_boundary_conditions_T(x_V, z_V, rad_V, theta_V, Nfem_T, nn_V):
 ###################################################################################################
 
 
-def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
+def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-    swarm_mat = np.zeros(nparticle, dtype=np.int32)
-    swarm_mat[:] = 1
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
+    swarm_wf[:, :] = 1
 
-    return swarm_mat
+    material_names = ["mantle"]
+
+    return swarm_wf, material_names
 
 
 ###################################################################################################
 
-
 def material_model(
     nparticle,
-    swarm_mat,
+    swarm_active,
+    nmat,
+    swarm_wf,
     swarm_x,
     swarm_z,
     swarm_rad,
@@ -211,27 +225,32 @@ def material_model(
     swarm_hcond = np.zeros(nparticle, dtype=np.float64)
     swarm_hcapa = np.zeros(nparticle, dtype=np.float64)
     swarm_hprod = np.zeros(nparticle, dtype=np.float64)
+    swarm_hprod = np.zeros(nparticle, dtype=np.float64)
+    swarm_alpha = np.zeros(nparticle, dtype=np.float64)
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
     swarm_rho[:] = rho0 * (1 - alphaT * swarm_T[:])
 
     for ip in range(0, nparticle):
-        swarm_eta[ip] = viscosity(
-            swarm_T[ip],
-            swarm_exx[ip],
-            swarm_ezz[ip],
-            swarm_exz[ip],
-            swarm_z[ip],
-            gamma_T,
-            gamma_y,
-            sigma_y,
-            eta_star,
-            case_tosi,
-        )
+        if swarm_active[ip]:
+           swarm_eta[ip] = viscosity(
+               swarm_T[ip],
+               swarm_exx[ip],
+               swarm_ezz[ip],
+               swarm_exz[ip],
+               swarm_z[ip],
+               gamma_T,
+               gamma_y,
+               sigma_y,
+               eta_star,
+               case_tosi,
+           )
     swarm_hcond[:] = 1
     swarm_hcapa[:] = 1
     swarm_hprod[:] = 0
+    swarm_alpha[:] = alphaT
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################
