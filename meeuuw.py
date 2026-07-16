@@ -2309,7 +2309,8 @@ for iloop in range(0, nstep*niter_nl):
         avrg_T_top_file.write("%e %e \n" % (geo_time / time_scale, avrg_T_top)) ; avrg_T_top_file.flush()
         avrg_dTdz_bot_file.write("%e %e \n" % (geo_time / time_scale, avrg_dTdz_bottom)) ; avrg_dTdz_bot_file.flush()
         avrg_dTdz_top_file.write("%e %e \n" % (geo_time / time_scale, avrg_dTdz_top)) ; avrg_dTdz_top_file.flush()
-        hf_file.write("%e %e \n" % (geo_time / time_scale, qx_left+qx_right+qz_bottom+qz_top)) ; hf_file.flush()
+        hf_file.write("%e %e %e %e %e %e \n" % (geo_time/time_scale,qx_left,qx_right,qz_bottom,qz_top,\
+                                                qx_left+qx_right+qz_bottom+qz_top)) ; hf_file.flush()
 
         print("compute q and Nu at top & bottom: ............ %.3f s" % (clock.time() - start))
         timings[8] += clock.time() - start

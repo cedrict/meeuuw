@@ -81,29 +81,30 @@ def compute_global_quantities(
 
     return vrms, EK, WAG, TVD, GPE, ITE, TM, Tavrg, eta_avrg
 
+
 ###################################################################################################
 # TODO: add avrg over face
 
-def compute_boundary_velocity_statistics(x_V,z_V,u,w,left_Vnodes,right_Vnodes,bottom_Vnodes,top_Vnodes):
 
-    vel_left=np.sqrt(u[left_Vnodes]**2+w[left_Vnodes]**2)
-    vel_min_left=np.min(vel_left)
-    vel_max_left=np.max(vel_left)
+def compute_boundary_velocity_statistics(x_V, z_V, u, w, left_Vnodes, right_Vnodes, bottom_Vnodes, top_Vnodes):
 
-    vel_right=np.sqrt(u[right_Vnodes]**2+w[right_Vnodes]**2)
-    vel_min_right=np.min(vel_right)
-    vel_max_right=np.max(vel_right)
+    vel_left = np.sqrt(u[left_Vnodes] ** 2 + w[left_Vnodes] ** 2)
+    vel_min_left = np.min(vel_left)
+    vel_max_left = np.max(vel_left)
 
-    vel_bottom=np.sqrt(u[bottom_Vnodes]**2+w[bottom_Vnodes]**2)
-    vel_min_bottom=np.min(vel_bottom)
-    vel_max_bottom=np.max(vel_bottom)
+    vel_right = np.sqrt(u[right_Vnodes] ** 2 + w[right_Vnodes] ** 2)
+    vel_min_right = np.min(vel_right)
+    vel_max_right = np.max(vel_right)
 
-    vel_top=np.sqrt(u[top_Vnodes]**2+w[top_Vnodes]**2)
-    vel_min_top=np.min(vel_top)
-    vel_max_top=np.max(vel_top)
+    vel_bottom = np.sqrt(u[bottom_Vnodes] ** 2 + w[bottom_Vnodes] ** 2)
+    vel_min_bottom = np.min(vel_bottom)
+    vel_max_bottom = np.max(vel_bottom)
 
-    return vel_max_left,vel_max_right,vel_max_bottom,vel_max_top
+    vel_top = np.sqrt(u[top_Vnodes] ** 2 + w[top_Vnodes] ** 2)
+    vel_min_top = np.min(vel_top)
+    vel_max_top = np.max(vel_top)
 
+    return vel_max_left, vel_max_right, vel_max_bottom, vel_max_top
 
 
 ###################################################################################################
@@ -112,7 +113,8 @@ def compute_boundary_velocity_statistics(x_V,z_V,u,w,left_Vnodes,right_Vnodes,bo
 def compute_Nu(
     Lx,
     Lz,
-    x_V,z_V,
+    x_V,
+    z_V,
     nel,
     left_element,
     right_element,
@@ -128,6 +130,7 @@ def compute_Nu(
     hcond_n,
 ):
     """
+    This function assumes that the domain is a box of size Lx,Lz.
     Args:
     Returns:
     """
@@ -146,9 +149,8 @@ def compute_Nu(
     qz_top = 0
 
     for iel in range(0, nel):
-
         if left_element[iel]:
-            hz = z_V[icon_V[3,iel]]-z_V[icon_V[0,iel]]
+            hz = z_V[icon_V[3, iel]] - z_V[icon_V[0, iel]]
             jcob = hz / 2
             rq = -1
             nx = -1
@@ -165,7 +167,7 @@ def compute_Nu(
         # end if
 
         if right_element[iel]:
-            hz = z_V[icon_V[2,iel]]-z_V[icon_V[1,iel]]
+            hz = z_V[icon_V[2, iel]] - z_V[icon_V[1, iel]]
             jcob = hz / 2
             rq = +1
             nx = +1
@@ -181,9 +183,8 @@ def compute_Nu(
             # end for
         # end if
 
-
         if top_element[iel]:
-            hx = x_V[icon_V[2,iel]]-x_V[icon_V[3,iel]]
+            hx = x_V[icon_V[2, iel]] - x_V[icon_V[3, iel]]
             jcob = hx / 2
             tq = +1
             nz = +1
@@ -200,7 +201,7 @@ def compute_Nu(
         # end if
 
         if bottom_element[iel]:
-            hx = x_V[icon_V[1,iel]]-x_V[icon_V[0,iel]]
+            hx = x_V[icon_V[1, iel]] - x_V[icon_V[0, iel]]
             jcob = hx / 2
             tq = -1
             nz = -1
@@ -227,11 +228,23 @@ def compute_Nu(
     avrg_dTdz_bottom /= Lx
     avrg_dTdz_top /= Lx
 
-    Nu = np.abs(avrg_dTdz_top) / (avrg_T_bottom-avrg_T_top) * Lz
+    Nu = np.abs(avrg_dTdz_top) / (avrg_T_bottom - avrg_T_top) * Lz
 
-    return avrg_T_left, avrg_T_right, avrg_T_bottom, avrg_T_top,\
-           avrg_dTdx_left, avrg_dTdx_right, avrg_dTdz_bottom, avrg_dTdz_top,\
-           qx_left,qx_right,qz_bottom,qz_top,Nu
+    return (
+        avrg_T_left,
+        avrg_T_right,
+        avrg_T_bottom,
+        avrg_T_top,
+        avrg_dTdx_left,
+        avrg_dTdx_right,
+        avrg_dTdz_bottom,
+        avrg_dTdz_top,
+        qx_left,
+        qx_right,
+        qz_bottom,
+        qz_top,
+        Nu,
+    )
 
 
 ###################################################################################################
