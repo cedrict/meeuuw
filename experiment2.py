@@ -24,28 +24,39 @@ nparticle_per_dim = 7
 particle_distribution = 0  # 0: random, 1: reg
 # remove_rho_profile=True
 
-nelz = 80
+nmat=3
+
+nelz = 60
 nelx = int(Lx / Lz * nelz * 1.25)
-nstep = 20
+nstep = 1
 
 ###################################################################################################
 
+def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
-
-    swarm_mat = np.zeros(nparticle, dtype=np.int32)
-
-    swarm_mat[:] = 2  # mantle
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
 
     for ip in range(0, nparticle):
-        if swarm_z[ip] > Lz - 50e3:
-            swarm_mat[ip] = 1  # sticky air
-        if swarm_x[ip] > 1000e3 and swarm_z[ip] < Lz - 50e3 and swarm_z[ip] > Lz - 150e3:
-            swarm_mat[ip] = 3  # lithosphere
-        if swarm_x[ip] > 1000e3 and swarm_x[ip] < 1100e3 and swarm_z[ip] > Lz - 250e3 and swarm_z[ip] < Lz - 50e3:
-            swarm_mat[ip] = 3  # lithosphere
+        swarm_wf[1, ip] = 1 # mantle
 
-    return swarm_mat
+        # sticky air
+        if swarm_z[ip] > Lz - 50e3:
+            swarm_wf[0, ip] = 1 
+            swarm_wf[1, ip] = 0
+
+        # lithosphere
+        if swarm_x[ip] > 1000e3 and swarm_z[ip] < Lz - 50e3 and swarm_z[ip] > Lz - 150e3:
+            swarm_wf[2, ip] = 1 
+            swarm_wf[1, ip] = 0
+
+        # lithosphere
+        if swarm_x[ip] > 1000e3 and swarm_x[ip] < 1100e3 and swarm_z[ip] > Lz - 250e3 and swarm_z[ip] < Lz - 50e3:
+            swarm_wf[2, ip] = 1 
+            swarm_wf[1, ip] = 0
+
+    material_names = ["sticky_air", "mantle", "lithosphere"]
+
+    return swarm_wf, material_names
 
 
 ###################################################################################################
@@ -89,10 +100,11 @@ def assign_boundary_conditions_V(
 
 ###################################################################################################
 
-
 def material_model(
     nparticle,
-    swarm_mat,
+    swarm_active,
+    nmat,
+    swarm_wf,
     swarm_x,
     swarm_z,
     swarm_rad,
@@ -106,21 +118,30 @@ def material_model(
 
     swarm_rho = np.zeros(nparticle, dtype=np.float64)
     swarm_eta = np.zeros(nparticle, dtype=np.float64)
-    swarm_hcond = 0
+    swarm_hcond = 0 
     swarm_hcapa = 0
     swarm_hprod = 0
+    swarm_alpha = 0 
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
-    mask = swarm_mat == 1
-    swarm_eta[mask] = 1e19
-    swarm_rho[mask] = 0
-    mask = swarm_mat == 2
-    swarm_eta[mask] = 1e21
-    swarm_rho[mask] = 3200
-    mask = swarm_mat == 3
-    swarm_eta[mask] = 1e23
-    swarm_rho[mask] = 3300
+    swarm_rho = np.zeros(nparticle, dtype=np.float64)
+    swarm_eta = np.zeros(nparticle, dtype=np.float64)
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    eta_air = 1e19
+    rho_air = 0
+
+    eta_mantle = 1e21
+    rho_mantle = 3200
+
+    eta_lithosphere = 1e23
+    rho_lithosphere = 3300
+
+    for ip in range(0,nparticle):
+        if swarm_active[ip]:
+           swarm_rho[ip]=swarm_wf[0,ip] * rho_air + swarm_wf[1,ip]* rho_mantle + swarm_wf[2,ip] * rho_lithosphere
+           swarm_eta[ip]=swarm_wf[0,ip] * eta_air + swarm_wf[1,ip]* eta_mantle + swarm_wf[2,ip] * eta_lithosphere
+
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################
