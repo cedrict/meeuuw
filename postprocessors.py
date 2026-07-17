@@ -77,7 +77,8 @@ def compute_global_quantities(
     # end for iel
     vrms = np.sqrt(vrms / volume)
     Tavrg /= volume
-    eta_avrg = num / denom
+    if denom>0:
+       eta_avrg = num / denom
 
     return vrms, EK, WAG, TVD, GPE, ITE, TM, Tavrg, eta_avrg
 

@@ -186,12 +186,8 @@ def material_model(
 
     for ip in range(0, nparticle):
         if swarm_active[ip]:
-            swarm_rho[ip] = (
-                swarm_wf[0, ip] * rho_mantle + swarm_wf[1, ip] * rho_blob + swarm_wf[2, ip] * rho_lithosphere
-            )
-            swarm_eta[ip] = (
-                swarm_wf[0, ip] * eta_mantle + swarm_wf[1, ip] * eta_blob + swarm_wf[2, ip] * eta_lithosphere
-            )
+            swarm_rho[ip] = (swarm_wf[0, ip] * rho_mantle + swarm_wf[1, ip] * rho_blob + swarm_wf[2, ip] * rho_lithosphere)
+            swarm_eta[ip] = (swarm_wf[0, ip] * eta_mantle + swarm_wf[1, ip] * eta_blob + swarm_wf[2, ip] * eta_lithosphere)
 
     return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 

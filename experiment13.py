@@ -102,6 +102,7 @@ def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, L
 @numba.njit
 def material_model(
     nparticle,
+    swarm_active,
     nmat,
     swarm_wf,
     swarm_x,
@@ -120,15 +121,15 @@ def material_model(
     swarm_hcond = 0
     swarm_hcapa = 0
     swarm_hprod = 0
+    swarm_alpha = 0 
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
     for ip in range(0, nparticle):
-        swarm_rho[ip] = swarm_wf[0, ip] * rho_mantle + swarm_wf[1, ip] * rho_block
-        swarm_eta[ip] = swarm_wf[0, ip] * eta_mantle + swarm_wf[1, ip] * eta_block
+        if swarm_active[ip]:
+           swarm_rho[ip] = swarm_wf[0, ip] * rho_mantle + swarm_wf[1, ip] * rho_block
+           swarm_eta[ip] = swarm_wf[0, ip] * eta_mantle + swarm_wf[1, ip] * eta_block
 
-    # mask=(swarm_mat==1) ; swarm_eta[mask]=eta_mantle ; swarm_rho[mask]=rho_mantle
-    # mask=(swarm_mat==2) ; swarm_eta[mask]=eta_block  ; swarm_rho[mask]=rho_block
-
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################

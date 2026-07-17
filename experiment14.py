@@ -24,6 +24,7 @@ every_swarm_png = 10
 every_quadpoints_vtu = 10
 end_time = 120e6 * year
 dt_max = 1e4 * year
+nmat=2
 
 icase = 2
 
@@ -71,27 +72,29 @@ def assign_boundary_conditions_V(
 
 ###################################################################################################
 
+def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
-
-    swarm_mat = np.zeros(nparticle, dtype=np.int32)
-    swarm_mat[:] = 1
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
 
     for ip in range(0, nparticle):
         if (swarm_z[ip] > 660e3 - 80e3 and swarm_z[ip] <= 660e3) or (
-            swarm_z[ip] > 660e3 - (80e3 + 250e3) and abs(swarm_x[ip] - Lx / 2) < 40e3
-        ):
-            swarm_mat[ip] = 2
+            swarm_z[ip] > 660e3 - (80e3 + 250e3) and abs(swarm_x[ip] - Lx / 2) < 40e3):
+            swarm_wf[1,ip] = 1
+        else:
+            swarm_wf[0,ip] = 1
 
-    return swarm_mat
+    material_names = ["mantle", "lithosphere"]
+
+    return swarm_wf, material_names
 
 
 ###################################################################################################
 
-
 def material_model(
     nparticle,
-    swarm_mat,
+    swarm_active,
+    nmat,
+    swarm_wf,
     swarm_x,
     swarm_z,
     swarm_rad,
@@ -108,52 +111,51 @@ def material_model(
     swarm_hcond = 0
     swarm_hcapa = 0
     swarm_hprod = 0
+    swarm_alpha = 0
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
+
+    eta_mantle = 1e21
+    rho_mantle = 3150
+    eta_lithosphere = 1e22
+    rho_lithosphere = 3300
 
     if icase == 0:
-        mask = swarm_mat == 1
-        swarm_eta[mask] = 1e21
-        swarm_rho[mask] = 3150
-        mask = swarm_mat == 2
-        swarm_eta[mask] = 1e22
-        swarm_rho[mask] = 3300
+        for ip in range(0, nparticle):
+            if swarm_active[ip]:
+               swarm_rho[ip] = swarm_wf[0, ip] * rho_mantle + swarm_wf[1, ip] * rho_lithosphere
+               swarm_eta[ip] = swarm_wf[0, ip] * eta_mantle + swarm_wf[1, ip] * eta_lithosphere
+
 
     if icase == 1:
-        mask = swarm_mat == 1
-        swarm_eta[mask] = 1e21
-        swarm_rho[mask] = 3150
-        mask = swarm_mat == 2
-        swarm_rho[mask] = 3300
-
         swarm_sr = np.sqrt(0.5 * (swarm_exx**2 + swarm_ezz**2) + swarm_exz**2)
         for ip in range(0, nparticle):
-            if swarm_mat[ip] == 2:
-                sr = max(1e-30, swarm_sr[ip])
-                n_pow = 4
-                val = (4.75e11) * sr ** (1.0 / n_pow - 1.0)
-                val = max(val, 1e19)
-                val = min(val, 1e25)
-                swarm_eta[ip] = val
+            if swarm_active[ip]:
+               swarm_rho[ip] = swarm_wf[0, ip] * rho_mantle + swarm_wf[1, ip] * rho_lithosphere
+               if swarm_wf[0,ip]>0.99:
+                  swarm_eta[ip] = 1e21
+               else:
+                  sr = max(1e-30, swarm_sr[ip])
+                  n_pow = 4
+                  val = (4.75e11) * sr ** (1.0 / n_pow - 1.0)
+                  val = max(val, 1e19)
+                  val = min(val, 1e25)
+                  swarm_eta[ip] = val
 
     if icase == 2:
-        mask = swarm_mat == 1
-        swarm_rho[mask] = 3150
-        mask = swarm_mat == 2
-        swarm_rho[mask] = 3300
-
         swarm_sr = np.sqrt(0.5 * (swarm_exx**2 + swarm_ezz**2) + swarm_exz**2)
         for ip in range(0, nparticle):
-            sr = max(1e-30, swarm_sr[ip])
-            if swarm_mat[ip] == 1:
-                n_pow = 3
-                val = (4.54e10) * sr ** (1.0 / n_pow - 1.0)
-            else:
-                n_pow = 4
-                val = (4.75e11) * sr ** (1.0 / n_pow - 1.0)
-            val = max(val, 1e19)
-            val = min(val, 1e25)
-            swarm_eta[ip] = val
+            if swarm_active[ip]:
+               swarm_rho[ip] = swarm_wf[0, ip] * rho_mantle + swarm_wf[1, ip] * rho_lithosphere
+               sr = max(1e-30, swarm_sr[ip])
+               if swarm_wf[0,ip] > 0.99:
+                   val = (4.54e10) * sr ** (1.0 / 3 - 1.0)
+               else:
+                   val = (4.75e11) * sr ** (1.0 / 4 - 1.0)
+               val = max(val, 1e19)
+               val = min(val, 1e25)
+               swarm_eta[ip] = val
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################

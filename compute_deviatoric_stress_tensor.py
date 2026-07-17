@@ -103,12 +103,12 @@ def compute_deviatoric_stress_tensor(
             print("     -> tauxz_e (m,M) %.3e %.3e " % (np.min(tauxz_e), np.max(tauxz_e)))
 
     else:
-        taurr_n = 0
-        tautt_n = 0
-        taurt_n = 0
-        taurr_e = 0
-        tautt_e = 0
-        taurt_e = 0
+        tauxx_n = 0
+        tauzz_n = 0
+        tauxz_n = 0
+        tauxx_e = 0
+        tauzz_e = 0
+        tauxz_e = 0
         taurr_n = 0
         tautt_n = 0
         taurt_n = 0

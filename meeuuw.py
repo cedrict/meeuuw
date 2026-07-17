@@ -1833,6 +1833,7 @@ for iloop in range(0, nstep*niter_nl):
             nniter = 0
     else:
         sol = np.zeros(Nfem, dtype=np.float64)
+        nniter = 0
 
     print("solve Stokes system: ......................... %.3f s %d %d %d" % (clock.time() - start, Nfem, nel, nniter))
     timings[2] += clock.time() - start
@@ -2509,47 +2510,19 @@ for iloop in range(0, nstep*niter_nl):
     start = clock.time()
 
     vrms, EK, WAG, TVD, GPE, ITE, TM, T_avrg, eta_avrg = compute_global_quantities(
-        nel,
-        nq_per_element,
-        xq,
-        zq,
-        uq,
-        wq,
-        Tq,
-        rhoq,
-        hcapaq,
-        alphaq,
-        etaq,
-        exxq,
-        ezzq,
-        exzq,
-        dxxq,
-        dzzq,
-        dxzq,
-        volume,
-        JxWq,
-        gx_q,
-        gz_q,
-    )
+        nel,nq_per_element,xq,zq,uq,wq,Tq,rhoq,hcapaq,alphaq,etaq,
+        exxq,ezzq,exzq,dxxq,dzzq,dxzq,volume,JxWq,gx_q,gz_q)
 
     delta = WAG + TVD  # see tosn15
 
-    vrms_file.write("%.4e %.6e \n" % (geo_time / time_scale, vrms / vel_scale))
-    vrms_file.flush()
-    TM_file.write("%.4e %.4e \n" % (geo_time / time_scale, TM))
-    TM_file.flush()
-    EK_file.write("%.4e %.4e \n" % (geo_time / time_scale, EK))
-    EK_file.flush()
-    TVD_file.write("%.4e %.4e \n" % (geo_time / time_scale, TVD))
-    TVD_file.flush()
-    WAG_file.write("%.4e %.4e \n" % (geo_time / time_scale, WAG))
-    WAG_file.flush()
-    delta_file.write("%.4e %.4e %.4e\n" % (geo_time / time_scale, delta, max(abs(WAG), TVD)))
-    delta_file.flush()
-    T_avrg_file.write("%.4e %.6e \n" % (geo_time / time_scale, T_avrg))
-    T_avrg_file.flush()
-    eta_avrg_file.write("%.4e %.4e \n" % (geo_time / time_scale, eta_avrg))
-    eta_avrg_file.flush()
+    vrms_file.write("%.4e %.6e \n" % (geo_time / time_scale, vrms / vel_scale)) ; vrms_file.flush()
+    TM_file.write("%.4e %.4e \n" % (geo_time / time_scale, TM)) ; TM_file.flush()
+    EK_file.write("%.4e %.4e \n" % (geo_time / time_scale, EK)) ; EK_file.flush()
+    TVD_file.write("%.4e %.4e \n" % (geo_time / time_scale, TVD)) ; TVD_file.flush()
+    WAG_file.write("%.4e %.4e \n" % (geo_time / time_scale, WAG)) ; WAG_file.flush()
+    delta_file.write("%.4e %.4e %.4e\n" % (geo_time / time_scale, delta, max(abs(WAG), TVD))) ; delta_file.flush()
+    T_avrg_file.write("%.4e %.6e \n" % (geo_time / time_scale, T_avrg)) ; T_avrg_file.flush()
+    eta_avrg_file.write("%.4e %.4e \n" % (geo_time / time_scale, eta_avrg)) ; eta_avrg_file.flush()
 
     print("     istep= %.6d ; vrms   = %.3e %s" % (istep, vrms / vel_scale, vel_unit))
 
@@ -2592,32 +2565,10 @@ for iloop in range(0, nstep*niter_nl):
         taurr_e,
         tautt_e,
         taurt_e,
-    ) = compute_deviatoric_stress_tensor(
-        solve_Stokes,
-        geometry,
-        x_V,
-        theta_V,
-        eta_n,
-        x_e,
-        theta_e,
-        eta_e,
-        istep,
-        nstep,
-        every_solution_vtu,
-        axisymmetric,
-        dxx_n,
-        dzz_n,
-        dxz_n,
-        dxx_e,
-        dzz_e,
-        dxz_e,
-        top_Vnodes,
-        bot_Vnodes,
-        top_element,
-        bot_element,
-        verbose_output,
-        output_folder,
-    )
+    ) = compute_deviatoric_stress_tensor(solve_Stokes,geometry,x_V,theta_V,eta_n,x_e,theta_e,eta_e,
+                                         istep,nstep,every_solution_vtu,axisymmetric,
+                                         dxx_n,dzz_n,dxz_n,dxx_e,dzz_e,dxz_e,top_Vnodes,bot_Vnodes,
+                                         top_element,bot_element,verbose_output,output_folder)
 
     print("compute deviatoric stress: ................... %.3f s" % (clock.time() - start))
     timings[27] += clock.time() - start

@@ -3,7 +3,7 @@ from constants import *
 
 CFLnb=0.75
 
-nelx = 64
+nelx = 128
 nelz = nelx
 
 #formulation = "BA"
@@ -45,7 +45,7 @@ end_time = 1e10 * year
 every_solution_vtu = 100
 every_swarm_vtu = 100
 RKorder = -1
-nstep = 100 
+nstep = 10 
 
 Di = alphaT * g0 * Lz / hcapa
 kappa = hcond / rho0 / hcapa
