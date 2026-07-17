@@ -14,6 +14,8 @@ if geometry == "quarter":
 if geometry == "half":
     nelx = int(6.7 * nelz)
 
+nmat = 3
+
 R_blob = 200e3
 eta_blob = 1e22
 rho_blob = 3200
@@ -110,24 +112,28 @@ def assign_boundary_conditions_V(
 
 
 ###################################################################################################
+# 0: mantle
+# 1: blob
+# 2: lithosphere
 
 
-def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
+def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz):
 
-    swarm_mat = np.zeros(nparticle, dtype=np.int32)
+    swarm_wf = np.zeros((nmat, nparticle), dtype=np.float64)
 
     for ip in range(nparticle):
         if swarm_rad[ip] > Router - 150e3:
-            swarm_mat[ip] = 3
+            swarm_wf[2, ip] = 1
         else:
-            swarm_mat[ip] = 1
+            swarm_wf[0, ip] = 1
 
     if blob == "ball":
         x_blob = 3500e3
         y_blob = 3500e3
         for ip in range(nparticle):
             if (swarm_x[ip] - x_blob) ** 2 + (swarm_z[ip] - y_blob) ** 2 < R_blob**2:
-                swarm_mat[ip] = 2
+                swarm_wf[:, ip] = 0
+                swarm_wf[1, ip] = 1
 
     if blob == "banaan":
         for ip in range(nparticle):
@@ -135,16 +141,20 @@ def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz)
                 abs(swarm_theta[ip] - np.pi / 4) < np.pi / 32
                 and abs(swarm_rad[ip] - (Rinner + Router) / 2) < (Router - Rinner) / 16
             ):
-                swarm_mat[ip] = 2
+                swarm_wf[:, ip] = 0
+                swarm_wf[1, ip] = 1
 
     if blob == "half_ball":
         x_blob = 0
         y_blob = 5000e3
         for ip in range(nparticle):
             if (swarm_x[ip] - x_blob) ** 2 + (swarm_z[ip] - y_blob) ** 2 < R_blob**2:
-                swarm_mat[ip] = 2
+                swarm_wf[:, ip] = 0
+                swarm_wf[1, ip] = 1
 
-    return swarm_mat
+    material_names = ["mantle", "blob", "lithosphere"]
+
+    return swarm_wf, material_names
 
 
 ###################################################################################################
@@ -152,7 +162,9 @@ def particle_layout(nparticle, swarm_x, swarm_z, swarm_rad, swarm_theta, Lx, Lz)
 
 def material_model(
     nparticle,
-    swarm_mat,
+    swarm_active,
+    nmat,
+    swarm_wf,
     swarm_x,
     swarm_z,
     swarm_rad,
@@ -166,21 +178,22 @@ def material_model(
 
     swarm_rho = np.zeros(nparticle, dtype=np.float64)
     swarm_eta = np.zeros(nparticle, dtype=np.float64)
-    swarm_hcond = 0
-    swarm_hcapa = 0
-    swarm_hprod = 0
+    swarm_hcond = np.zeros(nparticle, dtype=np.float64)
+    swarm_hcapa = np.zeros(nparticle, dtype=np.float64)
+    swarm_hprod = np.zeros(nparticle, dtype=np.float64)
+    swarm_alpha = np.zeros(nparticle, dtype=np.float64)
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
-    mask = swarm_mat == 1
-    swarm_eta[mask] = eta_mantle
-    swarm_rho[mask] = rho_mantle
-    mask = swarm_mat == 2
-    swarm_eta[mask] = eta_blob
-    swarm_rho[mask] = rho_blob
-    mask = swarm_mat == 3
-    swarm_eta[mask] = eta_lithosphere
-    swarm_rho[mask] = rho_lithosphere
+    for ip in range(0, nparticle):
+        if swarm_active[ip]:
+            swarm_rho[ip] = (
+                swarm_wf[0, ip] * rho_mantle + swarm_wf[1, ip] * rho_blob + swarm_wf[2, ip] * rho_lithosphere
+            )
+            swarm_eta[ip] = (
+                swarm_wf[0, ip] * eta_mantle + swarm_wf[1, ip] * eta_blob + swarm_wf[2, ip] * eta_lithosphere
+            )
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism
 
 
 ###################################################################################################
