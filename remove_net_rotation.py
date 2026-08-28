@@ -10,7 +10,7 @@ from project_nodal_field_onto_qpoints import project_nodal_Vfield_onto_qpoints
 
 
 @numba.njit
-def remove_net_rotation(nq_per_element, nel, icon_V, xq, zq, u, w, nn_V, N_V, x_V, z_V, JxWq):
+def remove_net_rotation(nq_per_element, m_V, nel, icon_V, xq, zq, u, w, nn_V, N_V, x_V, z_V, JxWq):
 
     uq = project_nodal_Vfield_onto_qpoints(u, nq_per_element, nel, m_V, N_V, icon_V)
     wq = project_nodal_Vfield_onto_qpoints(w, nq_per_element, nel, m_V, N_V, icon_V)

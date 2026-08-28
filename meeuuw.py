@@ -113,7 +113,7 @@ from set_default_parameters import *
 # experiment 28: Lithospheric Drip based on bagu25
 ###############################################################################
 
-experiment = 19
+experiment = 23
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx", type=int, default=0)
@@ -132,7 +132,7 @@ parser.add_argument("--particle_rho_projection", type=int, default=-1)
 parser.add_argument("--particle_eta_projection", type=int, default=-1)
 parser.add_argument("--RKorder", type=int, default=0)
 parser.add_argument("--output_folder",default="OUTPUT")
-parser.add_argument("--formulation", default='BA')
+parser.add_argument("--formulation", default='x')
 parser.add_argument("--icase", default='x')
 args = parser.parse_args()
 
@@ -280,8 +280,11 @@ if args.RKorder > 0:
     RKorder = args.RKorder
 print("RKorder=", args.RKorder)
 
-formulation=str(args.formulation)
+if args.formulation != 'x':
+   formulation=str(args.formulation)
 
+if not (formulation =='BA' or formulation=='EBA'):
+   raise ValueError("unknown formulation")
 
 try:
     os.mkdir(output_folder)
@@ -1878,6 +1881,7 @@ for iloop in range(0, nstep*niter_nl):
         istep,
         nstep,
         nq_per_element,
+        m_V,
         nel,
         icon_V,
         xq,

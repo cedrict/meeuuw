@@ -14,19 +14,19 @@ bot_free_slip = True
 
 print(global_stuff.icase)
 
-#icase = '1a_BA_q_32'
+#icase = '1a_BA_e_32'
 
 match global_stuff.icase:
     
 #case 1a 
     case '1a_BA_e_32':
       formulation = 'BA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 32
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
     case '1a_EBA_e_32':
       formulation = 'EBA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 32
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
       
@@ -65,12 +65,12 @@ match global_stuff.icase:
   
     case '1a_BA_e_48':
       formulation = 'BA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 48
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
     case '1a_EBA_e_48':
       formulation = 'EBA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 48
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
       
@@ -109,12 +109,12 @@ match global_stuff.icase:
     
     case '1a_BA_e_64':
       formulation = 'BA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 64
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
     case '1a_EBA_e_64':
       formulation = 'EBA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 64
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
       
@@ -155,12 +155,12 @@ match global_stuff.icase:
 #case 1b
     case '1b_BA_e_32':
       formulation = 'BA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 32
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
     case '1b_EBA_e_32':
       formulation = 'EBA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 32
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
       
@@ -199,12 +199,12 @@ match global_stuff.icase:
 
     case '1b_BA_e_48':
       formulation = 'BA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 48
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
     case '1b_EBA_e_48':
       formulation = 'EBA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 48
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
       
@@ -243,12 +243,12 @@ match global_stuff.icase:
 
     case '1b_BA_e_64':
       formulation = 'BA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 64
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
     case '1b_EBA_e_64':
       formulation = 'EBA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 64
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
       
@@ -288,12 +288,12 @@ match global_stuff.icase:
 #case 1c
     case '1c_BA_e_32':
       formulation = 'BA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 32
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
     case '1c_EBA_e_32':
       formulation = 'EBA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 32
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
       
@@ -332,12 +332,12 @@ match global_stuff.icase:
 
     case '1c_BA_e_48':
       formulation = 'BA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 48
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
     case '1c_EBA_e_48':
       formulation = 'EBA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 48
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
       
@@ -376,12 +376,12 @@ match global_stuff.icase:
 
     case '1c_BA_e_64':
       formulation = 'BA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 64
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
     case '1c_EBA_e_64':
       formulation = 'EBA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 64
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
       
@@ -421,12 +421,12 @@ match global_stuff.icase:
 #case 1d 
     case '1d_BA_e_32':
       formulation = 'BA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 32
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
     case '1d_EBA_e_32':
       formulation = 'EBA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 32
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
       
@@ -465,12 +465,12 @@ match global_stuff.icase:
 
     case '1d_BA_e_48':
       formulation = 'BA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 48
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
     case '1d_EBA_e_48':
       formulation = 'EBA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 48
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
       
@@ -509,12 +509,12 @@ match global_stuff.icase:
 
     case '1d_BA_e_64':
       formulation = 'BA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 64
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
     case '1d_EBA_e_64':
       formulation = 'EBA'
-      geometry='eight'
+      geometry='eighth'
       nelz = 64
       nelx = int(2 * np.pi * Rmean / 8 / (Router - Rinner) * nelz)
       
@@ -770,11 +770,11 @@ def material_model(
     swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
     match global_stuff.icase:
-        case '1a_BA_e_32' | '1a_EBA_e_32' | '1a_BA_h_32' | '1a_EBA_h_32' \
-             '1a_BA_h_32' | '1a_EBA_h_32' | '1a_BA_f_32' | '1a_EBA_f_32' \
-             '1a_BA_e_48' | '1a_EBA_e_48' | '1a_BA_h_48' | '1a_EBA_h_48' \
-             '1a_BA_h_48' | '1a_EBA_h_48' | '1a_BA_f_48' | '1a_EBA_f_48' \
-             '1a_BA_e_64' | '1a_EBA_e_64' | '1a_BA_h_64' | '1a_EBA_h_64' \
+        case '1a_BA_e_32' | '1a_EBA_e_32' | '1a_BA_q_32' | '1a_EBA_q_32' | \
+             '1a_BA_h_32' | '1a_EBA_h_32' | '1a_BA_f_32' | '1a_EBA_f_32' | \
+             '1a_BA_e_48' | '1a_EBA_e_48' | '1a_BA_q_48' | '1a_EBA_q_48' | \
+             '1a_BA_h_48' | '1a_EBA_h_48' | '1a_BA_f_48' | '1a_EBA_f_48' | \
+             '1a_BA_e_64' | '1a_EBA_e_64' | '1a_BA_q_64' | '1a_EBA_q_64' | \
              '1a_BA_h_64' | '1a_EBA_h_64' | '1a_BA_f_64' | '1a_EBA_f_64' :  
             swarm_alpha[:] = 3e-5
             swarm_eta[:]   = 9.72e+24
@@ -783,11 +783,11 @@ def material_model(
             swarm_hcapa[:] = 1250
             swarm_hprod[:] = 0
             swarm_mechanism[:] = 1
-        case '1b_BA_e_32' | '1b_EBA_e_32' | '1b_BA_h_32' | '1b_EBA_h_32' \
-             '1b_BA_h_32' | '1b_EBA_h_32' | '1b_BA_f_32' | '1b_EBA_f_32' \
-             '1b_BA_e_48' | '1b_EBA_e_48' | '1b_BA_h_48' | '1b_EBA_h_48' \
-             '1b_BA_h_48' | '1b_EBA_h_48' | '1b_BA_f_48' | '1b_EBA_f_48' \
-             '1b_BA_e_64' | '1b_EBA_e_64' | '1b_BA_h_64' | '1b_EBA_h_64' \
+        case '1b_BA_e_32' | '1b_EBA_e_32' | '1b_BA_q_32' | '1b_EBA_q_32' | \
+             '1b_BA_h_32' | '1b_EBA_h_32' | '1b_BA_f_32' | '1b_EBA_f_32' | \
+             '1b_BA_e_48' | '1b_EBA_e_48' | '1b_BA_q_48' | '1b_EBA_q_48' | \
+             '1b_BA_h_48' | '1b_EBA_h_48' | '1b_BA_f_48' | '1b_EBA_f_48' | \
+             '1b_BA_e_64' | '1b_EBA_e_64' | '1b_BA_q_64' | '1b_EBA_q_64' | \
              '1b_BA_h_64' | '1b_EBA_h_64' | '1b_BA_f_64' | '1b_EBA_f_64' :   
             swarm_alpha[:] = 3e-5
             swarm_eta[:]   = 9.72e+23
@@ -796,11 +796,11 @@ def material_model(
             swarm_hcapa[:] = 1250
             swarm_hprod[:] = 0
             swarm_mechanism[:] = 1
-        case '1c_BA_e_32' | '1c_EBA_e_32' | '1c_BA_h_32' | '1c_EBA_h_32' \
-             '1c_BA_h_32' | '1c_EBA_h_32' | '1c_BA_f_32' | '1c_EBA_f_32' \
-             '1c_BA_e_48' | '1c_EBA_e_48' | '1c_BA_h_48' | '1c_EBA_h_48' \
-             '1c_BA_h_48' | '1c_EBA_h_48' | '1c_BA_f_48' | '1c_EBA_f_48' \
-             '1c_BA_e_64' | '1c_EBA_e_64' | '1c_BA_h_64' | '1c_EBA_h_64' \
+        case '1c_BA_e_32' | '1c_EBA_e_32' | '1c_BA_q_32' | '1c_EBA_q_32' | \
+             '1c_BA_h_32' | '1c_EBA_h_32' | '1c_BA_f_32' | '1c_EBA_f_32' | \
+             '1c_BA_e_48' | '1c_EBA_e_48' | '1c_BA_q_48' | '1c_EBA_q_48' | \
+             '1c_BA_h_48' | '1c_EBA_h_48' | '1c_BA_f_48' | '1c_EBA_f_48' | \
+             '1c_BA_e_64' | '1c_EBA_e_64' | '1c_BA_q_64' | '1c_EBA_q_64' | \
              '1c_BA_h_64' | '1c_EBA_h_64' | '1c_BA_f_64' | '1c_EBA_f_64' :  
             swarm_alpha[:] = 3e-5
             swarm_eta[:]   = 9.72e+22
@@ -809,11 +809,11 @@ def material_model(
             swarm_hcapa[:] = 1250
             swarm_hprod[:] = 0
             swarm_mechanism[:] = 1
-        case '1d_BA_e_32' | '1d_EBA_e_32' | '1d_BA_h_32' | '1d_EBA_h_32' \
-             '1d_BA_h_32' | '1d_EBA_h_32' | '1d_BA_f_32' | '1d_EBA_f_32' \
-             '1d_BA_e_48' | '1d_EBA_e_48' | '1d_BA_h_48' | '1d_EBA_h_48' \
-             '1d_BA_h_48' | '1d_EBA_h_48' | '1d_BA_f_48' | '1d_EBA_f_48' \
-             '1d_BA_e_64' | '1d_EBA_e_64' | '1d_BA_h_64' | '1d_EBA_h_64' \
+        case '1d_BA_e_32' | '1d_EBA_e_32' | '1d_BA_q_32' | '1d_EBA_q_32' | \
+             '1d_BA_h_32' | '1d_EBA_h_32' | '1d_BA_f_32' | '1d_EBA_f_32' | \
+             '1d_BA_e_48' | '1d_EBA_e_48' | '1d_BA_q_48' | '1d_EBA_q_48' | \
+             '1d_BA_h_48' | '1d_EBA_h_48' | '1d_BA_f_48' | '1d_EBA_f_48' | \
+             '1d_BA_e_64' | '1d_EBA_e_64' | '1d_BA_q_64' | '1d_EBA_q_64' | \
              '1d_BA_h_64' | '1d_EBA_h_64' | '1d_BA_f_64' | '1d_EBA_f_64' :   
             swarm_alpha[:] = 3e-5
             swarm_eta[:]   = 9.72e+21
@@ -824,6 +824,7 @@ def material_model(
             swarm_mechanism[:] = 1
 
         case _:
+            print(global_stuff.icase)
             raise ValueError('unknown icase value')
 
     return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism

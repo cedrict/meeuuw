@@ -83,6 +83,7 @@ def build_matrix_energy(
             b_el[:] += N[:] * hprodq[iel, iq] * JxWq[iel, iq]
 
             if formulation == "EBA":
+                print('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
                 # viscous dissipation
                 b_el[:] += (
                     N[:]
@@ -104,8 +105,8 @@ def build_matrix_energy(
                     N[:]
                     * alphaq[iel, iq]
                     * Tq[iel, iq]
-                    #* (velq[0, 0] * dpdxq[iel, iq] + velq[0, 1] * dpdzq[iel, iq]) # FULL
-                    * (- velq[0, 1] * rho0 * 10)
+                    * (velq[0, 0] * dpdxq[iel, iq] + velq[0, 1] * dpdzq[iel, iq]) # FULL
+                    #* (- velq[0, 1] * rho0 * 10)
                     * JxWq[iel, iq]
                 )
         # end for
