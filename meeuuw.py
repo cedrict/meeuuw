@@ -113,7 +113,7 @@ from set_default_parameters import *
 # experiment 28: Lithospheric Drip based on bagu25
 ###############################################################################
 
-experiment = 23
+experiment = 24
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--nelx", type=int, default=0)
@@ -284,6 +284,7 @@ if args.formulation != 'x':
    formulation=str(args.formulation)
 
 if not (formulation =='BA' or formulation=='EBA'):
+   print(formulation)
    raise ValueError("unknown formulation")
 
 try:

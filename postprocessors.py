@@ -89,13 +89,21 @@ def compute_global_quantities(
 
 def compute_boundary_velocity_statistics(x_V, z_V, u, w, left_Vnodes, right_Vnodes, bottom_Vnodes, top_Vnodes):
 
-    vel_left = np.sqrt(u[left_Vnodes] ** 2 + w[left_Vnodes] ** 2)
-    vel_min_left = np.min(vel_left)
-    vel_max_left = np.max(vel_left)
+    if np.sum(left_Vnodes)>0:
+       vel_left = np.sqrt(u[left_Vnodes] ** 2 + w[left_Vnodes] ** 2)
+       vel_min_left = np.min(vel_left)
+       vel_max_left = np.max(vel_left)
+    else:
+       vel_min_left = 0
+       vel_max_left = 0
 
-    vel_right = np.sqrt(u[right_Vnodes] ** 2 + w[right_Vnodes] ** 2)
-    vel_min_right = np.min(vel_right)
-    vel_max_right = np.max(vel_right)
+    if np.sum(right_Vnodes)>0:
+       vel_right = np.sqrt(u[right_Vnodes] ** 2 + w[right_Vnodes] ** 2)
+       vel_min_right = np.min(vel_right)
+       vel_max_right = np.max(vel_right)
+    else:
+       vel_min_right = 0
+       vel_max_right = 0
 
     vel_bottom = np.sqrt(u[bottom_Vnodes] ** 2 + w[bottom_Vnodes] ** 2)
     vel_min_bottom = np.min(vel_bottom)

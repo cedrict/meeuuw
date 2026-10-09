@@ -53,10 +53,11 @@ every_solution = 100
 every_swarm_vtu = 10000
 RKorder = -1
 CFLnb = 0.75
+formulation='BA'
 
 debug_nan = True
 
-nelx = 64
+nelx = 32
 nelz = nelx
 nstep = 1500
 

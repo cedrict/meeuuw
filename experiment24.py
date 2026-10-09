@@ -5,15 +5,34 @@ import scipy
 from constants import *
 
 ###################################################################################################
+# icase should be comprised between 1 and 10
+# icase=0 : ref (quarter, nelz=70,Tm=1720,Ea=117)
+# icase=1a: ref + low resolution (nelz=40) 
+# icase=1b: ref + high resolution (nelz=100) 
+# icase=2 : ref+ diff Ea=250
+# icase=3a: ref + Tm=1820
+# icase=3b: ref + Tm=2020
+# icase=4a: ref in box
+# icase=4b: ref in 1/8
+# icase=4c: ref in 1/2
+# icase=4d: ref in full annulus
+
+icase='0'
+
+###################################################################################################
 # Murphy & King, JGR, 2024
 
-# geometry='box'
-# geometry='quarter'
-geometry = "eighth"
-# geometry='half'
-# geometry='annulus'
+geometry='quarter'
 
-nelz = 40
+if icase=='4a': geometry='box'
+if icase=='4b': geometry = "eighth"
+if icase=='4c': geometry='half'
+if icase=='4d': geometry='annulus'
+
+nelz = 70
+
+if icase=='1a': nelz=40
+if icase=='1b': nelz=100
 
 match geometry:
     case "box":
@@ -64,6 +83,8 @@ every_solution = 10
 every_swarm_vtu = 10
 RKorder = -1
 
+formulation='BA'
+
 compute_plith = False
 
 nstep = 50001
@@ -86,6 +107,9 @@ def initial_temperature(x, z, rad, theta, nn_V):
 
     age = 100e6 * year  # in years, converted to seconds
     Tm = 1720  # K see table 1
+
+    if icase=='3a': Tm=1820
+    if icase=='3b': Tm=2020
 
     match geometry:
         case "box":
@@ -254,6 +278,7 @@ def particle_layout(nparticle, nmat, swarm_x, swarm_z, swarm_rad, swarm_theta, L
 
 def material_model(
     nparticle,
+    swarm_active,
     nmat,
     swarm_mat,
     swarm_x,
@@ -272,11 +297,13 @@ def material_model(
     swarm_hcond = np.zeros(nparticle, dtype=np.float64)
     swarm_hcapa = np.zeros(nparticle, dtype=np.float64)
     swarm_hprod = np.zeros(nparticle, dtype=np.float64)
+    swarm_alpha = np.zeros(nparticle, dtype=np.float64)
+    swarm_mechanism = np.zeros(nparticle, dtype=np.int32)
 
     swarm_rho[:] = rho0 * (1 - alphaT * (swarm_T[:] - Tsurf))
 
     Ea = 117e3  # J/mol (Activation energy)
-    # Ea = 350e3  #J/mol (Activation energy)
+    if icase=='2': Ea = 350e3  #J/mol (Activation energy)
     Va = 6.6e-6  # m3/mol (Activation Volume)
     eta0 = 1e21  # Pa s (Reference Viscosity)
 
@@ -315,7 +342,7 @@ def material_model(
     swarm_hcapa[:] = hcapa
     swarm_hprod[:] = 0
 
-    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod
+    return swarm_rho, swarm_eta, swarm_hcond, swarm_hcapa, swarm_hprod, swarm_alpha, swarm_mechanism 
 
 
 ###############################################################################

@@ -14,7 +14,7 @@ bot_free_slip = True
 
 print(global_stuff.icase)
 
-#icase = '1a_BA_e_32'
+icase = '1a_BA_f_32'
 
 match global_stuff.icase:
     
@@ -235,7 +235,7 @@ match global_stuff.icase:
       geometry='annulus'
       nelz = 48
       nelx = int(2 * np.pi * Rmean / (Router - Rinner) * nelz)
-    case '1b_EBA_f_32':
+    case '1b_EBA_f_48':
       formulation = 'EBA'
       geometry='annulus'
       nelz = 48
@@ -368,7 +368,7 @@ match global_stuff.icase:
       geometry='annulus'
       nelz = 48
       nelx = int(2 * np.pi * Rmean / (Router - Rinner) * nelz)
-    case '1c_EBA_f_32':
+    case '1c_EBA_f_48':
       formulation = 'EBA'
       geometry='annulus'
       nelz = 48
@@ -501,7 +501,7 @@ match global_stuff.icase:
       geometry='annulus'
       nelz = 48
       nelx = int(2 * np.pi * Rmean / (Router - Rinner) * nelz)
-    case '1d_EBA_f_32':
+    case '1d_EBA_f_48':
       formulation = 'EBA'
       geometry='annulus'
       nelz = 48
